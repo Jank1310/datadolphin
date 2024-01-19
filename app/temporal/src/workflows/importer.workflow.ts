@@ -1,6 +1,7 @@
 import {
   ApplicationFailure,
   condition,
+  defineQuery,
   defineSignal,
   setHandler,
 } from "@temporalio/workflow";
@@ -22,6 +23,12 @@ export interface ImporterWorkflowParams {
   startImportTimeout?: string;
 }
 
+export interface ImporterStatus {
+  isWaitingForFile: boolean;
+  isWaitingForImport: boolean;
+  isImporting: boolean;
+}
+
 const addFileSignal = defineSignal<
   [
     {
@@ -33,6 +40,7 @@ const addFileSignal = defineSignal<
 const addPatchesSignal =
   defineSignal<[{ patches: DataSetPatch[] }]>("importer:add-patch");
 const startImportSignal = defineSignal<[]>("importer:start-import");
+const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 
 /**
  * Entity workflow which represents a complete importer workflow
@@ -59,6 +67,13 @@ export async function importer(params: ImporterWorkflowParams) {
   });
   setHandler(startImportSignal, () => {
     importStartRequested = true;
+  });
+  setHandler(importStatusQuery, () => {
+    return {
+      isWaitingForFile: sourceFile === null,
+      isWaitingForImport: importStartRequested === false,
+      isImporting: importStartRequested === true,
+    };
   });
 
   try {
