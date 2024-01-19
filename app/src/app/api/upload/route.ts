@@ -1,3 +1,5 @@
+import { Client } from "@temporalio/client";
+import { defineSignal } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import * as env from "env-var";
 import { writeFile } from "fs/promises";
@@ -19,7 +21,7 @@ export async function POST(
 ) {
   const formData = await req.formData();
   const file: File | null = formData.get("file") as unknown as File;
-  const importerId = formData.get("importerId");
+  const importerId = formData.get("importerId") as unknown as string;
   const fileBuffer = Buffer.from(await file.arrayBuffer());
 
   if (!importerId) {
@@ -31,7 +33,7 @@ export async function POST(
   const filePath = `/tmp/${file.name}`;
   await writeFile(filePath, fileBuffer);
 
-  const bucket = `importer-${importerId}`;
+  const bucket = importerId;
   const bucketExists = await minioClient.bucketExists(bucket);
 
   if (bucketExists === false) {
@@ -51,8 +53,23 @@ export async function POST(
     console.error(error);
     return new Response("Failed to upload file", { status: 500 });
   }
-  // temporal client
-  // send update to import workflow
+  const client = new Client();
+  const handle = client.workflow.getHandle(importerId);
+  const addFileSignal = defineSignal<
+    [
+      {
+        fileReference: string;
+        fileFormat: "csv" | "xlsx";
+      }
+    ]
+  >("importer:add-file");
+  const startImportSignal = defineSignal<[]>("importer:start-import");
+
+  await handle.signal(addFileSignal, {
+    fileReference: destFileName,
+    fileFormat: extname(file.name) === ".csv" ? "csv" : "xlsx",
+  });
+  await handle.signal(startImportSignal);
 
   return new Response("", { status: 201 });
 }

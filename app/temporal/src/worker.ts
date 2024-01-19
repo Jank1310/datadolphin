@@ -1,9 +1,11 @@
 import { Worker } from "@temporalio/worker";
-import * as activities from "./activities";
+import "dotenv/config";
+import { makeActivities } from "./activities";
 
 run().catch((err) => console.log(err));
 
 async function run() {
+  const activities = makeActivities();
   const worker = await Worker.create({
     workflowsPath: require.resolve("./workflows"), // passed to Webpack for bundling
     activities, // directly imported in Node.js

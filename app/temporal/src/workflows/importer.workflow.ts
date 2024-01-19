@@ -3,11 +3,13 @@ import {
   condition,
   defineQuery,
   defineSignal,
+  proxyActivities,
   setHandler,
+  workflowInfo,
 } from "@temporalio/workflow";
+import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
 import { DataSetPatch } from "../domain/DataSet";
-
 export interface ImporterWorkflowParams {
   columnConfig: ColumnConfig[];
   callbackUrl: string;
@@ -49,6 +51,11 @@ export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
   const compensations: Function[] = [];
+  const { downloadSourceFile, processSourceFile } = proxyActivities<
+    ReturnType<typeof makeActivities>
+  >({
+    startToCloseTimeout: "5 minute",
+  });
 
   let sourceFile: {
     fileReference: string;
@@ -97,7 +104,12 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: import start not requested"
       );
     }
-    // TODO perform import
+    // perform import
+    const downloadResult = await downloadSourceFile({
+      filename: sourceFile!.fileReference,
+      importerId: workflowInfo().workflowId,
+    });
+    await processSourceFile({ localFilePath: downloadResult.localFilePath });
   } catch (err) {
     for (const compensation of compensations) {
       await compensation();
