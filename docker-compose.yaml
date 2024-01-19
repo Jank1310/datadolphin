@@ -2,14 +2,14 @@ version: "3.7"
 
 services:
   minio:
-    image: minio/minio:latest
+    image: minio/minio:${MINIO_VERSION}
     command: server --console-address ":9001" /data
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     hostname: minio
     volumes:
       - miniostorage:/data
