@@ -1,0 +1,24 @@
+{
+    "extends": "@tsconfig/node18/tsconfig.json", // optional but nice to have
+    "version": "4.4.2",
+    "compilerOptions": {
+        "emitDecoratorMetadata": false,
+        "experimentalDecorators": false,
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "composite": true,
+        "rootDir": "./src",
+        "outDir": "./lib",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "target": "ESNext"
+    },
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "lib"
+    ]
+}
