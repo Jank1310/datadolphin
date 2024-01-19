@@ -40,6 +40,7 @@ services:
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
       - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_VALUE=frontend.enableUpdateWorkflowExecution=true
     image: temporalio/auto-setup:${TEMPORAL_VERSION}
     networks:
       - temporal-network
