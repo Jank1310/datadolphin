@@ -8,6 +8,16 @@ import { NextRequest, NextResponse } from "next/server";
 export interface ImportWorkflowPostPayload {
   callbackUrl: string;
   columnConfig: unknown[];
+  /**
+   * Timeout for upload of file.
+   * If not set, defaults to 24 hours.
+   */
+  uploadTimeout?: string;
+  /**
+   * Timeout for the start of the import.
+   * If not set, defaults to 24 hours.
+   */
+  startImportTimeout?: string;
 }
 
 export interface ImportWorkflowPostResponse {
@@ -25,6 +35,8 @@ export async function POST(req: NextRequest) {
       {
         columnConfig: body.columnConfig,
         callbackUrl: body.callbackUrl,
+        uploadTimeout: body.uploadTimeout,
+        startImportTimeout: body.startImportTimeout,
       },
     ],
   });

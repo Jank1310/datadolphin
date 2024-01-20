@@ -1,4 +1,4 @@
-import { Client } from "@temporalio/client";
+import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { randomUUID } from "crypto";
 import * as env from "env-var";
 import { writeFile } from "fs/promises";
@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
     console.error(error);
     return new Response("Failed to upload file", { status: 500 });
   }
-  const client = new Client();
-  const handle = client.workflow.getHandle(importerId);
+  const client = getTemporalWorkflowClient();
+  const handle = client.getHandle(importerId);
   await handle.signal("importer:add-file", {
     fileReference: destFileName,
     fileFormat: extname(file.name) === ".csv" ? "csv" : "xlsx",
