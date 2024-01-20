@@ -12,7 +12,8 @@
         "outDir": "./lib",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
-        "target": "ESNext"
+        "target": "ESNext",
+        "esModuleInterop": true
     },
     "include": [
         "src/**/*.ts"
