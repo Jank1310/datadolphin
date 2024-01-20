@@ -12,7 +12,8 @@
     "start": "next start",
     "start:worker": "nodemon ./temporal/lib/worker",
     "lint": "next lint",
-    "test": "jest --watch"
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.0.2",
