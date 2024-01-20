@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import env from "env-var";
 import * as Minio from "minio";
 import { makeActivities } from "./activities";
+import { DataAnalyzer } from "./domain/DataAnalyzer";
 import { FileStore } from "./infrastructure/FileStore";
 
 dotenv.config({ debug: true });
@@ -18,8 +19,8 @@ async function run() {
     secretKey: env.get("MINIO_SECRET_KEY").required().asString(),
   });
   const fileStore = new FileStore(minioClient);
-
-  const activities = makeActivities(fileStore);
+  const dataAnalyzer = new DataAnalyzer();
+  const activities = makeActivities(fileStore, dataAnalyzer);
   const worker = await Worker.create({
     workflowsPath: require.resolve("./workflows"), // passed to Webpack for bundling
     activities, // directly imported in Node.js

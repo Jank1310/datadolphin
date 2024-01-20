@@ -83,8 +83,10 @@ export class DataAnalyzer {
     availableSourceColumns: Set<string>,
     columns: ColumnConfig[]
   ): DataMappingRecommendation[] {
-    const options = {
+    const options: Fuse.IFuseOptions<string> = {
       includeScore: true,
+      ignoreLocation: true,
+      threshold: 0.7,
     };
     const fuse = new Fuse(Array.from(availableSourceColumns), options);
     const fuzzyMatches: DataMappingRecommendation[] = [];
@@ -108,7 +110,7 @@ export class DataAnalyzer {
           }
         }
       }
-      if (bestMatchForColumn && bestMatchForColumn.score! < 0.5) {
+      if (bestMatchForColumn) {
         fuzzyMatches.push({
           targetColumn: column.key,
           sourceColumn: bestMatchForColumn.item,

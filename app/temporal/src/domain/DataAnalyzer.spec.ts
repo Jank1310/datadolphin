@@ -4,7 +4,13 @@ import { DataAnalyzer } from "./DataAnalyzer";
 describe("DataAnalyzer", () => {
   const analyzer = new DataAnalyzer();
   const rows: Record<string, string>[] = [
-    { name: "John", age: "20", position: "CEO", mail: "john@gmail.com" },
+    {
+      name: "John",
+      age: "20",
+      position: "CEO",
+      mail: "john@gmail.com",
+      role: "Lead",
+    },
     { name: "Jane", age: "30", position: "CTO" },
     { name: "Joe", age: "40", position: "COO", mail: "joe@gmail.com" },
   ];
@@ -20,7 +26,7 @@ describe("DataAnalyzer", () => {
       type: "number",
     },
     {
-      key: "role",
+      key: "job",
       keyAlternatives: ["position"],
       label: "Position",
       type: "text",
@@ -33,6 +39,11 @@ describe("DataAnalyzer", () => {
     {
       key: "email",
       label: "Email",
+      type: "text",
+    },
+    {
+      key: "work role",
+      label: "Role",
       type: "text",
     },
   ];
@@ -52,13 +63,18 @@ describe("DataAnalyzer", () => {
       },
       {
         sourceColumn: "position",
-        targetColumn: "role",
+        targetColumn: "job",
         confidence: 1,
       },
       {
         targetColumn: "email",
         sourceColumn: "mail",
         confidence: 0.8,
+      },
+      {
+        sourceColumn: "role",
+        targetColumn: "work role",
+        confidence: expect.closeTo(0.4444444),
       },
       {
         targetColumn: "salary",

@@ -1,6 +1,8 @@
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
 import XLSX from "xlsx";
+import { ColumnConfig } from "./domain/ColumnConfig";
+import { DataAnalyzer, DataMappingRecommendation } from "./domain/DataAnalyzer";
 import { FileStore } from "./infrastructure/FileStore";
 
 export interface DownloadSourceFileParams {
@@ -13,7 +15,10 @@ export interface DownloadSourceFileReturnType {
   localFilePath: string;
 }
 
-export function makeActivities(fileStore: FileStore) {
+export function makeActivities(
+  fileStore: FileStore,
+  dataAnalyzer: DataAnalyzer
+) {
   return {
     deleteBucket: async (params: { bucket: string }) => {
       await fileStore.deleteBucket(params.bucket);
@@ -58,7 +63,11 @@ export function makeActivities(fileStore: FileStore) {
           const workbook = XLSX.read(fileData, { type: "buffer" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const json = XLSX.utils.sheet_to_json(worksheet);
+          const json = XLSX.utils.sheet_to_json(worksheet, {
+            //! this is needed to get the header columns on all rows
+            raw: true,
+            defval: "",
+          });
           console.log("received rows", json.length);
           console.log(json);
           jsonData = Buffer.from(JSON.stringify(json));
@@ -72,6 +81,23 @@ export function makeActivities(fileStore: FileStore) {
         params.bucket,
         params.outputFileReference,
         jsonData
+      );
+    },
+    getMappingRecommendations: async (params: {
+      bucket: string;
+      fileReference: string;
+      columnConfig: ColumnConfig[];
+    }): Promise<DataMappingRecommendation[]> => {
+      const fileData = await fileStore.getFile(
+        params.bucket,
+        params.fileReference
+      );
+      const jsonData = JSON.parse(fileData.toString());
+      return dataAnalyzer.generateMappingRecommendations(
+        // only the first 10 rows are used to detect the columns
+        // all rows should have all available headers (see source file processing)
+        jsonData.slice(0, 10),
+        params.columnConfig
       );
     },
   };

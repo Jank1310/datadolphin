@@ -8,6 +8,7 @@ import {
 } from "@temporalio/workflow";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
+import { DataMappingRecommendation } from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
 export interface ImporterWorkflowParams {
   columnConfig: ColumnConfig[];
@@ -28,6 +29,7 @@ export interface ImporterStatus {
   isWaitingForFile: boolean;
   isWaitingForImport: boolean;
   isImporting: boolean;
+  dataMappingRecommendations: DataMappingRecommendation[] | null;
 }
 
 const addFileSignal = defineSignal<
@@ -55,6 +57,7 @@ export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
   const compensations: Function[] = [];
+
   let sourceFile: {
     bucket: string;
     fileReference: string;
@@ -62,6 +65,8 @@ export async function importer(params: ImporterWorkflowParams) {
   } | null = null;
   let patches: DataSetPatch[] = [];
   let importStartRequested = false;
+  let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
+
   setHandler(addFileSignal, (params) => {
     sourceFile = {
       bucket: params.bucket,
@@ -80,6 +85,7 @@ export async function importer(params: ImporterWorkflowParams) {
       isWaitingForFile: sourceFile === null,
       isWaitingForImport: importStartRequested === false,
       isImporting: importStartRequested === true,
+      dataMappingRecommendations: dataMappingRecommendations,
     };
   });
 
@@ -110,6 +116,11 @@ export async function importer(params: ImporterWorkflowParams) {
       format: sourceFile!.fileFormat,
       outputFileReference,
       formatOptions: {},
+    });
+    dataMappingRecommendations = await acts.getMappingRecommendations({
+      bucket: sourceFile!.bucket,
+      fileReference: outputFileReference,
+      columnConfig: params.columnConfig,
     });
   } catch (err) {
     for (const compensation of compensations) {

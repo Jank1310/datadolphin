@@ -31,7 +31,6 @@ const Upload = (props: Props) => {
     if (file) {
       const formData = new FormData();
       formData.append("file", file);
-      // TODO: set importerId
       formData.append("importerId", importerId);
       await fetch("/api/upload", { method: "POST", body: formData });
     }
@@ -82,7 +81,19 @@ const Upload = (props: Props) => {
       method: "POST",
       body: JSON.stringify({
         callbackUrl: "some-url",
-        columnConfig: [],
+        columnConfig: [
+          {
+            key: "email",
+            label: "E-Mail",
+            type: "text",
+          },
+          {
+            key: "work role",
+            keyAlternatives: ["position"],
+            label: "Role",
+            type: "text",
+          },
+        ],
       }),
     });
     const { importerId } = await fetchResult.json();
