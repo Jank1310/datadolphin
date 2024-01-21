@@ -80,6 +80,9 @@ const Upload = (props: Props) => {
     const fetchResult = await fetch("/api/importer", {
       method: "POST",
       body: JSON.stringify({
+        name: "Mitarbeiterdaten upload",
+        description:
+          "Hier können Sie Ihre Mitarbeiterdaten sicher hochladen und validieren.",
         callbackUrl: "some-url",
         columnConfig: [
           {

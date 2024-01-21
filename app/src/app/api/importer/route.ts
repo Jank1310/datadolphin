@@ -18,6 +18,9 @@ export interface ImportWorkflowPostPayload {
    * If not set, defaults to 24 hours.
    */
   startImportTimeout?: string;
+  name: string;
+  description?: string;
+  meta: Record<string, string>;
 }
 
 export interface ImportWorkflowPostResponse {
@@ -37,6 +40,9 @@ export async function POST(req: NextRequest) {
         callbackUrl: body.callbackUrl,
         uploadTimeout: body.uploadTimeout,
         startImportTimeout: body.startImportTimeout,
+        name: body.name,
+        description: body.description,
+        meta: body.meta ?? {},
       },
     ],
   });

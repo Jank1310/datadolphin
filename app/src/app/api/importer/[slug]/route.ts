@@ -1,19 +1,22 @@
 import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { NextRequest, NextResponse } from "next/server";
-
-export interface ImporterStatus {
-  isWaitingForFile: boolean;
-  isWaitingForImport: boolean;
-  isImporting: boolean;
-}
+import { ImporterConfig, ImporterDto, ImporterStatus } from "./ImporterDto";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   const { slug: importerId } = params;
   const client = getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
-  const status = (await handle.query("importer:status")) as ImporterStatus;
-  return NextResponse.json(status);
+  const [status, config] = await Promise.all([
+    (await handle.query("importer:status")) as ImporterStatus,
+    (await handle.query("importer:config")) as ImporterConfig,
+  ]);
+  const importerDto: ImporterDto = {
+    importerId,
+    config,
+    status,
+  };
+  return NextResponse.json(importerDto);
 }
