@@ -11,6 +11,9 @@ import { ColumnConfig } from "../domain/ColumnConfig";
 import { DataMappingRecommendation } from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
 export interface ImporterWorkflowParams {
+  name: string;
+  description?: string;
+  meta: Record<string, string>;
   columnConfig: ColumnConfig[];
   callbackUrl: string;
   /**
@@ -23,6 +26,7 @@ export interface ImporterWorkflowParams {
    * If not set, defaults to 24 hours.
    */
   startImportTimeout?: string;
+  logo: string;
 }
 
 export interface ImporterStatus {
@@ -45,7 +49,8 @@ const addPatchesSignal =
   defineSignal<[{ patches: DataSetPatch[] }]>("importer:add-patch");
 const startImportSignal = defineSignal<[]>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
-
+const importConfigQuery =
+  defineQuery<ImporterWorkflowParams>("importer:config");
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
@@ -79,6 +84,9 @@ export async function importer(params: ImporterWorkflowParams) {
   });
   setHandler(startImportSignal, () => {
     importStartRequested = true;
+  });
+  setHandler(importConfigQuery, () => {
+    return params;
   });
   setHandler(importStatusQuery, () => {
     return {
