@@ -26,6 +26,7 @@ export interface ImporterWorkflowParams {
    * If not set, defaults to 24 hours.
    */
   startImportTimeout?: string;
+  logo: string;
 }
 
 export interface ImporterStatus {

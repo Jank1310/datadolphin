@@ -5,10 +5,22 @@ export interface ImporterDto {
 }
 
 export interface ImporterConfig {
-  name: string;
-  description: string;
-  columnConfig: unknown;
   callbackUrl: string;
+  columnConfig: unknown[];
+  /**
+   * Timeout for upload of file.
+   * If not set, defaults to 24 hours.
+   */
+  uploadTimeout?: string;
+  /**
+   * Timeout for the start of the import.
+   * If not set, defaults to 24 hours.
+   */
+  startImportTimeout?: string;
+  name: string;
+  description?: string;
+  meta: Record<string, string>;
+  logo: string;
 }
 
 export interface ImporterStatus {

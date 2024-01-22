@@ -4,24 +4,9 @@ import {
 } from "@/lib/temporalClient";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { ImporterConfig } from "./[slug]/ImporterDto";
 
-export interface ImportWorkflowPostPayload {
-  callbackUrl: string;
-  columnConfig: unknown[];
-  /**
-   * Timeout for upload of file.
-   * If not set, defaults to 24 hours.
-   */
-  uploadTimeout?: string;
-  /**
-   * Timeout for the start of the import.
-   * If not set, defaults to 24 hours.
-   */
-  startImportTimeout?: string;
-  name: string;
-  description?: string;
-  meta: Record<string, string>;
-}
+export type ImportWorkflowPostPayload = ImporterConfig;
 
 export interface ImportWorkflowPostResponse {
   importerId: string;
@@ -31,6 +16,7 @@ export async function POST(req: NextRequest) {
   const importerId = `imp-${randomUUID()}`;
   const client = getTemporalWorkflowClient();
   const body = (await req.json()) as ImportWorkflowPostPayload;
+  //TODO validate request
   await client.start("importer", {
     workflowId: importerId,
     taskQueue: DEFAULT_TEMPORAL_QUEUE,
@@ -43,7 +29,8 @@ export async function POST(req: NextRequest) {
         name: body.name,
         description: body.description,
         meta: body.meta ?? {},
-      },
+        logo: body.logo,
+      } as ImporterConfig,
     ],
   });
   return NextResponse.json(
