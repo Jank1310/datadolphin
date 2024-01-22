@@ -1,3 +1,5 @@
+import { ColumnValidation } from "./ColumnValidation";
+
 export interface ColumnConfig {
   key: string;
   label: string;
@@ -6,4 +8,5 @@ export interface ColumnConfig {
    */
   keyAlternatives?: string[];
   type: "text" | "number" | "date";
+  validations?: ColumnValidation[];
 }

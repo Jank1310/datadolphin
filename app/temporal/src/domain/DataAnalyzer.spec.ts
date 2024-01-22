@@ -83,4 +83,488 @@ describe("DataAnalyzer", () => {
       },
     ]);
   });
+
+  it("should validate required columns", () => {
+    const rowsWithMissingName = [
+      {
+        name: "John",
+      },
+      {},
+      { age: 25 },
+      { name: "" },
+      { name: null },
+      { name: undefined },
+    ];
+    const columnConfigs: ColumnConfig[] = [
+      {
+        key: "name",
+        label: "Name",
+        type: "text",
+        validations: [{ type: "required" }],
+      },
+    ];
+    const mapping = [{ sourceColumn: "name", targetColumn: "name" }];
+    const result = analyzer.processDataValidations(
+      rowsWithMissingName,
+      columnConfigs,
+      mapping
+    );
+    expect(result).toEqual([
+      { name: { value: "John", errors: [] } },
+      {
+        name: {
+          value: undefined,
+          errors: [
+            {
+              message: "value is required",
+              type: "required",
+            },
+          ],
+        },
+      },
+      {
+        name: {
+          value: undefined,
+          errors: [
+            {
+              message: "value is required",
+              type: "required",
+            },
+          ],
+        },
+      },
+      {
+        name: {
+          value: "",
+          errors: [
+            {
+              message: "value is required",
+              type: "required",
+            },
+          ],
+        },
+      },
+      {
+        name: {
+          value: null,
+          errors: [
+            {
+              message: "value is required",
+              type: "required",
+            },
+          ],
+        },
+      },
+      {
+        name: {
+          value: undefined,
+          errors: [
+            {
+              message: "value is required",
+              type: "required",
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it("should validate unique columns", () => {
+    const rowsWithDuplicateValues = [
+      {
+        name: "John",
+      },
+      { name: "John" },
+      { name: "Egon" },
+      {},
+      {},
+      { name: "John" },
+    ];
+    const columnConfigs: ColumnConfig[] = [
+      {
+        key: "name",
+        label: "Name",
+        type: "text",
+        validations: [{ type: "unique" }],
+      },
+    ];
+    const mapping = [{ sourceColumn: "name", targetColumn: "name" }];
+    const result = analyzer.processDataValidations(
+      rowsWithDuplicateValues,
+      columnConfigs,
+      mapping
+    );
+    expect(result).toEqual([
+      {
+        name: {
+          value: "John",
+          errors: [
+            {
+              type: "unique",
+              message: "value is not unique",
+            },
+          ],
+        },
+      },
+      {
+        name: {
+          value: "John",
+          errors: [
+            {
+              type: "unique",
+              message: "value is not unique",
+            },
+          ],
+        },
+      },
+      { name: { value: "Egon", errors: [] } },
+      {
+        name: {
+          value: undefined,
+          errors: [
+            {
+              type: "unique",
+              message: "value is not unique",
+            },
+          ],
+        },
+      },
+      {
+        name: {
+          value: undefined,
+          errors: [
+            {
+              type: "unique",
+              message: "value is not unique",
+            },
+          ],
+        },
+      },
+      {
+        name: {
+          value: "John",
+          errors: [
+            {
+              type: "unique",
+              message: "value is not unique",
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it("should validate regex columns", () => {
+    const rowsWithDuplicateValues = [
+      {
+        Postleitzahl: 90596,
+      },
+      { Postleitzahl: "90596" },
+      { Postleitzahl: "x90596" },
+      {},
+      { Postleitzahl: "123" },
+    ];
+    const columnConfigs: ColumnConfig[] = [
+      {
+        key: "Postleitzahl",
+        label: "PostalCode",
+        type: "text",
+        validations: [{ type: "regex", regex: "^[0-9]{5}$" }],
+      },
+    ];
+    const mapping = [
+      { sourceColumn: "Postleitzahl", targetColumn: "Postleitzahl" },
+    ];
+    const result = analyzer.processDataValidations(
+      rowsWithDuplicateValues,
+      columnConfigs,
+      mapping
+    );
+    expect(result).toEqual([
+      {
+        Postleitzahl: {
+          value: 90596,
+          errors: [],
+        },
+      },
+      {
+        Postleitzahl: {
+          value: "90596",
+          errors: [],
+        },
+      },
+      {
+        Postleitzahl: {
+          value: "x90596",
+          errors: [
+            {
+              type: "regex",
+              message: `value does not match regex ^[0-9]{5}$`,
+            },
+          ],
+        },
+      },
+      {
+        Postleitzahl: {
+          value: undefined,
+          errors: [
+            {
+              type: "regex",
+              message: `value does not match regex ^[0-9]{5}$`,
+            },
+          ],
+        },
+      },
+      {
+        Postleitzahl: {
+          value: "123",
+          errors: [
+            {
+              type: "regex",
+              message: `value does not match regex ^[0-9]{5}$`,
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it("should validate phone columns", () => {
+    const rowsWithDuplicateValues = [
+      {
+        phone: "015140604777",
+      },
+      {
+        phone: "0151/40604777",
+      },
+      { phone: "+49 151/40604777 " },
+      { phone: "foo" },
+      {},
+    ];
+    const columnConfigs: ColumnConfig[] = [
+      {
+        key: "phone",
+        label: "phone",
+        type: "text",
+        validations: [{ type: "phone" }],
+      },
+    ];
+    const mapping = [{ sourceColumn: "phone", targetColumn: "phone" }];
+    const result = analyzer.processDataValidations(
+      rowsWithDuplicateValues,
+      columnConfigs,
+      mapping
+    );
+    expect(result).toEqual([
+      {
+        phone: {
+          value: "015140604777",
+          errors: [],
+        },
+      },
+      {
+        phone: {
+          value: "0151/40604777",
+          errors: [],
+        },
+      },
+      {
+        phone: {
+          value: "+49 151/40604777 ",
+          errors: [],
+        },
+      },
+      {
+        phone: {
+          value: "foo",
+          errors: [
+            {
+              message: "value is not a valid phone number",
+              type: "phone",
+            },
+          ],
+        },
+      },
+      {
+        phone: {
+          value: undefined,
+          errors: [
+            {
+              message: "value is not a valid phone number",
+              type: "phone",
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it("should validate email columns", () => {
+    const rowsWithDuplicateValues = [
+      {
+        email: "fiedlefl@gmail.com",
+      },
+      {
+        email: "fiedlefl+test@gmail.com",
+      },
+      {
+        email: "fiedlefl@gmail",
+      },
+      {
+        email: "fiedlefl@gmail@test.com",
+      },
+      {
+        email: "foo",
+      },
+      {},
+    ];
+    const columnConfigs: ColumnConfig[] = [
+      {
+        key: "email",
+        label: "email",
+        type: "text",
+        validations: [{ type: "email" }],
+      },
+    ];
+    const mapping = [{ sourceColumn: "email", targetColumn: "email" }];
+    const result = analyzer.processDataValidations(
+      rowsWithDuplicateValues,
+      columnConfigs,
+      mapping
+    );
+    expect(result).toEqual([
+      {
+        email: { value: "fiedlefl@gmail.com", errors: [] },
+      },
+      {
+        email: { value: "fiedlefl+test@gmail.com", errors: [] },
+      },
+      {
+        email: {
+          value: "fiedlefl@gmail",
+          errors: [
+            {
+              message: "value is not a valid email",
+              type: "email",
+            },
+          ],
+        },
+      },
+      {
+        email: {
+          value: "fiedlefl@gmail@test.com",
+          errors: [
+            {
+              message: "value is not a valid email",
+              type: "email",
+            },
+          ],
+        },
+      },
+      {
+        email: {
+          value: "foo",
+          errors: [
+            {
+              message: "value is not a valid email",
+              type: "email",
+            },
+          ],
+        },
+      },
+      {
+        email: {
+          value: undefined,
+          errors: [
+            {
+              message: "value is not a valid email",
+              type: "email",
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it("should validate multiple validations", () => {
+    const rowsWithDuplicateValues = [{}, {}];
+    const columnConfigs: ColumnConfig[] = [
+      {
+        key: "name",
+        label: "name",
+        type: "text",
+        validations: [
+          { type: "required" },
+          { type: "unique" },
+          { type: "phone" },
+          { type: "email" },
+          { type: "regex", regex: "^[0-9]{5}$" },
+        ],
+      },
+    ];
+    const mapping = [{ sourceColumn: "name", targetColumn: "name" }];
+    const result = analyzer.processDataValidations(
+      rowsWithDuplicateValues,
+      columnConfigs,
+      mapping
+    );
+    expect(result).toEqual([
+      {
+        name: {
+          value: undefined,
+          errors: expect.arrayContaining([
+            {
+              message: "value is not unique",
+              type: "unique",
+            },
+            {
+              message: "value is required",
+              type: "required",
+            },
+            {
+              message: "value does not match regex ^[0-9]{5}$",
+              type: "regex",
+            },
+
+            {
+              message: "value is not a valid phone number",
+              type: "phone",
+            },
+            {
+              message: "value is not a valid email",
+              type: "email",
+            },
+          ]),
+        },
+      },
+      {
+        name: {
+          value: undefined,
+          errors: expect.arrayContaining([
+            {
+              message: "value is not unique",
+              type: "unique",
+            },
+            {
+              message: "value is required",
+              type: "required",
+            },
+            {
+              message: "value does not match regex ^[0-9]{5}$",
+              type: "regex",
+            },
+
+            {
+              message: "value is not a valid phone number",
+              type: "phone",
+            },
+            {
+              message: "value is not a valid email",
+              type: "email",
+            },
+          ]),
+        },
+      },
+    ]);
+  });
 });

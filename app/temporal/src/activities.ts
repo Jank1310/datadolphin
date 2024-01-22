@@ -3,6 +3,7 @@ import csv from "csv";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import { DataAnalyzer, DataMappingRecommendation } from "./domain/DataAnalyzer";
+import { DataMapping } from "./domain/DataMapping";
 import { FileStore } from "./infrastructure/FileStore";
 
 export interface DownloadSourceFileParams {
@@ -37,7 +38,7 @@ export function makeActivities(
       let jsonData: Buffer;
       switch (params.format) {
         case "csv":
-          const rows = await new Promise<Record<string, string>[]>(
+          const jsonFromCsv = await new Promise<Record<string, unknown>[]>(
             (resolve, reject) => {
               csv.parse(
                 fileData,
@@ -56,21 +57,31 @@ export function makeActivities(
               );
             }
           );
-          console.log("received rows", rows.length);
-          jsonData = Buffer.from(JSON.stringify(rows));
+          console.log("received rows", jsonFromCsv.length);
+          jsonData = Buffer.from(
+            JSON.stringify(
+              jsonFromCsv.map((row, index) => ({ __rowId: index, ...row }))
+            )
+          );
           break;
         case "xlsx":
           const workbook = XLSX.read(fileData, { type: "buffer" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const json = XLSX.utils.sheet_to_json(worksheet, {
+          const jsonFromXlsx = XLSX.utils.sheet_to_json<
+            Record<string, unknown>
+          >(worksheet, {
             //! this is needed to get the header columns on all rows
             raw: true,
             defval: "",
           });
-          console.log("received rows", json.length);
-          console.log(json);
-          jsonData = Buffer.from(JSON.stringify(json));
+          console.log("received rows", jsonFromXlsx.length);
+          console.log(jsonFromXlsx);
+          jsonData = Buffer.from(
+            JSON.stringify(
+              jsonFromXlsx.map((row, index) => ({ __rowId: index, ...row }))
+            )
+          );
           break;
         default:
           throw ApplicationFailure.nonRetryable(
@@ -99,6 +110,30 @@ export function makeActivities(
         jsonData.slice(0, 10),
         params.columnConfig
       );
+    },
+    processDataValidations: async (params: {
+      bucket: string;
+      fileReference: string;
+      columnConfig: ColumnConfig[];
+      dataMapping: DataMapping[];
+    }) => {
+      const fileData = await fileStore.getFile(
+        params.bucket,
+        params.fileReference
+      );
+      const jsonData = JSON.parse(fileData.toString());
+      const validatedDate = dataAnalyzer.processDataValidations(
+        jsonData,
+        params.columnConfig,
+        params.dataMapping
+      );
+      const validationFileReference = "validated.json";
+      await fileStore.putFile(
+        params.bucket,
+        validationFileReference,
+        Buffer.from(JSON.stringify(validatedDate))
+      );
+      return validationFileReference;
     },
   };
 }

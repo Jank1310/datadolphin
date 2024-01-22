@@ -1,10 +1,18 @@
 import Fuse from "fuse.js";
 import { ColumnConfig } from "./ColumnConfig";
+import { ColumnValidation } from "./ColumnValidation";
+import { DataMapping } from "./DataMapping";
+import { validators } from "./validators";
 
 export interface DataMappingRecommendation {
   targetColumn: string;
   sourceColumn: string | null;
   confidence: number;
+}
+
+export interface OutputData {
+  value: unknown;
+  errors?: { type: ColumnValidation["type"]; message: string }[];
 }
 
 export class DataAnalyzer {
@@ -50,6 +58,84 @@ export class DataAnalyzer {
       confidence: 0,
     }));
     return [...foundColumnRecommendations, ...notFoundMatchRecommendations];
+  }
+
+  processDataValidations(
+    inputData: Record<string, unknown>[],
+    columns: ColumnConfig[],
+    dataMapping: DataMapping[]
+  ): Record<string, OutputData>[] {
+    const data = this.applyDataMapping(inputData, dataMapping);
+
+    const allColumnsWithValidators = columns.filter(
+      (column) => column.validations?.length
+    );
+    const uniqueValidators = [];
+    const requiredValidators = [];
+    const regexValidators = [];
+    const phoneValidators = [];
+    const emailValidators = [];
+
+    for (const column of allColumnsWithValidators) {
+      for (const validator of column.validations!) {
+        switch (validator.type) {
+          case "unique":
+            uniqueValidators.push({ column: column.key });
+            break;
+          case "required":
+            requiredValidators.push({ column: column.key });
+            break;
+          case "regex":
+            regexValidators.push({
+              column: column.key,
+              regex: validator.regex,
+            });
+            break;
+          case "phone":
+            phoneValidators.push({ column: column.key });
+            break;
+          case "email":
+            emailValidators.push({ column: column.key });
+            break;
+        }
+      }
+    }
+
+    for (const row of data) {
+      if (uniqueValidators.length > 0) {
+        validators.unique.validate(
+          row,
+          data,
+          uniqueValidators.map((item) => item.column)
+        );
+      }
+
+      if (requiredValidators.length > 0) {
+        validators.required.validate(
+          row,
+          requiredValidators.map((item) => item.column)
+        );
+      }
+
+      if (regexValidators.length > 0) {
+        validators.regex.validate(row, regexValidators);
+      }
+
+      if (phoneValidators.length > 0) {
+        validators.phone.validate(
+          row,
+          phoneValidators.map((item) => item.column)
+        );
+      }
+
+      if (emailValidators.length > 0) {
+        validators.email.validate(
+          row,
+          emailValidators.map((item) => item.column)
+        );
+      }
+    }
+    return data;
   }
 
   private findDirectMappingMatches(
@@ -119,5 +205,26 @@ export class DataAnalyzer {
       }
     }
     return fuzzyMatches;
+  }
+
+  private applyDataMapping(
+    inputData: Record<string, unknown>[],
+    dataMapping: DataMapping[]
+  ): Record<string, OutputData>[] {
+    return inputData.map((row) => {
+      const newRow: Record<string, OutputData> = {};
+      newRow.__rowId = row.__rowId as OutputData;
+      for (const mapping of dataMapping) {
+        if (mapping.sourceColumn) {
+          newRow[mapping.targetColumn] = {
+            value: row[mapping.sourceColumn],
+            errors: [],
+          };
+        } else {
+          newRow[mapping.targetColumn] = { value: null, errors: [] };
+        }
+      }
+      return newRow;
+    });
   }
 }
