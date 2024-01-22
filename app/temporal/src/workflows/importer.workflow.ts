@@ -3,6 +3,7 @@ import {
   condition,
   defineQuery,
   defineSignal,
+  defineUpdate,
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
@@ -36,7 +37,13 @@ export interface ImporterStatus {
   dataMappingRecommendations: DataMappingRecommendation[] | null;
 }
 
-const addFileSignal = defineSignal<
+export interface Mapping {
+  targetColumn: string | null;
+  sourceColumn: string;
+}
+
+const addFileUpdate = defineUpdate<
+  void,
   [
     {
       fileReference: string;
@@ -51,6 +58,15 @@ const startImportSignal = defineSignal<[]>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const importConfigQuery =
   defineQuery<ImporterWorkflowParams>("importer:config");
+const mappingUpdate = defineUpdate<
+  void,
+  [
+    {
+      mappings: Mapping[];
+    }
+  ]
+>("importer:update-mapping");
+
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
@@ -71,14 +87,34 @@ export async function importer(params: ImporterWorkflowParams) {
   let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
+  let configuredMappings: Mapping[] | null = null;
 
-  setHandler(addFileSignal, (params) => {
-    sourceFile = {
-      bucket: params.bucket,
-      fileReference: params.fileReference,
-      fileFormat: params.fileFormat,
-    };
-  });
+  setHandler(
+    addFileUpdate,
+    (params) => {
+      sourceFile = {
+        bucket: params.bucket,
+        fileReference: params.fileReference,
+        fileFormat: params.fileFormat,
+      };
+    },
+    {
+      validator: (_params) => {
+        return !sourceFile;
+      },
+    }
+  );
+  setHandler(
+    mappingUpdate,
+    (params) => {
+      configuredMappings = params.mappings;
+    },
+    {
+      validator: (params) => {
+        return !configuredMappings;
+      },
+    }
+  );
   setHandler(addPatchesSignal, (params) => {
     patches.push(...params.patches);
   });
@@ -91,9 +127,11 @@ export async function importer(params: ImporterWorkflowParams) {
   setHandler(importStatusQuery, () => {
     return {
       isWaitingForFile: sourceFile === null,
+      isWaitingForMapping: configuredMappings === null,
       isWaitingForImport: importStartRequested === false,
       isImporting: importStartRequested === true,
-      dataMappingRecommendations: dataMappingRecommendations,
+      dataMappingRecommendations,
+      dataMapping: configuredMappings,
     };
   });
 
@@ -107,15 +145,7 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: source file not uploaded"
       );
     }
-    const hasImportStartRequested = await condition(
-      () => importStartRequested === true,
-      startImportTimeout
-    );
-    if (!hasImportStartRequested) {
-      throw ApplicationFailure.nonRetryable(
-        "Timeout: import start not requested"
-      );
-    }
+
     // perform import
     const outputFileReference = "output";
     await acts.processSourceFile({
@@ -130,6 +160,17 @@ export async function importer(params: ImporterWorkflowParams) {
       fileReference: outputFileReference,
       columnConfig: params.columnConfig,
     });
+    await condition(() => configuredMappings !== null, startImportTimeout);
+
+    const hasImportStartRequested = await condition(
+      () => importStartRequested === true,
+      startImportTimeout
+    );
+    if (!hasImportStartRequested) {
+      throw ApplicationFailure.nonRetryable(
+        "Timeout: import start not requested"
+      );
+    }
   } catch (err) {
     for (const compensation of compensations) {
       await compensation();
