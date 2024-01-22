@@ -56,7 +56,6 @@ export function makeActivities(
               );
             }
           );
-          console.log("received rows", rows.length);
           jsonData = Buffer.from(JSON.stringify(rows));
           break;
         case "xlsx":
@@ -68,7 +67,6 @@ export function makeActivities(
             raw: true,
             defval: "",
           });
-          console.log("received rows", json.length);
           console.log(json);
           jsonData = Buffer.from(JSON.stringify(json));
           break;
