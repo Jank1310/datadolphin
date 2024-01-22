@@ -3,17 +3,6 @@ import { DataAnalyzer } from "./DataAnalyzer";
 
 describe("DataAnalyzer", () => {
   const analyzer = new DataAnalyzer();
-  const rows: Record<string, string>[] = [
-    {
-      name: "John",
-      age: "20",
-      position: "CEO",
-      mail: "john@gmail.com",
-      role: "Lead",
-    },
-    { name: "Jane", age: "30", position: "CTO" },
-    { name: "Joe", age: "40", position: "COO", mail: "joe@gmail.com" },
-  ];
   const columnConfigs: ColumnConfig[] = [
     {
       key: "name",
@@ -49,16 +38,29 @@ describe("DataAnalyzer", () => {
   ];
 
   it("should get correct mapping recommendations", () => {
-    const result = analyzer.generateMappingRecommendations(rows, columnConfigs);
+    const sourceColumns: string[] = [
+      "name",
+      "name2",
+      "age",
+      "position",
+      "mail",
+      "role",
+      "salry",
+    ];
+
+    const result = analyzer.generateMappingRecommendations(
+      sourceColumns,
+      columnConfigs
+    );
     expect(result).toEqual([
       {
-        targetColumn: "name",
         sourceColumn: "name",
+        targetColumn: "name",
         confidence: 1,
       },
       {
-        targetColumn: "age",
         sourceColumn: "age",
+        targetColumn: "age",
         confidence: 1,
       },
       {
@@ -67,18 +69,23 @@ describe("DataAnalyzer", () => {
         confidence: 1,
       },
       {
-        targetColumn: "email",
         sourceColumn: "mail",
-        confidence: 0.8,
+        targetColumn: "email",
+        confidence: 0.999,
       },
       {
         sourceColumn: "role",
         targetColumn: "work role",
-        confidence: expect.closeTo(0.4444444),
+        confidence: expect.closeTo(0.992431671049),
       },
       {
+        sourceColumn: "salry",
         targetColumn: "salary",
-        sourceColumn: null,
+        confidence: 0.8,
+      },
+      {
+        sourceColumn: "name2",
+        targetColumn: null,
         confidence: 0,
       },
     ]);

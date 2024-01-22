@@ -93,10 +93,11 @@ export function makeActivities(
         params.fileReference
       );
       const jsonData = JSON.parse(fileData.toString());
+      // only the first 10 rows are used to detect the columns
+      // all rows should have all available headers (see source file processing)
+      const sourceColumns = Object.keys(jsonData[0]);
       return dataAnalyzer.generateMappingRecommendations(
-        // only the first 10 rows are used to detect the columns
-        // all rows should have all available headers (see source file processing)
-        jsonData.slice(0, 10),
+        sourceColumns,
         params.columnConfig
       );
     },
