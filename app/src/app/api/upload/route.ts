@@ -1,7 +1,6 @@
 import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { randomUUID } from "crypto";
 import * as env from "env-var";
-import { writeFile } from "fs/promises";
 import * as Minio from "minio";
 import { NextRequest } from "next/server";
 import { extname } from "path";
@@ -26,8 +25,6 @@ export async function POST(req: NextRequest) {
   if (!fileBuffer) {
     return new Response("file missing", { status: 500 });
   }
-  const filePath = `/tmp/${file.name}`;
-  await writeFile(filePath, fileBuffer);
 
   const bucket = importerId;
   const bucketExists = await minioClient.bucketExists(bucket);
@@ -44,18 +41,21 @@ export async function POST(req: NextRequest) {
 
   const destFileName = `${randomUUID()}${extname(file.name)}`;
   try {
-    await minioClient.fPutObject(bucket, destFileName, filePath, metadata);
+    await minioClient.putObject(bucket, destFileName, fileBuffer, metadata);
   } catch (error) {
     console.error(error);
     return new Response("Failed to upload file", { status: 500 });
   }
   const client = getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
-  await handle.signal("importer:add-file", {
-    fileReference: destFileName,
-    fileFormat: extname(file.name) === ".csv" ? "csv" : "xlsx",
-    bucket,
+  await handle.executeUpdate("importer:add-file", {
+    args: [
+      {
+        fileReference: destFileName,
+        fileFormat: extname(file.name) === ".csv" ? "csv" : "xlsx",
+        bucket,
+      },
+    ],
   });
-  await handle.signal("importer:start-import");
   return new Response("", { status: 201 });
 }
