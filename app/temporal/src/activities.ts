@@ -3,6 +3,7 @@ import csv from "csv";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import { DataAnalyzer, DataMappingRecommendation } from "./domain/DataAnalyzer";
+import { DataMapping } from "./domain/DataMapping";
 import { FileStore } from "./infrastructure/FileStore";
 
 export interface DownloadSourceFileParams {
@@ -98,6 +99,23 @@ export function makeActivities(
         // all rows should have all available headers (see source file processing)
         jsonData.slice(0, 10),
         params.columnConfig
+      );
+    },
+    processDataValidations: async (params: {
+      bucket: string;
+      fileReference: string;
+      columnConfig: ColumnConfig[];
+      dataMapping: DataMapping[];
+    }) => {
+      const fileData = await fileStore.getFile(
+        params.bucket,
+        params.fileReference
+      );
+      const jsonData = JSON.parse(fileData.toString());
+      return dataAnalyzer.processDataValidations(
+        jsonData,
+        params.columnConfig,
+        params.dataMapping
       );
     },
   };

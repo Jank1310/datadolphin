@@ -9,6 +9,7 @@ import {
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
 import { DataMappingRecommendation } from "../domain/DataAnalyzer";
+import { DataMapping } from "../domain/DataMapping";
 import { DataSetPatch } from "../domain/DataSet";
 export interface ImporterWorkflowParams {
   name: string;
@@ -71,6 +72,7 @@ export async function importer(params: ImporterWorkflowParams) {
   let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
+  let data: Record<string, unknown>[] = [];
 
   setHandler(addFileSignal, (params) => {
     sourceFile = {
@@ -93,7 +95,8 @@ export async function importer(params: ImporterWorkflowParams) {
       isWaitingForFile: sourceFile === null,
       isWaitingForImport: importStartRequested === false,
       isImporting: importStartRequested === true,
-      dataMappingRecommendations: dataMappingRecommendations,
+      dataMappingRecommendations,
+      data,
     };
   });
 
@@ -129,6 +132,16 @@ export async function importer(params: ImporterWorkflowParams) {
       bucket: sourceFile!.bucket,
       fileReference: outputFileReference,
       columnConfig: params.columnConfig,
+    });
+    // TODO: get real data mappings from frontend before starting validation
+    data = await acts.processDataValidations({
+      bucket: sourceFile!.bucket,
+      fileReference: outputFileReference,
+      columnConfig: params.columnConfig,
+      dataMapping: dataMappingRecommendations.map((item) => ({
+        sourceColumn: item.sourceColumn,
+        targetColumn: item.targetColumn,
+      })) as DataMapping[],
     });
   } catch (err) {
     for (const compensation of compensations) {

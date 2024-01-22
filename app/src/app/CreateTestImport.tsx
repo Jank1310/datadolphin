@@ -20,6 +20,11 @@ export const CreateTestImporter = () => {
             key: "email",
             label: "E-Mail",
             type: "text",
+            validations: [
+              { type: "unique" },
+              { type: "required" },
+              { type: "email" },
+            ],
           },
           {
             key: "work role",

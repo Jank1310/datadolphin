@@ -1,11 +1,22 @@
 import Fuse from "fuse.js";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
 import { ColumnConfig } from "./ColumnConfig";
+import { ColumnValidation } from "./ColumnValidation";
+import { DataMapping } from "./DataMapping";
 
 export interface DataMappingRecommendation {
   targetColumn: string;
   sourceColumn: string | null;
   confidence: number;
 }
+
+export interface OutputData {
+  value: unknown;
+  errors?: { type: ColumnValidation["type"]; message: string }[];
+}
+
+const EMAIL_REGEX =
+  /^[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 
 export class DataAnalyzer {
   constructor() {}
@@ -50,6 +61,61 @@ export class DataAnalyzer {
       confidence: 0,
     }));
     return [...foundColumnRecommendations, ...notFoundMatchRecommendations];
+  }
+
+  processDataValidations(
+    inputData: Record<string, unknown>[],
+    columns: ColumnConfig[],
+    dataMapping: DataMapping[]
+  ): Record<string, OutputData>[] {
+    const data: Record<string, OutputData>[] = inputData.map((row) => {
+      const newRow: Record<string, OutputData> = {};
+      for (const key in row) {
+        newRow[key] = { value: row[key], errors: [] };
+      }
+      return newRow;
+    });
+    for (const column of columns.filter(
+      (column) => column.validations?.length
+    )) {
+      const columnToValidate = dataMapping.find(
+        (item) => item.targetColumn === column.key
+      );
+      if (!columnToValidate) {
+        console.error(
+          `no mapping found for column ${column.key} - skipping validation`
+        );
+        continue;
+      }
+      for (const validation of column.validations!) {
+        switch (validation.type) {
+          case "unique":
+            this.validateUnique(data, columnToValidate.sourceColumn);
+            break;
+          case "required":
+            this.validateRequired(data, columnToValidate.sourceColumn);
+            break;
+          case "regex":
+            if (!validation.regex) {
+              throw new Error(`regex validation requires regex to be set`);
+              continue;
+            }
+            this.validateRegex(
+              data,
+              columnToValidate.sourceColumn,
+              validation.regex
+            );
+            break;
+          case "phone":
+            this.validatePhone(data, columnToValidate.sourceColumn);
+            break;
+          case "email":
+            this.validateEmail(data, columnToValidate.sourceColumn);
+            break;
+        }
+      }
+    }
+    return data;
   }
 
   private findDirectMappingMatches(
@@ -119,5 +185,120 @@ export class DataAnalyzer {
       }
     }
     return fuzzyMatches;
+  }
+
+  private validateRequired(
+    data: Record<string, OutputData>[],
+    columnToValidate: string
+  ) {
+    for (const row of data) {
+      let dataToValidate = row[columnToValidate];
+      // create record if it doesn't exist
+      if (!dataToValidate) {
+        dataToValidate = { value: null, errors: [] };
+        row[columnToValidate] = dataToValidate;
+      }
+      if (dataToValidate.value == null || dataToValidate.value === "") {
+        row[columnToValidate].errors?.push({
+          type: "required",
+          message: "value is required",
+        });
+      }
+    }
+  }
+
+  private validateUnique(
+    data: Record<string, OutputData>[],
+    columnToValidate: string
+  ) {
+    // create record if it doesn't exist
+    for (const row of data) {
+      let dataToValidate = row[columnToValidate];
+      if (!dataToValidate) {
+        dataToValidate = { value: null, errors: [] };
+        row[columnToValidate] = dataToValidate;
+      }
+    }
+    for (const row of data) {
+      let dataToValidate = row[columnToValidate];
+      if (
+        data.filter(
+          (item) => item[columnToValidate]?.value === dataToValidate.value
+        ).length > 1
+      ) {
+        row[columnToValidate].errors?.push({
+          type: "unique",
+          message: "value is not unique",
+        });
+      }
+    }
+  }
+
+  private validateRegex(
+    data: Record<string, OutputData>[],
+    columnToValidate: string,
+    regex: string
+  ) {
+    for (const row of data) {
+      let dataToValidate = row[columnToValidate];
+      // create record if it doesn't exist
+      if (!dataToValidate) {
+        dataToValidate = { value: null, errors: [] };
+        row[columnToValidate] = dataToValidate;
+      }
+      if (
+        regex &&
+        new RegExp(regex).test(dataToValidate.value as string) === false
+      ) {
+        row[columnToValidate].errors?.push({
+          type: "regex",
+          message: `value does not match regex ${regex}`,
+        });
+      }
+    }
+  }
+
+  private validatePhone(
+    data: Record<string, OutputData>[],
+    columnToValidate: string
+  ) {
+    for (const row of data) {
+      let dataToValidate = row[columnToValidate];
+      // create record if it doesn't exist
+      if (!dataToValidate) {
+        dataToValidate = { value: null, errors: [] };
+        row[columnToValidate] = dataToValidate;
+      }
+      // check if defaultCountry DE is ok
+      if (
+        isPossiblePhoneNumber((dataToValidate.value as string) ?? "", "DE") ===
+        false
+      ) {
+        row[columnToValidate].errors?.push({
+          type: "phone",
+          message: `value is not a valid phone number`,
+        });
+      }
+    }
+  }
+
+  private validateEmail(
+    data: Record<string, OutputData>[],
+    columnToValidate: string
+  ) {
+    for (const row of data) {
+      let dataToValidate = row[columnToValidate];
+      // create record if it doesn't exist
+      if (!dataToValidate) {
+        dataToValidate = { value: null, errors: [] };
+        row[columnToValidate] = dataToValidate;
+      }
+      if (EMAIL_REGEX.test((dataToValidate.value as string) ?? "") === false) {
+        row[columnToValidate].errors?.push({
+          type: "email",
+          message: `value is not a valid email`,
+        });
+      }
+    }
   }
 }
