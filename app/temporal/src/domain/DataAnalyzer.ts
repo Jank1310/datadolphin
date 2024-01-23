@@ -1,7 +1,7 @@
 import Fuse from "fuse.js";
+import type { ValidatorColumns } from "../activities";
 import { ColumnConfig } from "./ColumnConfig";
-import { ColumnValidation } from "./ColumnValidation";
-import { DataMapping } from "./DataMapping";
+import { ValidationError } from "./ValidationError";
 import { ValidatorType, validators } from "./validators";
 
 export interface DataMappingRecommendation {
@@ -10,10 +10,7 @@ export interface DataMappingRecommendation {
   confidence: number;
 }
 
-export interface OutputData {
-  value: unknown;
-  errors?: { type: ColumnValidation["type"]; message: string }[];
-}
+export type Stats = Record<string, { nonunique: Record<string, number> }>;
 
 export class DataAnalyzer {
   constructor() {}
@@ -60,35 +57,73 @@ export class DataAnalyzer {
     return [...foundColumnRecommendations, ...notFoundMatchRecommendations];
   }
 
-  processDataValidations(
-    inputData: Record<string, unknown>[],
-    dataMapping: DataMapping[],
-    validatorColumns: Record<
-      ValidatorType,
-      { column: string; regex?: string }[]
-    >
-  ): Record<string, OutputData>[] {
-    const data = this.applyDataMapping(inputData, dataMapping);
-
+  public processDataValidations(
+    data: Record<string, unknown>[],
+    validatorColumns: ValidatorColumns,
+    stats: Stats
+  ): { rowId: number; column: string; errors: ValidationError[] }[] {
+    const chunkErrors: {
+      rowId: number;
+      column: string;
+      errors: ValidationError[];
+    }[] = [];
     for (const row of data) {
       for (const validatorKey of Object.keys(
         validatorColumns
       ) as ValidatorType[]) {
         if (validatorColumns[validatorKey].length > 0) {
-          const start = performance.now();
-          validators[validatorKey].validate(
+          const errors = validators[validatorKey].validate(
             row,
             validatorColumns[validatorKey],
-            data
+            stats
           );
-          // console.log(
-          //   `${validatorKey} validation took`,
-          //   performance.now() - start
-          // );
+
+          for (const column of Object.keys(errors as any)) {
+            const error = errors[column] as any;
+            const errorForRowAndColumn = chunkErrors.find(
+              (item) => item.rowId === row.__rowId && item.column === column
+            );
+            if (errorForRowAndColumn) {
+              errorForRowAndColumn.errors.push(error);
+            } else {
+              chunkErrors.push({
+                rowId: row.__rowId as number,
+                column,
+                errors: [error],
+              });
+            }
+          }
         }
       }
     }
-    return data;
+    return chunkErrors;
+  }
+
+  public getStats(
+    data: Record<string, unknown>[],
+    columnsToVerify: string[]
+  ): Stats {
+    // nonunique
+    const stats = {} as Stats;
+    for (const column of columnsToVerify) {
+      const columnValues = data.map((row) => row[column]);
+      const duplicates = this.countDuplicates(columnValues);
+      stats[column] = { nonunique: duplicates };
+    }
+    return stats;
+  }
+
+  private countDuplicates(array: unknown[]): Record<string, number> {
+    const counts = new Map();
+    array.forEach((value) => {
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    });
+    counts.forEach((value, key) => {
+      if (value === 1) {
+        counts.delete(key);
+      }
+    });
+    return Object.fromEntries(counts);
   }
 
   private findDirectMappingMatches(
@@ -152,26 +187,5 @@ export class DataAnalyzer {
       }
     }
     return fuzzyMatches;
-  }
-
-  private applyDataMapping(
-    inputData: Record<string, unknown>[],
-    dataMapping: DataMapping[]
-  ): Record<string, OutputData>[] {
-    return inputData.map((row) => {
-      const newRow: Record<string, OutputData> = {};
-      newRow.__rowId = row.__rowId as OutputData;
-      for (const mapping of dataMapping) {
-        if (mapping.sourceColumn) {
-          newRow[mapping.targetColumn] = {
-            value: row[mapping.sourceColumn],
-            errors: [],
-          };
-        } else {
-          newRow[mapping.targetColumn] = { value: null, errors: [] };
-        }
-      }
-      return newRow;
-    });
   }
 }

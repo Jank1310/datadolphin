@@ -1,25 +1,27 @@
-import { OutputData } from "../DataAnalyzer";
+import { Stats } from "../DataAnalyzer";
+import { ValidationError } from "../ValidationError";
 
 export class UniqueValidator {
   constructor() {}
 
   validate(
-    row: Record<string, OutputData>,
+    row: Record<string, unknown>,
     columnConfig: { column: string; regex?: string }[],
-    data: Record<string, OutputData>[] = []
+    stats: Stats = {}
   ) {
+    const errors: Record<string, ValidationError> = {};
     for (const columnToValidate of columnConfig.map((item) => item.column)) {
       let dataToValidate = row[columnToValidate];
       if (
-        data.filter(
-          (item) => item[columnToValidate]?.value === dataToValidate.value
-        ).length > 1
+        stats[columnToValidate] &&
+        stats[columnToValidate].nonunique[dataToValidate as string]
       ) {
-        row[columnToValidate].errors?.push({
+        errors[columnToValidate] = {
           type: "unique",
           message: "value is not unique",
-        });
+        };
       }
     }
+    return errors;
   }
 }

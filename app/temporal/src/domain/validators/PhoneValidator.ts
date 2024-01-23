@@ -1,23 +1,24 @@
 import { isPossiblePhoneNumber } from "libphonenumber-js";
-import { OutputData } from "../DataAnalyzer";
+import { ValidationError } from "../ValidationError";
 
 export class PhoneValidator {
   validate(
-    row: Record<string, OutputData>,
+    row: Record<string, unknown>,
     columnConfig: { column: string; regex?: string }[]
-  ) {
+  ): Record<string, ValidationError> {
+    const errors: Record<string, ValidationError> = {};
     for (const columnToValidate of columnConfig.map((item) => item.column)) {
       let dataToValidate = row[columnToValidate];
       // check if defaultCountry DE is ok
       if (
-        isPossiblePhoneNumber((dataToValidate.value as string) ?? "", "DE") ===
-        false
+        isPossiblePhoneNumber((dataToValidate as string) ?? "", "DE") === false
       ) {
-        row[columnToValidate].errors?.push({
+        errors[columnToValidate] = {
           type: "phone",
-          message: `value is not a valid phone number`,
-        });
+          message: "value is not a valid phone number",
+        };
       }
     }
+    return errors;
   }
 }

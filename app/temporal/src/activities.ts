@@ -4,8 +4,9 @@ import { chunk } from "lodash";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import { DataAnalyzer, DataMappingRecommendation } from "./domain/DataAnalyzer";
-import { DataMapping } from "./domain/DataMapping";
+import { ValidatorType } from "./domain/validators";
 import { FileStore } from "./infrastructure/FileStore";
+import { Mapping } from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
   filename: string;
   importerId: string;
@@ -15,6 +16,11 @@ export interface DownloadSourceFileReturnType {
   metaData: Record<string, string>;
   localFilePath: string;
 }
+
+export type ValidatorColumns = Record<
+  ValidatorType,
+  { column: string; regex?: string | undefined }[]
+>;
 
 export function makeActivities(
   fileStore: FileStore,
@@ -30,7 +36,7 @@ export function makeActivities(
       format: string;
       formatOptions: { delimiter?: string };
       outputFileReference: string;
-    }): Promise<string[]> => {
+    }): Promise<void> => {
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
@@ -82,12 +88,42 @@ export function makeActivities(
         ...row,
       }));
 
+      const jsonData = Buffer.from(JSON.stringify(jsonWithRowIds));
+      await fileStore.putFile(
+        params.bucket,
+        params.outputFileReference,
+        jsonData
+      );
+    },
+    applyMappings: async (params: {
+      bucket: string;
+      fileReference: string;
+      dataMapping: Mapping[];
+    }): Promise<string[]> => {
+      const fileData = await fileStore.getFile(
+        params.bucket,
+        params.fileReference
+      );
+      const jsonData: Record<string, unknown>[] = JSON.parse(
+        fileData.toString()
+      );
+      const mappedData = jsonData.map((row) => {
+        const newRow: Record<string, unknown> = {};
+        newRow.__rowId = row.__rowId;
+        for (const mapping of params.dataMapping.filter(
+          (mapping) => mapping.targetColumn
+        )) {
+          newRow[mapping.targetColumn as string] = row[mapping.sourceColumn!];
+        }
+        return newRow;
+      });
+
       return await Promise.all(
-        chunk(jsonWithRowIds, 1000).map(async (jsonString, index) => {
-          const jsonData = Buffer.from(JSON.stringify(jsonString));
-          const outputFileReference = `${params.outputFileReference}-${index}.json`;
-          await fileStore.putFile(params.bucket, outputFileReference, jsonData);
-          return outputFileReference;
+        chunk(mappedData, 1000).map(async (json, index) => {
+          const jsonData = Buffer.from(JSON.stringify(json));
+          const chunktFileReference = `mapped-${index}.json`;
+          await fileStore.putFile(params.bucket, chunktFileReference, jsonData);
+          return chunktFileReference;
         })
       );
     },
@@ -101,7 +137,6 @@ export function makeActivities(
         params.fileReference
       );
       const jsonData = JSON.parse(fileData.toString());
-      // only the first 10 rows are used to detect the columns
       // all rows should have all available headers (see source file processing)
       const sourceColumns = Object.keys(jsonData[0]);
       return dataAnalyzer.generateMappingRecommendations(
@@ -112,131 +147,102 @@ export function makeActivities(
     processDataValidations: async (params: {
       bucket: string;
       fileReference: string;
-      columnConfig: ColumnConfig[];
-      dataMapping: DataMapping[];
+      statsFileReference: string;
+      validatorColumns: ValidatorColumns;
     }) => {
-      const allColumnsWithValidators = params.columnConfig.filter(
-        (column) => column.validations?.length
-      );
-
-      const validatorColumns: Record<
-        string,
-        { column: string; regex?: string | undefined }[]
-      > = {
-        required: [],
-        regex: [],
-        phone: [],
-        email: [],
-      };
-      for (const column of allColumnsWithValidators) {
-        for (const validator of column.validations!) {
-          switch (validator.type) {
-            case "required":
-              validatorColumns.required.push({ column: column.key });
-              break;
-            case "regex":
-              validatorColumns.regex.push({
-                column: column.key,
-                regex: validator.regex,
-              });
-              break;
-            case "phone":
-              validatorColumns.phone.push({ column: column.key });
-              break;
-            case "email":
-              validatorColumns.email.push({ column: column.key });
-              break;
-          }
-        }
-      }
-
-      // [
-      //   {
-      //     rowId: 0,
-      //     column: 'name',
-      //     errors: [
-      //       {
-      //         type: 'required',
-      //         message: 'value is required'
-      //       },
-      //       {
-      //         type: 'unique',
-      //         message: 'value is not unique'
-      //       }
-      //     ]
-      //   },
-      // ]
-
       const referenceId = params.fileReference.split("-")[1].split(".")[0];
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
       );
       const jsonData = JSON.parse(fileData.toString());
-      const validatedDate = dataAnalyzer.processDataValidations(
-        jsonData,
-        params.dataMapping,
-        validatorColumns
+
+      const statsFileData = await fileStore.getFile(
+        params.bucket,
+        params.statsFileReference
       );
-      const validationFileReference = `validated-${referenceId}.json`;
+      const statsData = JSON.parse(statsFileData.toString());
+      const errorData = dataAnalyzer.processDataValidations(
+        jsonData,
+        params.validatorColumns,
+        statsData
+      );
+      const errorFileReference = `errors-${referenceId}.json`;
       await fileStore.putFile(
         params.bucket,
-        validationFileReference,
-        Buffer.from(JSON.stringify(validatedDate))
+        errorFileReference,
+        Buffer.from(JSON.stringify(errorData))
       );
-      return validationFileReference;
+      return errorFileReference;
     },
-    processDataUniqueValidations: async (params: {
+    generateStatsFile: async (params: {
       bucket: string;
-      fileReferences: string[];
+      fileReference: string;
+      outputFileReference: string;
+      uniqueColumns: string[];
+    }): Promise<void> => {
+      const fileData = await fileStore.getFile(
+        params.bucket,
+        params.fileReference
+      );
+      const jsonData: Record<string, unknown>[] = JSON.parse(
+        fileData.toString()
+      );
+      const stats = dataAnalyzer.getStats(jsonData, params.uniqueColumns);
+      const statsData = Buffer.from(JSON.stringify(stats));
+      await fileStore.putFile(
+        params.bucket,
+        params.outputFileReference,
+        statsData
+      );
+    },
+    // TODO: why the heck async??
+    getValidatorColumns: async (params: {
       columnConfig: ColumnConfig[];
-      dataMapping: DataMapping[];
-    }): Promise<string | undefined> => {
+    }): Promise<ValidatorColumns> => {
       const allColumnsWithValidators = params.columnConfig.filter(
         (column) => column.validations?.length
       );
-      const validatorColumns: Record<
-        string,
-        { column: string; regex?: string | undefined }[]
-      > = {
-        unique: [],
-      };
 
+      const validatorColumns = {} as ValidatorColumns;
       for (const column of allColumnsWithValidators) {
         for (const validator of column.validations!) {
-          switch (validator.type) {
-            case "unique":
-              validatorColumns.unique.push({ column: column.key });
-              break;
+          if (validatorColumns[validator.type] === undefined) {
+            validatorColumns[validator.type] = [];
+          }
+          if (validator.type === "regex") {
+            validatorColumns[validator.type].push({
+              column: column.key,
+              regex: validator.regex,
+            });
+          } else {
+            validatorColumns[validator.type].push({ column: column.key });
           }
         }
       }
-      if (validatorColumns.unique.length === 0) {
-        return;
+      return validatorColumns;
+    },
+    mergeChunks: async (params: {
+      bucket: string;
+      fileReferences: string[];
+      outputFileReference: string;
+      deleteChunks?: boolean;
+    }) => {
+      let allJsonData: Record<string, unknown>[] = [];
+      for (const fileReference of params.fileReferences) {
+        const fileData = await fileStore.getFile(params.bucket, fileReference);
+        allJsonData = [...allJsonData, ...JSON.parse(fileData.toString())];
       }
-      const jsonData: Record<string, unknown>[] = (
-        await Promise.all(
-          params.fileReferences.map(async (fileReference) => {
-            const fileData = await fileStore.getFile(
-              params.bucket,
-              fileReference
-            );
-            return JSON.parse(fileData.toString());
-          })
-        )
-      ).flat();
-      const validatedDate = dataAnalyzer.processDataValidations(
-        jsonData,
-        params.dataMapping,
-        validatorColumns
-      );
-      const validationFileReference = `validated-unique.json`;
       await fileStore.putFile(
         params.bucket,
-        validationFileReference,
-        Buffer.from(JSON.stringify(validatedDate))
+        params.outputFileReference,
+        Buffer.from(JSON.stringify(allJsonData))
       );
-      return validationFileReference;
+      if (params.deleteChunks) {
+        for (const fileReference of params.fileReferences) {
+          await fileStore.deleteFile(params.bucket, fileReference);
+        }
+      }
     },
   };
 }

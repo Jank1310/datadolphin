@@ -45,9 +45,16 @@ export class FileStore {
     // we need to delete all objects first before we can delete the bucket
     for (const object of objects) {
       if (object.name) {
-        await this.minioClient.removeObject(bucket, object.name);
+        await this.deleteFile(bucket, object.name);
       }
     }
     await this.minioClient.removeBucket(bucket);
+  }
+
+  public async deleteFile(
+    bucket: string,
+    fileReference: string
+  ): Promise<void> {
+    await this.minioClient.removeObject(bucket, fileReference);
   }
 }

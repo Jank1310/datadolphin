@@ -11,7 +11,6 @@ import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
 import { DataMappingRecommendation } from "../domain/DataAnalyzer";
-import { DataMapping } from "../domain/DataMapping";
 import { DataSetPatch } from "../domain/DataSet";
 export interface ImporterWorkflowParams {
   name: string;
@@ -153,80 +152,33 @@ export async function importer(params: ImporterWorkflowParams) {
     }
 
     // perform import
-    const outputFileReference = "output";
-    const outputFileReferences = await acts.processSourceFile({
+    const sourceFileReference = "source.json";
+    await acts.processSourceFile({
       bucket: sourceFile!.bucket,
       fileReference: sourceFile!.fileReference,
       format: sourceFile!.fileFormat,
-      outputFileReference,
+      outputFileReference: sourceFileReference,
       formatOptions: {},
     });
 
-    // process source file writes one json file
-
     dataMappingRecommendations = await acts.getMappingRecommendations({
       bucket: sourceFile!.bucket,
-      fileReference: outputFileReferences[0],
+      fileReference: sourceFileReference,
       columnConfig: params.columnConfig,
     });
-    isValidating = true;
 
-    // TODO: get real data mappings from frontend before starting validation
+    // await condition(() => configuredMappings !== null, startImportTimeout);
 
-    //  apply mapping - writes chunks and returns chunks references
+    const chunkedFileReferences = await acts.applyMappings({
+      bucket: sourceFile!.bucket,
+      fileReference: sourceFileReference,
+      dataMapping: dataMappingRecommendations.map((item) => ({
+        sourceColumn: item.sourceColumn,
+        targetColumn: item.targetColumn,
+      })),
+    });
 
-    validationFileReferences = [];
-    // const startUniqueValidations = Date.now();
-
-    // const uniqueValidationFileReference =
-    //   await acts.processDataUniqueValidations({
-    //     bucket: sourceFile!.bucket,
-    //     fileReferences: outputFileReferences,
-    //     columnConfig: params.columnConfig,
-    //     dataMapping: dataMappingRecommendations!.map((item) => ({
-    //       sourceColumn: item.sourceColumn,
-    //       targetColumn: item.targetColumn,
-    //     })) as DataMapping[],
-    //   });
-    // if (uniqueValidationFileReference) {
-    //   validationFileReferences.push(uniqueValidationFileReference);
-    // }
-    // console.log(
-    //   `unique validations took ${Date.now() - startUniqueValidations}ms`
-    // );
-
-    const startAllValidations = Date.now();
-    const limit = pLimit(10);
-    const parallelValidations = outputFileReferences.map((fileReference) =>
-      limit(() =>
-        acts.processDataValidations({
-          bucket: sourceFile!.bucket,
-          fileReference,
-          columnConfig: params.columnConfig,
-          dataMapping: dataMappingRecommendations!.map((item) => ({
-            sourceColumn: item.sourceColumn,
-            targetColumn: item.targetColumn,
-          })) as DataMapping[],
-        })
-      )
-    );
-    // const parallelValidations = outputFileReferences.map((fileReference) =>
-    //   acts.processDataValidations({
-    //     bucket: sourceFile!.bucket,
-    //     fileReference,
-    //     columnConfig: params.columnConfig,
-    //     dataMapping: dataMappingRecommendations!.map((item) => ({
-    //       sourceColumn: item.sourceColumn,
-    //       targetColumn: item.targetColumn,
-    //     })) as DataMapping[],
-    //   })
-    // );
-    const fileReferences = await Promise.all(parallelValidations);
-    validationFileReferences.push(...fileReferences);
-
-    console.log(`all validations took ${Date.now() - startAllValidations}ms`);
-    isValidating = false;
-    await condition(() => configuredMappings !== null, startImportTimeout);
+    await performValidations(sourceFileReference, chunkedFileReferences);
 
     const hasImportStartRequested = await condition(
       () => importStartRequested === true,
@@ -243,16 +195,55 @@ export async function importer(params: ImporterWorkflowParams) {
     }
     throw err;
   } finally {
-    // await acts.deleteBucket({ bucket: sourceFile!.bucket });
+    await acts.deleteBucket({ bucket: sourceFile!.bucket });
+  }
+
+  async function performValidations(
+    sourceFileReference: string,
+    chunkedFileReferences: string[]
+  ) {
+    isValidating = true;
+    const validatorColumns = await acts.getValidatorColumns({
+      columnConfig: params.columnConfig,
+    });
+
+    // TODO: apply patches
+    const statsFileReference = "stats.json";
+    const startStats = Date.now();
+    await acts.generateStatsFile({
+      bucket: sourceFile!.bucket,
+      fileReference: sourceFileReference,
+      outputFileReference: statsFileReference,
+      uniqueColumns: validatorColumns.unique.map((item) => item.column),
+    });
+    console.log(`generate stats file took ${Date.now() - startStats}ms`);
+
+    const startAllValidations = Date.now();
+    const limit = pLimit(10);
+    const parallelValidations = chunkedFileReferences.map((fileReference) =>
+      limit(() =>
+        acts.processDataValidations({
+          bucket: sourceFile!.bucket,
+          fileReference,
+          statsFileReference,
+          validatorColumns,
+        })
+      )
+    );
+    const errorFileReferences = await Promise.all(parallelValidations);
+    await acts.mergeChunks({
+      bucket: sourceFile!.bucket,
+      fileReferences: errorFileReferences,
+      outputFileReference: "errors.json",
+      deleteChunks: true,
+    });
+    await acts.mergeChunks({
+      bucket: sourceFile!.bucket,
+      fileReferences: chunkedFileReferences,
+      outputFileReference: "target.json",
+      deleteChunks: false,
+    });
+    console.log(`all validations took ${Date.now() - startAllValidations}ms`);
+    isValidating = false;
   }
 }
-
-async function performValidations(patchCount: number) {
-  /*
-   generate stats file - { name: {nonunique:{"foo":2}}, id: {}} - save minio
-  validations chunked - write chunk error file
- 
-   */
-}
-
-// merge all chunks (data + errors) into one file
