@@ -2,8 +2,8 @@ import Fuse from "fuse.js";
 import { ColumnConfig } from "./ColumnConfig";
 
 export interface DataMappingRecommendation {
-  targetColumn: string;
-  sourceColumn: string | null;
+  targetColumn: string | null;
+  sourceColumn: string;
   confidence: number;
 }
 
@@ -11,68 +11,68 @@ export class DataAnalyzer {
   constructor() {}
 
   public generateMappingRecommendations(
-    data: Record<string, unknown>[],
-    columns: ColumnConfig[]
+    sourceColumns: string[],
+    targetColumns: ColumnConfig[]
   ): DataMappingRecommendation[] {
-    const availableSourceColumns = new Set<string>();
-    for (const row of data) {
-      for (const key of Object.keys(row)) {
-        availableSourceColumns.add(key);
-      }
-    }
     const directMatchRecommendations = this.findDirectMappingMatches(
-      availableSourceColumns,
-      columns
+      sourceColumns,
+      targetColumns
     );
-    const missingColumns = columns.filter(
+    const missingColumns = sourceColumns.filter(
+      (column) =>
+        !directMatchRecommendations.find(
+          (match) => match.sourceColumn === column
+        )
+    );
+    const unmatchedTargetColumns = targetColumns.filter(
       (column) =>
         !directMatchRecommendations.find(
           (match) => match.targetColumn === column.key
         )
     );
     const fuzzyMatchRecommendations = this.findFuzzyMappingMatches(
-      availableSourceColumns,
-      missingColumns
+      missingColumns,
+      unmatchedTargetColumns
     );
     const foundColumnRecommendations = [
       ...directMatchRecommendations,
       ...fuzzyMatchRecommendations,
     ];
-    const notFoundColumns = columns.filter(
+    const notFoundColumns = sourceColumns.filter(
       (column) =>
         !foundColumnRecommendations.find(
-          (match) => match.targetColumn === column.key
+          (match) => match.sourceColumn === column
         )
     );
     const notFoundMatchRecommendations = notFoundColumns.map((column) => ({
-      targetColumn: column.key,
-      sourceColumn: null,
+      targetColumn: null,
+      sourceColumn: column,
       confidence: 0,
     }));
     return [...foundColumnRecommendations, ...notFoundMatchRecommendations];
   }
 
   private findDirectMappingMatches(
-    availableSourceColumns: Set<string>,
-    columns: ColumnConfig[]
+    sourceColumns: string[],
+    targetColumns: ColumnConfig[]
   ): DataMappingRecommendation[] {
     const directMatches: DataMappingRecommendation[] = [];
-    for (const column of columns) {
-      if (availableSourceColumns.has(column.key)) {
-        directMatches.push({
-          targetColumn: column.key,
-          sourceColumn: column.key,
-          confidence: 1,
-        });
-      } else if (column.keyAlternatives) {
-        for (const keyAlternative of column.keyAlternatives) {
-          if (availableSourceColumns.has(keyAlternative)) {
-            directMatches.push({
-              targetColumn: column.key,
-              sourceColumn: keyAlternative,
-              confidence: 1,
-            });
-          }
+    for (const column of sourceColumns) {
+      const directMatch = targetColumns.find(
+        (targetColumn) =>
+          targetColumn.key === column ||
+          targetColumn.keyAlternatives?.includes(column)
+      );
+      if (directMatch) {
+        const isAlreadyMapped = Boolean(
+          directMatches.find((match) => match.targetColumn === directMatch?.key)
+        );
+        if (!isAlreadyMapped) {
+          directMatches.push({
+            targetColumn: directMatch.key,
+            sourceColumn: column,
+            confidence: 1,
+          });
         }
       }
     }
@@ -80,42 +80,36 @@ export class DataAnalyzer {
   }
 
   private findFuzzyMappingMatches(
-    availableSourceColumns: Set<string>,
-    columns: ColumnConfig[]
+    sourceColumns: string[],
+    targetColumns: ColumnConfig[]
   ): DataMappingRecommendation[] {
-    const options: Fuse.IFuseOptions<string> = {
+    const options: Fuse.IFuseOptions<ColumnConfig> = {
       includeScore: true,
       ignoreLocation: true,
       threshold: 0.7,
+      keys: ["key", "keyAlternatives"],
     };
-    const fuse = new Fuse(Array.from(availableSourceColumns), options);
+    const fuse = new Fuse<ColumnConfig>(targetColumns, options);
     const fuzzyMatches: DataMappingRecommendation[] = [];
-    for (const column of columns) {
-      let bestMatchForColumn: Fuse.FuseResult<string> | undefined;
-      const result = fuse.search(column.key);
+    for (const column of sourceColumns) {
+      let bestMatchForColumn: Fuse.FuseResult<ColumnConfig> | undefined;
+      const result = fuse.search(column);
       if (result.length > 0) {
         bestMatchForColumn = result[0];
       }
-      if (column.keyAlternatives) {
-        for (const keyAlternative of column.keyAlternatives) {
-          const result = fuse.search(keyAlternative);
-          if (result.length === 0) {
-            continue;
-          }
-          if (
-            !bestMatchForColumn ||
-            result[0].score! < bestMatchForColumn.score!
-          ) {
-            bestMatchForColumn = result[0];
-          }
-        }
-      }
       if (bestMatchForColumn) {
-        fuzzyMatches.push({
-          targetColumn: column.key,
-          sourceColumn: bestMatchForColumn.item,
-          confidence: 1 - bestMatchForColumn.score!, // score = 0 == perfect match, score = 1 == worst match
-        });
+        const isAlreadyMapped = Boolean(
+          fuzzyMatches.find(
+            (match) => match.targetColumn === bestMatchForColumn?.item.key
+          )
+        );
+        if (!isAlreadyMapped) {
+          fuzzyMatches.push({
+            targetColumn: bestMatchForColumn.item.key,
+            sourceColumn: column,
+            confidence: 1 - bestMatchForColumn.score!, // score = 0 == perfect match, score = 1 == worst match
+          });
+        }
       }
     }
     return fuzzyMatches;

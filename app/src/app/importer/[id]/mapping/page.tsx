@@ -1,6 +1,7 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { getHost } from "@/lib/utils";
 import { redirect } from "next/navigation";
+import ShowMappings from "./ShowMappings";
 
 type Props = {
   params: {
@@ -20,7 +21,11 @@ const MappingPage = async (props: Props) => {
     redirect("import");
   }
 
-  return <div>Mapping...</div>;
+  return (
+    <div className="p-4">
+      <ShowMappings importerDto={initialImporterDto} />
+    </div>
+  );
 };
 
 export default MappingPage;
