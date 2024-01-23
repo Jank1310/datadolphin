@@ -1,9 +1,11 @@
 import {
   ApplicationFailure,
+  CancellationScope,
   condition,
   defineQuery,
   defineSignal,
   defineUpdate,
+  isCancellation,
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
@@ -172,10 +174,17 @@ export async function importer(params: ImporterWorkflowParams) {
       );
     }
   } catch (err) {
-    for (const compensation of compensations) {
-      await compensation();
+    const doCompensations = async () => {
+      for (const compensation of compensations) {
+        await compensation();
+      }
+    };
+    if (isCancellation(err)) {
+      await CancellationScope.nonCancellable(() => doCompensations());
+    } else {
+      await doCompensations();
     }
-    throw err;
+    throw err; // <-- Fail the workflow
   } finally {
     await acts.deleteBucket({ bucket: sourceFile!.bucket });
   }
