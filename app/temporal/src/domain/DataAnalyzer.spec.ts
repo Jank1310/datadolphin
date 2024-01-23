@@ -1,19 +1,9 @@
 import { ColumnConfig } from "./ColumnConfig";
 import { DataAnalyzer } from "./DataAnalyzer";
+import { ValidatorType } from "./validators";
 
 describe("DataAnalyzer", () => {
   const analyzer = new DataAnalyzer();
-  const rows: Record<string, string>[] = [
-    {
-      name: "John",
-      age: "20",
-      position: "CEO",
-      mail: "john@gmail.com",
-      role: "Lead",
-    },
-    { name: "Jane", age: "30", position: "CTO" },
-    { name: "Joe", age: "40", position: "COO", mail: "joe@gmail.com" },
-  ];
   const columnConfigs: ColumnConfig[] = [
     {
       key: "name",
@@ -49,16 +39,29 @@ describe("DataAnalyzer", () => {
   ];
 
   it("should get correct mapping recommendations", () => {
-    const result = analyzer.generateMappingRecommendations(rows, columnConfigs);
+    const sourceColumns: string[] = [
+      "name",
+      "name2",
+      "age",
+      "position",
+      "mail",
+      "role",
+      "salry",
+    ];
+
+    const result = analyzer.generateMappingRecommendations(
+      sourceColumns,
+      columnConfigs
+    );
     expect(result).toEqual([
       {
-        targetColumn: "name",
         sourceColumn: "name",
+        targetColumn: "name",
         confidence: 1,
       },
       {
-        targetColumn: "age",
         sourceColumn: "age",
+        targetColumn: "age",
         confidence: 1,
       },
       {
@@ -67,18 +70,23 @@ describe("DataAnalyzer", () => {
         confidence: 1,
       },
       {
-        targetColumn: "email",
         sourceColumn: "mail",
-        confidence: 0.8,
+        targetColumn: "email",
+        confidence: 0.999,
       },
       {
         sourceColumn: "role",
         targetColumn: "work role",
-        confidence: expect.closeTo(0.4444444),
+        confidence: expect.closeTo(0.992431671049),
       },
       {
+        sourceColumn: "salry",
         targetColumn: "salary",
-        sourceColumn: null,
+        confidence: 0.8,
+      },
+      {
+        sourceColumn: "name2",
+        targetColumn: null,
         confidence: 0,
       },
     ]);
@@ -95,19 +103,14 @@ describe("DataAnalyzer", () => {
       { name: null },
       { name: undefined },
     ];
-    const columnConfigs: ColumnConfig[] = [
-      {
-        key: "name",
-        label: "Name",
-        type: "text",
-        validations: [{ type: "required" }],
-      },
-    ];
+    const validatorColumns = {
+      required: [{ column: "name" }],
+    } as Record<ValidatorType, { column: string; regex?: string }[]>;
     const mapping = [{ sourceColumn: "name", targetColumn: "name" }];
     const result = analyzer.processDataValidations(
       rowsWithMissingName,
-      columnConfigs,
-      mapping
+      mapping,
+      validatorColumns
     );
     expect(result).toEqual([
       { name: { value: "John", errors: [] } },
@@ -180,19 +183,14 @@ describe("DataAnalyzer", () => {
       {},
       { name: "John" },
     ];
-    const columnConfigs: ColumnConfig[] = [
-      {
-        key: "name",
-        label: "Name",
-        type: "text",
-        validations: [{ type: "unique" }],
-      },
-    ];
+    const validatorColumns = {
+      unique: [{ column: "name" }],
+    } as Record<ValidatorType, { column: string; regex?: string }[]>;
     const mapping = [{ sourceColumn: "name", targetColumn: "name" }];
     const result = analyzer.processDataValidations(
       rowsWithDuplicateValues,
-      columnConfigs,
-      mapping
+      mapping,
+      validatorColumns
     );
     expect(result).toEqual([
       {
@@ -264,21 +262,16 @@ describe("DataAnalyzer", () => {
       {},
       { Postleitzahl: "123" },
     ];
-    const columnConfigs: ColumnConfig[] = [
-      {
-        key: "Postleitzahl",
-        label: "PostalCode",
-        type: "text",
-        validations: [{ type: "regex", regex: "^[0-9]{5}$" }],
-      },
-    ];
+    const validatorColumns = {
+      regex: [{ column: "Postleitzahl", regex: "^[0-9]{5}$" }],
+    } as Record<ValidatorType, { column: string; regex?: string }[]>;
     const mapping = [
       { sourceColumn: "Postleitzahl", targetColumn: "Postleitzahl" },
     ];
     const result = analyzer.processDataValidations(
       rowsWithDuplicateValues,
-      columnConfigs,
-      mapping
+      mapping,
+      validatorColumns
     );
     expect(result).toEqual([
       {
@@ -341,19 +334,15 @@ describe("DataAnalyzer", () => {
       { phone: "foo" },
       {},
     ];
-    const columnConfigs: ColumnConfig[] = [
-      {
-        key: "phone",
-        label: "phone",
-        type: "text",
-        validations: [{ type: "phone" }],
-      },
-    ];
+
+    const validatorColumns = {
+      phone: [{ column: "phone" }],
+    } as Record<ValidatorType, { column: string; regex?: string }[]>;
     const mapping = [{ sourceColumn: "phone", targetColumn: "phone" }];
     const result = analyzer.processDataValidations(
       rowsWithDuplicateValues,
-      columnConfigs,
-      mapping
+      mapping,
+      validatorColumns
     );
     expect(result).toEqual([
       {
@@ -418,19 +407,14 @@ describe("DataAnalyzer", () => {
       },
       {},
     ];
-    const columnConfigs: ColumnConfig[] = [
-      {
-        key: "email",
-        label: "email",
-        type: "text",
-        validations: [{ type: "email" }],
-      },
-    ];
+    const validatorColumns = {
+      email: [{ column: "email" }],
+    } as Record<ValidatorType, { column: string; regex?: string }[]>;
     const mapping = [{ sourceColumn: "email", targetColumn: "email" }];
     const result = analyzer.processDataValidations(
       rowsWithDuplicateValues,
-      columnConfigs,
-      mapping
+      mapping,
+      validatorColumns
     );
     expect(result).toEqual([
       {
@@ -488,25 +472,18 @@ describe("DataAnalyzer", () => {
 
   it("should validate multiple validations", () => {
     const rowsWithDuplicateValues = [{}, {}];
-    const columnConfigs: ColumnConfig[] = [
-      {
-        key: "name",
-        label: "name",
-        type: "text",
-        validations: [
-          { type: "required" },
-          { type: "unique" },
-          { type: "phone" },
-          { type: "email" },
-          { type: "regex", regex: "^[0-9]{5}$" },
-        ],
-      },
-    ];
+    const validatorColumns = {
+      required: [{ column: "name" }],
+      unique: [{ column: "name" }],
+      phone: [{ column: "name" }],
+      email: [{ column: "name" }],
+      regex: [{ column: "name", regex: "^[0-9]{5}$" }],
+    } as Record<ValidatorType, { column: string; regex?: string }[]>;
     const mapping = [{ sourceColumn: "name", targetColumn: "name" }];
     const result = analyzer.processDataValidations(
       rowsWithDuplicateValues,
-      columnConfigs,
-      mapping
+      mapping,
+      validatorColumns
     );
     expect(result).toEqual([
       {

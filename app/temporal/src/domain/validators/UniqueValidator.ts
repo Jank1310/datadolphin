@@ -5,10 +5,10 @@ export class UniqueValidator {
 
   validate(
     row: Record<string, OutputData>,
-    data: Record<string, OutputData>[],
-    columnsToValidate: string[]
+    columnConfig: { column: string; regex?: string }[],
+    data: Record<string, OutputData>[] = []
   ) {
-    for (const columnToValidate of columnsToValidate) {
+    for (const columnToValidate of columnConfig.map((item) => item.column)) {
       let dataToValidate = row[columnToValidate];
       if (
         data.filter(

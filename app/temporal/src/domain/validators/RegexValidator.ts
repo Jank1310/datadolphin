@@ -3,7 +3,7 @@ import { OutputData } from "../DataAnalyzer";
 export class RegexValidator {
   validate(
     row: Record<string, OutputData>,
-    columnConfig: { column: string; regex: string | undefined }[]
+    columnConfig: { column: string; regex?: string }[]
   ) {
     for (const config of columnConfig) {
       const { column: columnToValidate, regex } = config;

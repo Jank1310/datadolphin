@@ -1,15 +1,8 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { getHost } from "@/lib/utils";
-import { redirect } from "next/navigation";
-import ShowMappings from "./ShowMappings";
+import Validation from "./Validation";
 
-type Props = {
-  params: {
-    id: string;
-  };
-};
-
-const MappingPage = async (props: Props) => {
+export default async function page(props: { params: { id: string } }) {
   const importerId = props.params.id;
   const initialImporterDto = (await fetch(
     `${getHost()}/api/importer/${importerId}`,
@@ -17,15 +10,9 @@ const MappingPage = async (props: Props) => {
       cache: "no-cache",
     }
   ).then((res) => res.json())) as ImporterDto;
-  if (initialImporterDto.status.isWaitingForFile) {
-    redirect("import");
-  }
-
   return (
     <div className="p-4">
-      <ShowMappings importerDto={initialImporterDto} />
+      <Validation initialImporterDto={initialImporterDto} />
     </div>
   );
-};
-
-export default MappingPage;
+}

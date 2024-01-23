@@ -3,9 +3,11 @@ import {
   condition,
   defineQuery,
   defineSignal,
+  defineUpdate,
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
+import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
 import { DataMappingRecommendation } from "../domain/DataAnalyzer";
@@ -37,7 +39,13 @@ export interface ImporterStatus {
   dataMappingRecommendations: DataMappingRecommendation[] | null;
 }
 
-const addFileSignal = defineSignal<
+export interface Mapping {
+  targetColumn: string | null;
+  sourceColumn: string;
+}
+
+const addFileUpdate = defineUpdate<
+  void,
   [
     {
       fileReference: string;
@@ -52,6 +60,15 @@ const startImportSignal = defineSignal<[]>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const importConfigQuery =
   defineQuery<ImporterWorkflowParams>("importer:config");
+const mappingUpdate = defineUpdate<
+  void,
+  [
+    {
+      mappings: Mapping[];
+    }
+  ]
+>("importer:update-mapping");
+
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
@@ -72,16 +89,36 @@ export async function importer(params: ImporterWorkflowParams) {
   let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
-  let validationFileReference: string | null = null;
+  let validationFileReferences: string[] | null = null;
   let isValidating = false;
+  let configuredMappings: Mapping[] | null = null;
 
-  setHandler(addFileSignal, (params) => {
-    sourceFile = {
-      bucket: params.bucket,
-      fileReference: params.fileReference,
-      fileFormat: params.fileFormat,
-    };
-  });
+  setHandler(
+    addFileUpdate,
+    (params) => {
+      sourceFile = {
+        bucket: params.bucket,
+        fileReference: params.fileReference,
+        fileFormat: params.fileFormat,
+      };
+    },
+    {
+      validator: (_params) => {
+        return !sourceFile;
+      },
+    }
+  );
+  setHandler(
+    mappingUpdate,
+    (params) => {
+      configuredMappings = params.mappings;
+    },
+    {
+      validator: (params) => {
+        return !configuredMappings;
+      },
+    }
+  );
   setHandler(addPatchesSignal, (params) => {
     patches.push(...params.patches);
   });
@@ -94,11 +131,13 @@ export async function importer(params: ImporterWorkflowParams) {
   setHandler(importStatusQuery, () => {
     return {
       isWaitingForFile: sourceFile === null,
+      isWaitingForMapping: configuredMappings === null,
       isWaitingForImport: importStartRequested === false,
       isImporting: importStartRequested === true,
       dataMappingRecommendations,
       isValidating,
-      validationFileReference,
+      validationFileReferences,
+      dataMapping: configuredMappings,
     };
   });
 
@@ -112,6 +151,83 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: source file not uploaded"
       );
     }
+
+    // perform import
+    const outputFileReference = "output";
+    const outputFileReferences = await acts.processSourceFile({
+      bucket: sourceFile!.bucket,
+      fileReference: sourceFile!.fileReference,
+      format: sourceFile!.fileFormat,
+      outputFileReference,
+      formatOptions: {},
+    });
+
+    // process source file writes one json file
+
+    dataMappingRecommendations = await acts.getMappingRecommendations({
+      bucket: sourceFile!.bucket,
+      fileReference: outputFileReferences[0],
+      columnConfig: params.columnConfig,
+    });
+    isValidating = true;
+
+    // TODO: get real data mappings from frontend before starting validation
+
+    //  apply mapping - writes chunks and returns chunks references
+
+    validationFileReferences = [];
+    // const startUniqueValidations = Date.now();
+
+    // const uniqueValidationFileReference =
+    //   await acts.processDataUniqueValidations({
+    //     bucket: sourceFile!.bucket,
+    //     fileReferences: outputFileReferences,
+    //     columnConfig: params.columnConfig,
+    //     dataMapping: dataMappingRecommendations!.map((item) => ({
+    //       sourceColumn: item.sourceColumn,
+    //       targetColumn: item.targetColumn,
+    //     })) as DataMapping[],
+    //   });
+    // if (uniqueValidationFileReference) {
+    //   validationFileReferences.push(uniqueValidationFileReference);
+    // }
+    // console.log(
+    //   `unique validations took ${Date.now() - startUniqueValidations}ms`
+    // );
+
+    const startAllValidations = Date.now();
+    const limit = pLimit(10);
+    const parallelValidations = outputFileReferences.map((fileReference) =>
+      limit(() =>
+        acts.processDataValidations({
+          bucket: sourceFile!.bucket,
+          fileReference,
+          columnConfig: params.columnConfig,
+          dataMapping: dataMappingRecommendations!.map((item) => ({
+            sourceColumn: item.sourceColumn,
+            targetColumn: item.targetColumn,
+          })) as DataMapping[],
+        })
+      )
+    );
+    // const parallelValidations = outputFileReferences.map((fileReference) =>
+    //   acts.processDataValidations({
+    //     bucket: sourceFile!.bucket,
+    //     fileReference,
+    //     columnConfig: params.columnConfig,
+    //     dataMapping: dataMappingRecommendations!.map((item) => ({
+    //       sourceColumn: item.sourceColumn,
+    //       targetColumn: item.targetColumn,
+    //     })) as DataMapping[],
+    //   })
+    // );
+    const fileReferences = await Promise.all(parallelValidations);
+    validationFileReferences.push(...fileReferences);
+
+    console.log(`all validations took ${Date.now() - startAllValidations}ms`);
+    isValidating = false;
+    await condition(() => configuredMappings !== null, startImportTimeout);
+
     const hasImportStartRequested = await condition(
       () => importStartRequested === true,
       startImportTimeout
@@ -121,32 +237,6 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: import start not requested"
       );
     }
-    // perform import
-    const outputFileReference = "output.json";
-    await acts.processSourceFile({
-      bucket: sourceFile!.bucket,
-      fileReference: sourceFile!.fileReference,
-      format: sourceFile!.fileFormat,
-      outputFileReference,
-      formatOptions: {},
-    });
-    dataMappingRecommendations = await acts.getMappingRecommendations({
-      bucket: sourceFile!.bucket,
-      fileReference: outputFileReference,
-      columnConfig: params.columnConfig,
-    });
-    isValidating = true;
-    // TODO: get real data mappings from frontend before starting validation
-    validationFileReference = await acts.processDataValidations({
-      bucket: sourceFile!.bucket,
-      fileReference: outputFileReference,
-      columnConfig: params.columnConfig,
-      dataMapping: dataMappingRecommendations.map((item) => ({
-        sourceColumn: item.sourceColumn,
-        targetColumn: item.targetColumn,
-      })) as DataMapping[],
-    });
-    isValidating = false;
   } catch (err) {
     for (const compensation of compensations) {
       await compensation();
@@ -156,3 +246,13 @@ export async function importer(params: ImporterWorkflowParams) {
     // await acts.deleteBucket({ bucket: sourceFile!.bucket });
   }
 }
+
+async function performValidations(patchCount: number) {
+  /*
+   generate stats file - { name: {nonunique:{"foo":2}}, id: {}} - save minio
+  validations chunked - write chunk error file
+ 
+   */
+}
+
+// merge all chunks (data + errors) into one file

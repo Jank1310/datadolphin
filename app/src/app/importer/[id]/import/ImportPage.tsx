@@ -1,7 +1,7 @@
 "use client";
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import React from "react";
 import FileUpload from "./FileUpload";
 
@@ -16,11 +16,11 @@ const allowedMimeTypes = [
 ];
 
 const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
-  const [refresh, setRefresh] = React.useState(false);
+  const { push, replace } = useRouter();
   const [isUploading, setIsUploading] = React.useState(false);
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
-    refresh ? 1000 : undefined,
+    undefined,
     initialImporterDto
   );
 
@@ -31,8 +31,8 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("importerId", importer.importerId);
-        setRefresh(true);
         await fetch("/api/upload", { method: "POST", body: formData });
+        push("mapping");
       } catch (err) {
         console.log(err);
       } finally {
@@ -43,7 +43,7 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
 
   const hasUploadedFile = importer.status.isWaitingForFile === false;
   if (hasUploadedFile) {
-    redirect("mapping");
+    replace("mapping");
   }
 
   return (
