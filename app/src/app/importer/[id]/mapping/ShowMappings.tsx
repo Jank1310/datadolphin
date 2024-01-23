@@ -1,6 +1,14 @@
 "use client";
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/basicTable";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,14 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { produce } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
