@@ -37,6 +37,8 @@ export interface ImporterStatus {
   isWaitingForImport: boolean;
   isImporting: boolean;
   dataMappingRecommendations: DataMappingRecommendation[] | null;
+  sourceData: { bucket: string; file: string } | null;
+  validations: { bucket: string; file: string } | null;
 }
 
 export interface Mapping {
@@ -68,6 +70,7 @@ const mappingUpdate = defineUpdate<
     }
   ]
 >("importer:update-mapping");
+const importPatchesQuery = defineQuery<DataSetPatch[]>("importer:patches");
 
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
@@ -134,7 +137,12 @@ export async function importer(params: ImporterWorkflowParams) {
       isImporting: importStartRequested === true,
       dataMappingRecommendations,
       dataMapping: configuredMappings,
+      sourceData: null, // TODO return merged and mapped source data {bucket,file}
+      validations: null, // TODO return current validations {bucket,file}
     };
+  });
+  setHandler(importPatchesQuery, () => {
+    return patches;
   });
 
   try {

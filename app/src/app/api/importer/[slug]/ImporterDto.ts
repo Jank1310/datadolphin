@@ -29,6 +29,13 @@ export interface ImporterStatus {
   isImporting: boolean;
   dataMappingRecommendations: DataMappingRecommendation[] | null;
   dataMapping: DataMapping[] | null;
+
+  sourceData: {
+    bucket: string;
+    file: string;
+  } | null;
+
+  validations: { bucket: string; file: string } | null;
 }
 
 export interface DataMappingRecommendation {
@@ -51,3 +58,27 @@ export interface DataMapping {
   targetColumn: string | null;
   sourceColumn: string;
 }
+
+export interface DataSetPatch {
+  rowId: number;
+  /**
+   * target column
+   */
+  column: string;
+  newValue: string | number | null;
+}
+
+export interface DataValidation {
+  rowId: number;
+  column: string;
+  errors: ValidationError[];
+}
+
+export interface ValidationError {
+  type: "required" | "unique";
+  message: string;
+}
+
+export type SourceData = {
+  rowId: number;
+} & Record<string, string | number | null>;

@@ -1,5 +1,8 @@
 export interface DataSetPatch {
-  row: number;
-  col: number;
+  rowId: number;
+  /**
+   * target column
+   */
+  column: string;
   newValue: string | number | null;
 }
