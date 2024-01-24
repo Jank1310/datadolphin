@@ -1,11 +1,16 @@
 import Fuse from "fuse.js";
+import type { ValidatorColumns } from "../activities";
 import { ColumnConfig } from "./ColumnConfig";
+import { ValidationError } from "./ValidationError";
+import { ValidatorType, validators } from "./validators";
 
 export interface DataMappingRecommendation {
   targetColumn: string | null;
   sourceColumn: string;
   confidence: number;
 }
+
+export type Stats = Record<string, { nonunique: Record<string, number> }>;
 
 export class DataAnalyzer {
   constructor() {}
@@ -50,6 +55,69 @@ export class DataAnalyzer {
       confidence: 0,
     }));
     return [...foundColumnRecommendations, ...notFoundMatchRecommendations];
+  }
+
+  public processDataValidations(
+    data: Record<string, unknown>[],
+    validatorColumns: ValidatorColumns,
+    stats: Stats
+  ): { rowId: number; column: string; errors: ValidationError[] }[] {
+    const chunkErrors: {
+      rowId: number;
+      column: string;
+      errors: ValidationError[];
+    }[] = [];
+    const validatorKeys = Object.keys(validatorColumns) as ValidatorType[];
+    for (const row of data) {
+      for (const validatorKey of validatorKeys) {
+        if (validatorColumns[validatorKey].length > 0) {
+          const errors = validators[validatorKey].validate(
+            row,
+            validatorColumns[validatorKey],
+            stats
+          );
+
+          for (const column of Object.keys(errors as any)) {
+            const error = errors[column] as any;
+            const errorForRowAndColumn = chunkErrors.find(
+              (item) => item.rowId === row.__rowId && item.column === column
+            );
+            if (errorForRowAndColumn) {
+              errorForRowAndColumn.errors.push(error);
+            } else {
+              chunkErrors.push({
+                rowId: row.__rowId as number,
+                column,
+                errors: [error],
+              });
+            }
+          }
+        }
+      }
+    }
+    return chunkErrors;
+  }
+
+  public getStats(
+    data: Record<string, unknown>[],
+    columnsToVerify: string[]
+  ): Stats {
+    // nonunique
+    const stats = {} as Stats;
+    for (const column of columnsToVerify) {
+      const duplicates = new Map();
+      data.forEach((row) => {
+        duplicates.set(row[column], (duplicates.get(row[column]) ?? 0) + 1);
+      });
+      duplicates.forEach((value, key) => {
+        if (value === 1) {
+          duplicates.delete(key);
+        }
+      });
+
+      stats[column] = { nonunique: Object.fromEntries(duplicates) };
+    }
+    return stats;
   }
 
   private findDirectMappingMatches(
