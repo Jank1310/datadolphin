@@ -38,8 +38,8 @@ export interface ImporterStatus {
   isWaitingForImport: boolean;
   isImporting: boolean;
   dataMappingRecommendations: DataMappingRecommendation[] | null;
-  sourceData: { bucket: string; file: string } | null;
-  validations: { bucket: string; file: string } | null;
+  sourceData: { bucket: string; fileReference: string } | null;
+  validations: { bucket: string; fileReference: string } | null;
 }
 
 export interface Mapping {
@@ -96,6 +96,14 @@ export async function importer(params: ImporterWorkflowParams) {
   let validationFileReferences: string[] | null = null;
   let isValidating = false;
   let configuredMappings: Mapping[] | null = null;
+  let mappedSourceData: {
+    bucket: string;
+    fileReference: string;
+  } | null = null;
+  let latestValidations: {
+    bucket: string;
+    fileReference: string;
+  } | null = null;
 
   setHandler(
     addFileUpdate,
@@ -115,10 +123,11 @@ export async function importer(params: ImporterWorkflowParams) {
   setHandler(
     mappingUpdate,
     (params) => {
+      console.log("handle update mapping", params);
       configuredMappings = params.mappings;
     },
     {
-      validator: (params) => {
+      validator: (_params) => {
         return !configuredMappings;
       },
     }
@@ -142,8 +151,8 @@ export async function importer(params: ImporterWorkflowParams) {
       isValidating,
       validationFileReferences,
       dataMapping: configuredMappings,
-      sourceData: null, // TODO return merged and mapped source data {bucket,file}
-      validations: null, // TODO return current validations {bucket,file}
+      sourceData: mappedSourceData,
+      validations: latestValidations,
     };
   });
   setHandler(importPatchesQuery, () => {
@@ -187,7 +196,16 @@ export async function importer(params: ImporterWorkflowParams) {
         targetColumn: item.targetColumn,
       })),
     });
-
+    const mappedSourceDataFileReference = "target.json";
+    await acts.mergeChunks({
+      bucket: sourceFile!.bucket,
+      fileReferences: chunkedFileReferences,
+      outputFileReference: mappedSourceDataFileReference,
+    });
+    mappedSourceData = {
+      bucket: sourceFile!.bucket,
+      fileReference: mappedSourceDataFileReference,
+    };
     await performValidations(sourceFileReference, chunkedFileReferences);
 
     const hasImportStartRequested = await condition(
@@ -207,7 +225,7 @@ export async function importer(params: ImporterWorkflowParams) {
     };
     if (isCancellation(err)) {
       await CancellationScope.nonCancellable(() => doCompensations());
-    } else {
+    } else if (err instanceof ApplicationFailure && err.nonRetryable) {
       await doCompensations();
     }
     throw err; // <-- Fail the workflow
@@ -249,7 +267,7 @@ export async function importer(params: ImporterWorkflowParams) {
       bucket: sourceFile!.bucket,
       fileReference: sourceFileReference,
       outputFileReference: statsFileReference,
-      uniqueColumns: validatorColumns.unique.map((item) => item.column),
+      uniqueColumns: validatorColumns.unique?.map((item) => item.column) ?? [],
     });
     console.log(`generate stats file took ${Date.now() - startStats}ms`);
 
@@ -265,18 +283,17 @@ export async function importer(params: ImporterWorkflowParams) {
         })
       )
     );
-    const errorFileReferences = await Promise.all(parallelValidations);
+    const validationsFileReferences = await Promise.all(parallelValidations);
     await acts.mergeChunks({
       bucket: sourceFile!.bucket,
-      fileReferences: errorFileReferences,
-      outputFileReference: "errors.json",
-    });
-    await acts.mergeChunks({
-      bucket: sourceFile!.bucket,
-      fileReferences: chunkedFileReferences,
-      outputFileReference: "target.json",
+      fileReferences: validationsFileReferences,
+      outputFileReference: "validations.json",
     });
     console.log(`all validations took ${Date.now() - startAllValidations}ms`);
+    latestValidations = {
+      bucket: sourceFile!.bucket,
+      fileReference: "validations.json",
+    };
     isValidating = false;
   }
 }

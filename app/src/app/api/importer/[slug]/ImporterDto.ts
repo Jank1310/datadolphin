@@ -32,10 +32,10 @@ export interface ImporterStatus {
 
   sourceData: {
     bucket: string;
-    file: string;
+    fileReference: string;
   } | null;
 
-  validations: { bucket: string; file: string } | null;
+  validations: { bucket: string; fileReference: string } | null;
 }
 
 export interface DataMappingRecommendation {

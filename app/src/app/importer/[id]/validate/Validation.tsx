@@ -31,7 +31,10 @@ const Validation = ({
     undefined,
     initialImporterDto
   );
-  const { data: sourceData } = useGetSourceData(initialImporterDto.importerId);
+  const { data: sourceData } = useGetSourceData(
+    initialImporterDto.importerId,
+    initialSourceData
+  );
   const { patches } = useGetPatches(
     initialImporterDto.importerId,
     undefined,
@@ -42,11 +45,17 @@ const Validation = ({
     undefined,
     initialValidation
   );
+  console.log(sourceData, patches, validations);
   return (
     <div>
       <h1 className="text-3xl font-bold mb-4">Validate your data</h1>
       <div className="mb-4">
-        <ValidationTable importerDto={initialImporterDto} />
+        <ValidationTable
+          importerDto={importer}
+          data={sourceData}
+          validations={validations}
+          patches={patches}
+        />
       </div>
       <div className="flex justify-end">
         <Button>

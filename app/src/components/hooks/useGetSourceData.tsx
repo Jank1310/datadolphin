@@ -6,7 +6,7 @@ export function useGetSourceData(
   fallbackData?: SourceData[]
 ) {
   const { data, error, isLoading } = useSWR(
-    importerId ? [`/api/importer/${importerId}/validations`] : null,
+    importerId ? [`/api/importer/${importerId}/source-data`] : null,
     ([url]) => fetch(url).then((res) => res.json()),
     {
       fallbackData,

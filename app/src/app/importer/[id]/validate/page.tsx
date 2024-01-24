@@ -26,7 +26,10 @@ export default async function page(props: { params: { id: string } }) {
     {
       cache: "no-cache",
     }
-  ).then((res) => res.json() as Promise<DataValidation[]>);
+  ).then((res) => {
+    if (res.status === 404) return Promise.resolve([]);
+    return res.json() as Promise<DataValidation[]>;
+  });
   const initialSourceDataPromise = fetch(
     //! cached
     `${getHost()}/api/importer/${importerId}/source-data`
@@ -42,7 +45,6 @@ export default async function page(props: { params: { id: string } }) {
     initialValidationPromise,
     initialSourceDataPromise,
   ]);
-
   return (
     <div className="p-4">
       <Validation

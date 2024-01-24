@@ -1,5 +1,10 @@
 "use client";
-import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
+import {
+  DataSetPatch,
+  DataValidation,
+  ImporterDto,
+  SourceData,
+} from "@/app/api/importer/[slug]/ImporterDto";
 import {
   Table,
   TableBody,
@@ -17,12 +22,12 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import React from "react";
-import { makeData } from "./makeData";
-
-// TODO get patches and source data
 
 type Props = {
   importerDto: ImporterDto;
+  data: SourceData[];
+  validations: DataValidation[];
+  patches: DataSetPatch[];
 };
 
 const ValidationTable = (props: Props) => {
@@ -39,7 +44,10 @@ const ValidationTable = (props: Props) => {
       ),
     [props.importerDto.config.columnConfig]
   );
-  const data: Record<string, string>[] = React.useMemo(() => makeData(), []);
+  const data = React.useMemo(() => {
+    // TODO merge with patches
+    return props.data;
+  }, [props.data]);
   const table = useReactTable({
     data,
     columns,
