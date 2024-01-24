@@ -119,7 +119,7 @@ export function makeActivities(
       });
 
       return await Promise.all(
-        chunk(mappedData, 1000).map(async (json, index) => {
+        chunk(mappedData, 5000).map(async (json, index) => {
           const jsonData = Buffer.from(JSON.stringify(json));
           const chunktFileReference = `mapped-${index}.json`;
           await fileStore.putFile(params.bucket, chunktFileReference, jsonData);
