@@ -196,32 +196,6 @@ export function makeActivities(
         statsData
       );
     },
-    // TODO: why the heck async??
-    getValidatorColumns: async (params: {
-      columnConfig: ColumnConfig[];
-    }): Promise<ValidatorColumns> => {
-      const allColumnsWithValidators = params.columnConfig.filter(
-        (column) => column.validations?.length
-      );
-
-      const validatorColumns = {} as ValidatorColumns;
-      for (const column of allColumnsWithValidators) {
-        for (const validator of column.validations!) {
-          if (validatorColumns[validator.type] === undefined) {
-            validatorColumns[validator.type] = [];
-          }
-          if (validator.type === "regex") {
-            validatorColumns[validator.type].push({
-              column: column.key,
-              regex: validator.regex,
-            });
-          } else {
-            validatorColumns[validator.type].push({ column: column.key });
-          }
-        }
-      }
-      return validatorColumns;
-    },
     mergeChunks: async (params: {
       bucket: string;
       fileReferences: string[];

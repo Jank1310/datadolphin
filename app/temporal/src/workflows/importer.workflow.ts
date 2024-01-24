@@ -8,7 +8,7 @@ import {
   setHandler,
 } from "@temporalio/workflow";
 import pLimit from "p-limit";
-import { makeActivities } from "../activities";
+import { ValidatorColumns, makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
 import { DataMappingRecommendation } from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
@@ -203,9 +203,27 @@ export async function importer(params: ImporterWorkflowParams) {
     chunkedFileReferences: string[]
   ) {
     isValidating = true;
-    const validatorColumns = await acts.getValidatorColumns({
-      columnConfig: params.columnConfig,
-    });
+
+    const allColumnsWithValidators = params.columnConfig.filter(
+      (column) => column.validations?.length
+    );
+
+    const validatorColumns = {} as ValidatorColumns;
+    for (const column of allColumnsWithValidators) {
+      for (const validator of column.validations!) {
+        if (validatorColumns[validator.type] === undefined) {
+          validatorColumns[validator.type] = [];
+        }
+        if (validator.type === "regex") {
+          validatorColumns[validator.type].push({
+            column: column.key,
+            regex: validator.regex,
+          });
+        } else {
+          validatorColumns[validator.type].push({ column: column.key });
+        }
+      }
+    }
 
     // TODO: apply patches
     const statsFileReference = "stats.json";
