@@ -1,6 +1,6 @@
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
-import { chunk } from "lodash";
+import { chunk, pull } from "lodash";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import {
@@ -102,26 +102,31 @@ export function makeActivities(
         params.bucket,
         params.fileReference
       );
-      const jsonData: Record<string, unknown>[] = JSON.parse(
+      const sourceJsonData: Record<string, unknown>[] = JSON.parse(
         fileData.toString()
       );
-      const mappedData = jsonData.map((row) => {
+      const mappedData = sourceJsonData.map((row) => {
         const newRow: Record<string, unknown> = {};
         newRow.__rowId = row.__rowId;
-        for (const mapping of params.dataMapping.filter(
-          (mapping) => mapping.targetColumn
-        )) {
+        const mappingsWithSourceColumn = params.dataMapping.filter(
+          (mapping) => mapping.sourceColumn
+        );
+        for (const mapping of mappingsWithSourceColumn) {
           newRow[mapping.targetColumn as string] = row[mapping.sourceColumn!];
         }
         return newRow;
       });
-
+      const mappedDataChunks = chunk(mappedData, 5000);
       return await Promise.all(
-        chunk(mappedData, 5000).map(async (json, index) => {
-          const jsonData = Buffer.from(JSON.stringify(json));
-          const chunktFileReference = `mapped-${index}.json`;
-          await fileStore.putFile(params.bucket, chunktFileReference, jsonData);
-          return chunktFileReference;
+        mappedDataChunks.map(async (json, index) => {
+          const mappedChunkJsonData = Buffer.from(JSON.stringify(json));
+          const chunkedFileReference = `mapped-${index}.json`;
+          await fileStore.putFile(
+            params.bucket,
+            chunkedFileReference,
+            mappedChunkJsonData
+          );
+          return chunkedFileReference;
         })
       );
     },
@@ -136,7 +141,7 @@ export function makeActivities(
       );
       const jsonData = JSON.parse(fileData.toString());
       // all rows should have all available headers (see source file processing)
-      const sourceColumns = Object.keys(jsonData[0]);
+      const sourceColumns = pull(Object.keys(jsonData[0]), "__rowId");
       return dataAnalyzer.generateMappingRecommendations(
         sourceColumns,
         params.columnConfig

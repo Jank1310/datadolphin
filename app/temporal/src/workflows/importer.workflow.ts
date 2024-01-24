@@ -189,12 +189,17 @@ export async function importer(params: ImporterWorkflowParams) {
       columnConfig: params.columnConfig,
     });
 
-    await condition(() => configuredMappings !== null, startImportTimeout);
-
+    const hasConfiguredMappings = await condition(
+      () => configuredMappings !== null,
+      startImportTimeout
+    );
+    if (!hasConfiguredMappings) {
+      throw ApplicationFailure.nonRetryable("Timeout: mappings not configured");
+    }
     const chunkedFileReferences = await acts.applyMappings({
       bucket: sourceFile!.bucket,
       fileReference: sourceFileReference,
-      dataMapping: dataMappingRecommendations.map((item) => ({
+      dataMapping: configuredMappings!.map((item) => ({
         sourceColumn: item.sourceColumn,
         targetColumn: item.targetColumn,
       })),
