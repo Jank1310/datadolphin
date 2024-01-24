@@ -226,7 +226,6 @@ export function makeActivities(
       bucket: string;
       fileReferences: string[];
       outputFileReference: string;
-      deleteChunks?: boolean;
     }) => {
       let allJsonData: Record<string, unknown>[] = [];
       for (const fileReference of params.fileReferences) {
@@ -238,11 +237,6 @@ export function makeActivities(
         params.outputFileReference,
         Buffer.from(JSON.stringify(allJsonData))
       );
-      if (params.deleteChunks) {
-        for (const fileReference of params.fileReferences) {
-          await fileStore.deleteFile(params.bucket, fileReference);
-        }
-      }
     },
   };
 }

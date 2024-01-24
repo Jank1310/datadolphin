@@ -235,13 +235,11 @@ export async function importer(params: ImporterWorkflowParams) {
       bucket: sourceFile!.bucket,
       fileReferences: errorFileReferences,
       outputFileReference: "errors.json",
-      deleteChunks: true,
     });
     await acts.mergeChunks({
       bucket: sourceFile!.bucket,
       fileReferences: chunkedFileReferences,
       outputFileReference: "target.json",
-      deleteChunks: false,
     });
     console.log(`all validations took ${Date.now() - startAllValidations}ms`);
     isValidating = false;
