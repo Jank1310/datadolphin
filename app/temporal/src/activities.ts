@@ -108,10 +108,10 @@ export function makeActivities(
       const mappedData = sourceJsonData.map((row) => {
         const newRow: Record<string, unknown> = {};
         newRow.__rowId = row.__rowId;
-        const mappingsWithSourceColumn = params.dataMapping.filter(
-          (mapping) => mapping.sourceColumn
+        const mappingsWithTargetColumn = params.dataMapping.filter(
+          (mapping) => mapping.targetColumn
         );
-        for (const mapping of mappingsWithSourceColumn) {
+        for (const mapping of mappingsWithTargetColumn) {
           newRow[mapping.targetColumn as string] = row[mapping.sourceColumn!];
         }
         return newRow;
