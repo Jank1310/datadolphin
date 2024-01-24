@@ -1,23 +1,21 @@
-import { Stats } from "../DataAnalyzer";
+import { Validator } from ".";
+import { ColumnValidation } from "../ColumnValidation";
+import { SourceFileStatsPerColumn } from "../DataAnalyzer";
 import { ValidationError } from "../ValidationError";
 
-export class UniqueValidator {
+export class UniqueValidator implements Validator {
   constructor() {}
 
   validate(
     row: Record<string, unknown>,
-    columnConfig: { column: string; regex?: string }[],
-    stats: Stats = {}
+    columnConfig: { column: string; config: ColumnValidation }[],
+    stats: SourceFileStatsPerColumn = {}
   ) {
     const errors: Record<string, ValidationError> = {};
-    const columnsToValidate = columnConfig.map((item) => item.column);
-    for (const columnToValidate of columnsToValidate) {
-      let dataToValidate = row[columnToValidate];
-      if (
-        stats[columnToValidate] &&
-        stats[columnToValidate].nonunique[dataToValidate as string]
-      ) {
-        errors[columnToValidate] = {
+    for (const { column } of columnConfig) {
+      let dataToValidate = row[column];
+      if (stats[column] && stats[column].nonunique[dataToValidate as string]) {
+        errors[column] = {
           type: "unique",
           message: "value is not unique",
         };

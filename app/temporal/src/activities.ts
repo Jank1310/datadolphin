@@ -3,8 +3,11 @@ import csv from "csv";
 import { chunk } from "lodash";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
-import { DataAnalyzer, DataMappingRecommendation } from "./domain/DataAnalyzer";
-import { ValidatorType } from "./domain/validators";
+import {
+  ColumnValidators,
+  DataAnalyzer,
+  DataMappingRecommendation,
+} from "./domain/DataAnalyzer";
 import { FileStore } from "./infrastructure/FileStore";
 import { Mapping } from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
@@ -16,11 +19,6 @@ export interface DownloadSourceFileReturnType {
   metaData: Record<string, string>;
   localFilePath: string;
 }
-
-export type ValidatorColumns = Record<
-  ValidatorType,
-  { column: string; regex?: string | undefined }[]
->;
 
 export function makeActivities(
   fileStore: FileStore,
@@ -148,7 +146,7 @@ export function makeActivities(
       bucket: string;
       fileReference: string;
       statsFileReference: string;
-      validatorColumns: ValidatorColumns;
+      validatorColumns: ColumnValidators;
     }) => {
       const referenceId = params.fileReference.split("-")[1].split(".")[0];
       const fileData = await fileStore.getFile(

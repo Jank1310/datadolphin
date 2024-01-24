@@ -10,9 +10,12 @@ import {
   setHandler,
 } from "@temporalio/workflow";
 import pLimit from "p-limit";
-import { ValidatorColumns, makeActivities } from "../activities";
+import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
-import { DataMappingRecommendation } from "../domain/DataAnalyzer";
+import {
+  ColumnValidators,
+  DataMappingRecommendation,
+} from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
 export interface ImporterWorkflowParams {
   name: string;
@@ -243,20 +246,16 @@ export async function importer(params: ImporterWorkflowParams) {
       (column) => column.validations?.length
     );
 
-    const validatorColumns = {} as ValidatorColumns;
+    const validatorColumns = {} as ColumnValidators;
     for (const column of allColumnsWithValidators) {
       for (const validator of column.validations!) {
-        if (validatorColumns[validator.type] === undefined) {
+        if (!validatorColumns[validator.type]) {
           validatorColumns[validator.type] = [];
         }
-        if (validator.type === "regex") {
-          validatorColumns[validator.type].push({
-            column: column.key,
-            regex: validator.regex,
-          });
-        } else {
-          validatorColumns[validator.type].push({ column: column.key });
-        }
+        validatorColumns[validator.type].push({
+          column: column.key,
+          config: validator,
+        });
       }
     }
 
