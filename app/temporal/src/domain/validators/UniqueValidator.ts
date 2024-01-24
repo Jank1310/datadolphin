@@ -10,7 +10,8 @@ export class UniqueValidator {
     stats: Stats = {}
   ) {
     const errors: Record<string, ValidationError> = {};
-    for (const columnToValidate of columnConfig.map((item) => item.column)) {
+    const columnsToValidate = columnConfig.map((item) => item.column);
+    for (const columnToValidate of columnsToValidate) {
       let dataToValidate = row[columnToValidate];
       if (
         stats[columnToValidate] &&

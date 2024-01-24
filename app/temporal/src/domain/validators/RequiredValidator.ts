@@ -6,7 +6,8 @@ export class RequiredValidator {
     columnConfig: { column: string; regex?: string }[]
   ): Record<string, ValidationError> {
     const errors: Record<string, ValidationError> = {};
-    for (const columnToValidate of columnConfig.map((item) => item.column)) {
+    const columnsToValidate = columnConfig.map((item) => item.column);
+    for (const columnToValidate of columnsToValidate) {
       let dataToValidate = row[columnToValidate];
       if (dataToValidate == null || dataToValidate === "") {
         errors[columnToValidate] = {
