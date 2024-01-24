@@ -126,7 +126,6 @@ export async function importer(params: ImporterWorkflowParams) {
   setHandler(
     mappingUpdate,
     (params) => {
-      console.log("handle update mapping", params);
       configuredMappings = params.mappings;
     },
     {
@@ -266,16 +265,13 @@ export async function importer(params: ImporterWorkflowParams) {
 
     // TODO: apply patches
     const statsFileReference = "stats.json";
-    const startStats = Date.now();
     await acts.generateStatsFile({
       bucket: sourceFile!.bucket,
       fileReference: sourceFileReference,
       outputFileReference: statsFileReference,
       uniqueColumns: validatorColumns.unique?.map((item) => item.column) ?? [],
     });
-    console.log(`generate stats file took ${Date.now() - startStats}ms`);
 
-    const startAllValidations = Date.now();
     const limit = pLimit(100);
     const parallelValidations = chunkedFileReferences.map((fileReference) =>
       limit(() =>
@@ -293,7 +289,6 @@ export async function importer(params: ImporterWorkflowParams) {
       fileReferences: validationsFileReferences,
       outputFileReference: "validations.json",
     });
-    console.log(`all validations took ${Date.now() - startAllValidations}ms`);
     latestValidations = {
       bucket: sourceFile!.bucket,
       fileReference: "validations.json",

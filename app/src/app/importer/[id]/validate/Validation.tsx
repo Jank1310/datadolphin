@@ -45,7 +45,6 @@ const Validation = ({
     undefined,
     initialValidation
   );
-  console.log(sourceData, patches, validations);
   return (
     <div>
       <h1 className="text-3xl font-bold mb-4">Validate your data</h1>

@@ -62,7 +62,6 @@ export function makeActivities(
             }
           );
           console.log("received rows", json.length);
-
           break;
         case "xlsx":
           const workbook = XLSX.read(fileData, { type: "buffer" });
@@ -74,7 +73,6 @@ export function makeActivities(
             defval: "",
           });
           console.log("received rows", json.length);
-
           break;
         default:
           throw ApplicationFailure.nonRetryable(
@@ -153,6 +151,7 @@ export function makeActivities(
       statsFileReference: string;
       validatorColumns: ColumnValidators;
     }) => {
+      console.time("validations");
       const referenceId = params.fileReference.split("-")[1].split(".")[0];
       const fileData = await fileStore.getFile(
         params.bucket,
@@ -176,6 +175,7 @@ export function makeActivities(
         errorFileReference,
         Buffer.from(JSON.stringify(errorData))
       );
+      console.timeEnd("validations");
       return errorFileReference;
     },
     generateStatsFile: async (params: {
@@ -184,6 +184,7 @@ export function makeActivities(
       outputFileReference: string;
       uniqueColumns: string[];
     }): Promise<void> => {
+      console.time("generate-stats");
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
@@ -198,6 +199,7 @@ export function makeActivities(
         params.outputFileReference,
         statsData
       );
+      console.timeEnd("generate-stats");
     },
     mergeChunks: async (params: {
       bucket: string;
