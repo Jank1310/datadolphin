@@ -237,7 +237,7 @@ export async function importer(params: ImporterWorkflowParams) {
     console.log(`generate stats file took ${Date.now() - startStats}ms`);
 
     const startAllValidations = Date.now();
-    const limit = pLimit(10);
+    const limit = pLimit(100);
     const parallelValidations = chunkedFileReferences.map((fileReference) =>
       limit(() =>
         acts.processDataValidations({
