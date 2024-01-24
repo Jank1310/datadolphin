@@ -105,24 +105,19 @@ export class DataAnalyzer {
     // nonunique
     const stats = {} as Stats;
     for (const column of columnsToVerify) {
-      const columnValues = data.map((row) => row[column]);
-      const duplicates = this.countDuplicates(columnValues);
-      stats[column] = { nonunique: duplicates };
+      const duplicates = new Map();
+      data.forEach((row) => {
+        duplicates.set(row[column], (duplicates.get(row[column]) ?? 0) + 1);
+      });
+      duplicates.forEach((value, key) => {
+        if (value === 1) {
+          duplicates.delete(key);
+        }
+      });
+
+      stats[column] = { nonunique: Object.fromEntries(duplicates) };
     }
     return stats;
-  }
-
-  private countDuplicates(array: unknown[]): Record<string, number> {
-    const counts = new Map();
-    array.forEach((value) => {
-      counts.set(value, (counts.get(value) ?? 0) + 1);
-    });
-    counts.forEach((value, key) => {
-      if (value === 1) {
-        counts.delete(key);
-      }
-    });
-    return Object.fromEntries(counts);
   }
 
   private findDirectMappingMatches(
