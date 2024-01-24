@@ -177,7 +177,7 @@ export async function importer(params: ImporterWorkflowParams) {
       columnConfig: params.columnConfig,
     });
 
-    // await condition(() => configuredMappings !== null, startImportTimeout);
+    await condition(() => configuredMappings !== null, startImportTimeout);
 
     const chunkedFileReferences = await acts.applyMappings({
       bucket: sourceFile!.bucket,
