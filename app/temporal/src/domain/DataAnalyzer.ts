@@ -67,10 +67,9 @@ export class DataAnalyzer {
       column: string;
       errors: ValidationError[];
     }[] = [];
+    const validatorKeys = Object.keys(validatorColumns) as ValidatorType[];
     for (const row of data) {
-      for (const validatorKey of Object.keys(
-        validatorColumns
-      ) as ValidatorType[]) {
+      for (const validatorKey of validatorKeys) {
         if (validatorColumns[validatorKey].length > 0) {
           const errors = validators[validatorKey].validate(
             row,
