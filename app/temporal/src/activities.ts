@@ -231,7 +231,7 @@ export function makeActivities(
       let allJsonData: Record<string, unknown>[] = [];
       for (const fileReference of params.fileReferences) {
         const fileData = await fileStore.getFile(params.bucket, fileReference);
-        allJsonData = [...allJsonData, ...JSON.parse(fileData.toString())];
+        allJsonData.push(...JSON.parse(fileData.toString()));
       }
       await fileStore.putFile(
         params.bucket,
