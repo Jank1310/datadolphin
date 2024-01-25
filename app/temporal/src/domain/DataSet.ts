@@ -1,5 +1,5 @@
 export interface DataSetPatch {
   row: number;
-  col: number;
+  col: string;
   newValue: string | number | null;
 }

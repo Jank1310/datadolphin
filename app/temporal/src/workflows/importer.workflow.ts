@@ -203,13 +203,11 @@ export async function importer(params: ImporterWorkflowParams) {
       );
     }
 
-    // we dont have any more errors and the patched file includes all patches
-    exportFileReference = "patched.json";
+    // we dont have any more errors and target.json has all patches applied
+    exportFileReference = "target.json";
 
-    // we dont need to await the callbackUrl call
-    void acts.export({
+    void acts.invokeCallback({
       bucket: sourceFile!.bucket,
-      fileReference: exportFileReference,
       callbackUrl: params.callbackUrl,
     });
   } catch (err) {
@@ -247,51 +245,27 @@ export async function importer(params: ImporterWorkflowParams) {
         }
       }
     }
-    // TODO: we are applying patches twice here, once for the whole file and once for each chunk
-    const patchedFileReference = "patched.json";
-    if (patches.length > 0) {
-      await acts.applyPatches({
-        bucket: sourceFile!.bucket,
-        fileReference: sourceFileReference,
-        outputFileReference: patchedFileReference,
-        patches,
-      });
-    }
 
-    const statsFileReference = "stats.json";
-    const startStats = Date.now();
-    await acts.generateStatsFile({
+    const stats = await acts.generateStats({
       bucket: sourceFile!.bucket,
-      fileReference:
-        patches.length > 0 ? patchedFileReference : sourceFileReference,
-      outputFileReference: statsFileReference,
+      fileReference: sourceFileReference,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
+      patches,
     });
-    console.log(`generate stats file took ${Date.now() - startStats}ms`);
 
     const startAllValidations = Date.now();
     const limit = pLimit(100);
     const parallelValidations = chunkedFileReferences.map((fileReference) =>
-      limit(async () => {
+      limit(() => {
         const referenceId = fileReference.split("-")[1].split(".")[0];
-        // TODO: we are applying patches twice here, once for the whole file and once for each chunk
-        const patchedFileReference = `patched-${referenceId}.json`;
-        if (patches.length > 0) {
-          await acts.applyPatches({
-            bucket: sourceFile!.bucket,
-            fileReference: sourceFileReference,
-            outputFileReference: patchedFileReference,
-            patches,
-          });
-        }
         const errorFileReference = `errors-${referenceId}.json`;
         return acts.processDataValidations({
           bucket: sourceFile!.bucket,
-          fileReference:
-            patches.length > 0 ? patchedFileReference : fileReference,
-          statsFileReference,
+          fileReference,
           validatorColumns,
           outputFileReference: errorFileReference,
+          stats,
+          patches,
         });
       })
     );
@@ -306,6 +280,7 @@ export async function importer(params: ImporterWorkflowParams) {
       bucket: sourceFile!.bucket,
       fileReferences: chunkedFileReferences,
       outputFileReference: "target.json",
+      patches,
     });
     console.log(`all validations took ${Date.now() - startAllValidations}ms`);
     isValidating = false;

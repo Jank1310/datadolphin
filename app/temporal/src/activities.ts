@@ -3,7 +3,11 @@ import csv from "csv";
 import { chunk } from "lodash";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
-import { DataAnalyzer, DataMappingRecommendation } from "./domain/DataAnalyzer";
+import {
+  DataAnalyzer,
+  DataMappingRecommendation,
+  Stats,
+} from "./domain/DataAnalyzer";
 import { DataSetPatch } from "./domain/DataSet";
 import { ValidatorType } from "./domain/validators";
 import { FileStore } from "./infrastructure/FileStore";
@@ -148,25 +152,21 @@ export function makeActivities(
     processDataValidations: async (params: {
       bucket: string;
       fileReference: string;
-      statsFileReference: string;
       validatorColumns: ValidatorColumns;
       outputFileReference: string;
+      stats: Stats;
+      patches: DataSetPatch[];
     }): Promise<{ errorFileReference: string; errorCount: number }> => {
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
       );
       const jsonData = JSON.parse(fileData.toString());
-
-      const statsFileData = await fileStore.getFile(
-        params.bucket,
-        params.statsFileReference
-      );
-      const statsData = JSON.parse(statsFileData.toString());
+      const patchedData = applyPatches(jsonData, params.patches);
       const errorData = dataAnalyzer.processDataValidations(
-        jsonData,
+        patchedData,
         params.validatorColumns,
-        statsData
+        params.stats
       );
       await fileStore.putFile(
         params.bucket,
@@ -178,12 +178,12 @@ export function makeActivities(
         errorCount: errorData.length,
       };
     },
-    generateStatsFile: async (params: {
+    generateStats: async (params: {
       bucket: string;
       fileReference: string;
-      outputFileReference: string;
       uniqueColumns: string[];
-    }): Promise<void> => {
+      patches: DataSetPatch[];
+    }): Promise<Stats> => {
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
@@ -191,64 +191,30 @@ export function makeActivities(
       const jsonData: Record<string, unknown>[] = JSON.parse(
         fileData.toString()
       );
-      const stats = dataAnalyzer.getStats(jsonData, params.uniqueColumns);
-      const statsData = Buffer.from(JSON.stringify(stats));
-      await fileStore.putFile(
-        params.bucket,
-        params.outputFileReference,
-        statsData
-      );
+      const patchedData = applyPatches(jsonData, params.patches);
+      return dataAnalyzer.getStats(patchedData, params.uniqueColumns);
     },
     mergeChunks: async (params: {
       bucket: string;
       fileReferences: string[];
       outputFileReference: string;
+      patches?: DataSetPatch[];
     }) => {
       let allJsonData: Record<string, unknown>[] = [];
       for (const fileReference of params.fileReferences) {
         const fileData = await fileStore.getFile(params.bucket, fileReference);
         allJsonData.push(...JSON.parse(fileData.toString()));
       }
+      const patchedData = applyPatches(allJsonData, params.patches ?? []);
       await fileStore.putFile(
         params.bucket,
         params.outputFileReference,
-        Buffer.from(JSON.stringify(allJsonData))
+        Buffer.from(JSON.stringify(patchedData))
       );
     },
-    applyPatches: async (params: {
-      bucket: string;
-      fileReference: string;
-      outputFileReference: string;
-      patches: DataSetPatch[];
-    }) => {
-      const fileData = await fileStore.getFile(
-        params.bucket,
-        params.fileReference
-      );
-      const allJsonData: Record<string, unknown>[] = JSON.parse(
-        fileData.toString()
-      );
-
-      for (const patch of params.patches) {
-        const indexToUpdate = allJsonData.findIndex(
-          (item) => item.__rowId === patch.row
-        );
-        allJsonData[indexToUpdate][patch.col] = patch.newValue;
-      }
-
-      await fileStore.putFile(
-        params.bucket,
-        params.outputFileReference,
-        Buffer.from(JSON.stringify(allJsonData))
-      );
-    },
-    export: async (params: {
-      bucket: string;
-      fileReference: string;
-      callbackUrl: string;
-    }) => {
+    invokeCallback: async (params: { bucket: string; callbackUrl: string }) => {
       const host = process.env.API_URL ?? "http://localhost:3000";
-      const downloadUrl = `${host}/api/download/${params.bucket}/?fileReference=${params.fileReference}`;
+      const downloadUrl = `${host}/api/download/${params.bucket}`;
       console.log("downloadUrl", downloadUrl);
       fetch(params.callbackUrl, {
         method: "POST",
@@ -256,4 +222,23 @@ export function makeActivities(
       });
     },
   };
+}
+
+function applyPatches(
+  data: Record<string, unknown>[],
+  patches: DataSetPatch[]
+): Record<string, unknown>[] {
+  const newData = data.slice();
+  for (const patch of patches) {
+    const indexToUpdate = newData.findIndex(
+      (item) => item.__rowId === patch.row
+    );
+    if (indexToUpdate !== -1) {
+      newData[indexToUpdate] = {
+        ...newData[indexToUpdate],
+        [patch.col]: patch.newValue,
+      };
+    }
+  }
+  return newData;
 }

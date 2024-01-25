@@ -10,23 +10,15 @@ const minioClient = new Minio.Client({
   secretKey: env.get("MINIO_SECRET_KEY").required().asString(),
 });
 
-/*
-  TODO: refactor this
-  This method is a huge security risk. 
-  It allows anyone to download any file from any bucket.
-*/
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   const { slug: importerId } = params;
-  const fileReference = req.nextUrl.searchParams.get("fileReference");
+  const fileReference = "target.json";
 
   if (!importerId) {
     return new Response("importerId missing", { status: 500 });
-  }
-  if (!fileReference) {
-    return new Response("file missing", { status: 500 });
   }
 
   const bucket = importerId;
@@ -42,7 +34,6 @@ export async function GET(
 }
 
 async function getFile(bucket: string, fileReference: string): Promise<Buffer> {
-  // TODO: this throws S3Error - not found
   try {
     const fileStats = await minioClient.statObject(bucket, fileReference);
     if (!fileStats) {
