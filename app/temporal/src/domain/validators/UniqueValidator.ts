@@ -1,13 +1,14 @@
 import { Validator } from ".";
 import { ColumnValidation } from "../ColumnValidation";
 import { SourceFileStatsPerColumn } from "../DataAnalyzer";
+import { DataSetRow } from "../DataSet";
 import { ValidationError } from "../ValidationError";
 
 export class UniqueValidator implements Validator {
   constructor() {}
 
   validate(
-    row: Record<string, unknown>,
+    row: DataSetRow,
     columnConfig: { column: string; config: ColumnValidation }[],
     stats: SourceFileStatsPerColumn = {}
   ) {

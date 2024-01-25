@@ -1,10 +1,11 @@
 import { Validator } from ".";
 import { EnumerationColumnValidation } from "../ColumnValidation";
+import { DataSetRow } from "../DataSet";
 import { ValidationError } from "../ValidationError";
 
 export class EnumValidator implements Validator {
   public validate(
-    row: Record<string, string | number | null>,
+    row: DataSetRow,
     columnConfigs: { column: string; config: EnumerationColumnValidation }[]
   ): Record<string, ValidationError> {
     const errors: Record<string, ValidationError> = {};

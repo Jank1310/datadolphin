@@ -1,6 +1,7 @@
 import Fuse from "fuse.js";
 import { ColumnConfig } from "./ColumnConfig";
 import { ColumnValidation } from "./ColumnValidation";
+import { DataSet } from "./DataSet";
 import { ValidationError } from "./ValidationError";
 import { ValidatorType, validators } from "./validators";
 
@@ -66,7 +67,7 @@ export class DataAnalyzer {
   }
 
   public processDataValidations(
-    data: Record<string, string | number | null>[],
+    data: DataSet,
     validatorColumns: ColumnValidators,
     stats: SourceFileStatsPerColumn
   ): { rowId: number; column: string; errors: ValidationError[] }[] {
@@ -107,7 +108,7 @@ export class DataAnalyzer {
   }
 
   public getStats(
-    data: Record<string, unknown>[],
+    data: DataSet,
     columnsToVerify: string[]
   ): SourceFileStatsPerColumn {
     // nonunique

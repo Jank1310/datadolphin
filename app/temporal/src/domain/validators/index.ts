@@ -1,5 +1,6 @@
 import { ColumnValidation } from "../ColumnValidation";
 import { SourceFileStatsPerColumn } from "../DataAnalyzer";
+import { DataSetRow } from "../DataSet";
 import { ValidationError } from "../ValidationError";
 import { EmailValidator } from "./EmailValidator";
 import { EnumValidator } from "./EnumValidator";
@@ -21,7 +22,7 @@ export type ValidatorType = keyof typeof validators;
 
 export interface Validator {
   validate(
-    row: Record<string, string | number | null>,
+    row: DataSetRow,
     columnConfigs: { column: string; config: ColumnValidation }[],
     stats: SourceFileStatsPerColumn
   ): Record<string, ValidationError>;

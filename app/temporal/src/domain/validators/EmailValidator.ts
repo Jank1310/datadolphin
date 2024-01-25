@@ -1,5 +1,6 @@
 import { Validator } from ".";
 import { ColumnValidation } from "../ColumnValidation";
+import { DataSetRow } from "../DataSet";
 import { ValidationError } from "../ValidationError";
 
 const EMAIL_REGEX =
@@ -7,7 +8,7 @@ const EMAIL_REGEX =
 
 export class EmailValidator implements Validator {
   validate(
-    row: Record<string, unknown>,
+    row: DataSetRow,
     columnConfig: { column: string; config: ColumnValidation }[]
   ): Record<string, ValidationError> {
     const errors: Record<string, ValidationError> = {};

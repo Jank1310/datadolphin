@@ -9,6 +9,7 @@ import {
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
+import { sum } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
@@ -96,9 +97,10 @@ export async function importer(params: ImporterWorkflowParams) {
   let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
-  let validationFileReferences: string[] | null = null;
+  let exportFileReference: string | null = null;
   let isValidating = false;
   let configuredMappings: Mapping[] | null = null;
+  let errorCount = 0;
   let mappedSourceData: {
     bucket: string;
     fileReference: string;
@@ -149,9 +151,10 @@ export async function importer(params: ImporterWorkflowParams) {
       isWaitingForMapping: configuredMappings === null,
       isWaitingForImport: importStartRequested === false,
       isImporting: importStartRequested === true,
+      fileHasErrors: errorCount > 0,
       dataMappingRecommendations,
       isValidating,
-      validationFileReferences,
+      exportFileReference,
       dataMapping: configuredMappings,
       sourceData: mappedSourceData,
       validations: latestValidations,
@@ -221,6 +224,25 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: import start not requested"
       );
     }
+
+    const hasValidationNoErrors = await condition(
+      () => errorCount === 0,
+      startImportTimeout // own timeout for errors?
+    );
+    if (!hasValidationNoErrors) {
+      throw ApplicationFailure.nonRetryable(
+        "Timeout: validation still has errors"
+      );
+    }
+
+    // we dont have any more errors
+    exportFileReference = await acts.export({
+      bucket: sourceFile!.bucket,
+      fileReference: sourceFileReference,
+      patches,
+      callbackUrl: params.callbackUrl,
+      exportFileReference: "export.json",
+    });
   } catch (err) {
     const doCompensations = async () => {
       for (const compensation of compensations) {
@@ -260,30 +282,34 @@ export async function importer(params: ImporterWorkflowParams) {
       }
     }
 
-    // TODO: apply patches
-    const statsFileReference = "stats.json";
-    await acts.generateStatsFile({
+    const stats = await acts.generateStats({
       bucket: sourceFile!.bucket,
       fileReference: sourceFileReference,
-      outputFileReference: statsFileReference,
-      uniqueColumns: validatorColumns.unique?.map((item) => item.column) ?? [],
+      uniqueColumns: validatorColumns.unique.map((item) => item.column),
+      patches,
     });
 
     const limit = pLimit(100);
     const parallelValidations = chunkedFileReferences.map((fileReference) =>
-      limit(() =>
-        acts.processDataValidations({
+      limit(() => {
+        const referenceId = fileReference.split("-")[1].split(".")[0];
+        const errorFileReference = `errors-${referenceId}.json`;
+        return acts.processDataValidations({
           bucket: sourceFile!.bucket,
           fileReference,
-          statsFileReference,
           validatorColumns,
-        })
-      )
+          outputFileReference: errorFileReference,
+          stats,
+          patches,
+        });
+      })
     );
-    const validationsFileReferences = await Promise.all(parallelValidations);
+    const validationErrors = await Promise.all(parallelValidations);
+    errorCount = sum(validationErrors.map((item) => item.errorCount));
+
     await acts.mergeChunks({
       bucket: sourceFile!.bucket,
-      fileReferences: validationsFileReferences,
+      fileReferences: validationErrors.map((item) => item.errorFileReference),
       outputFileReference: "validations.json",
     });
     latestValidations = {

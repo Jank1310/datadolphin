@@ -1,9 +1,10 @@
 import { isPossiblePhoneNumber } from "libphonenumber-js";
+import { DataSetRow } from "../DataSet";
 import { ValidationError } from "../ValidationError";
 
 export class PhoneValidator {
   validate(
-    row: Record<string, unknown>,
+    row: DataSetRow,
     columnConfig: { column: string; regex?: string }[]
   ): Record<string, ValidationError> {
     const errors: Record<string, ValidationError> = {};

@@ -1,17 +1,9 @@
 import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { randomUUID } from "crypto";
-import * as env from "env-var";
-import * as Minio from "minio";
 import { NextRequest } from "next/server";
 import { extname } from "path";
 
-const minioClient = new Minio.Client({
-  endPoint: env.get("MINIO_HOST").required().asString(),
-  port: 9000,
-  useSSL: false,
-  accessKey: env.get("MINIO_ACCESS_KEY").required().asString(),
-  secretKey: env.get("MINIO_SECRET_KEY").required().asString(),
-});
+import minioClient from "../../../lib/minioClient";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();

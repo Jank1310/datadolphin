@@ -7,7 +7,9 @@ import {
   ColumnValidators,
   DataAnalyzer,
   DataMappingRecommendation,
+  SourceFileStatsPerColumn,
 } from "./domain/DataAnalyzer";
+import { DataSet, DataSetPatch, DataSetRow } from "./domain/DataSet";
 import { FileStore } from "./infrastructure/FileStore";
 import { Mapping } from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
@@ -79,7 +81,7 @@ export function makeActivities(
             `Unsupported format ${params.format}`
           );
       }
-      const jsonWithRowIds = json.map((row, index) => ({
+      const jsonWithRowIds: DataSet = json.map((row, index) => ({
         __rowId: index,
         ...row,
       }));
@@ -100,12 +102,9 @@ export function makeActivities(
         params.bucket,
         params.fileReference
       );
-      const sourceJsonData: Record<string, unknown>[] = JSON.parse(
-        fileData.toString()
-      );
+      const sourceJsonData: DataSet = JSON.parse(fileData.toString());
       const mappedData = sourceJsonData.map((row) => {
-        const newRow: Record<string, unknown> = {};
-        newRow.__rowId = row.__rowId;
+        const newRow: DataSetRow = { __rowId: row.__rowId };
         const mappingsWithTargetColumn = params.dataMapping.filter(
           (mapping) => mapping.targetColumn
         );
@@ -148,9 +147,11 @@ export function makeActivities(
     processDataValidations: async (params: {
       bucket: string;
       fileReference: string;
-      statsFileReference: string;
       validatorColumns: ColumnValidators;
-    }) => {
+      outputFileReference: string;
+      stats: SourceFileStatsPerColumn;
+      patches: DataSetPatch[];
+    }): Promise<{ errorFileReference: string; errorCount: number }> => {
       console.time("validations");
       const referenceId = params.fileReference.split("-")[1].split(".")[0];
       const fileData = await fileStore.getFile(
@@ -158,55 +159,46 @@ export function makeActivities(
         params.fileReference
       );
       const jsonData = JSON.parse(fileData.toString());
-
-      const statsFileData = await fileStore.getFile(
-        params.bucket,
-        params.statsFileReference
-      );
-      const statsData = JSON.parse(statsFileData.toString());
+      const patchedData = applyPatches(jsonData, params.patches);
       const errorData = dataAnalyzer.processDataValidations(
-        jsonData,
+        patchedData,
         params.validatorColumns,
-        statsData
+        params.stats
       );
-      const errorFileReference = `errors-${referenceId}.json`;
       await fileStore.putFile(
         params.bucket,
-        errorFileReference,
+        params.outputFileReference,
         Buffer.from(JSON.stringify(errorData))
       );
       console.timeEnd("validations");
-      return errorFileReference;
+      return {
+        errorFileReference: params.outputFileReference,
+        errorCount: errorData.length,
+      };
     },
-    generateStatsFile: async (params: {
+    generateStats: async (params: {
       bucket: string;
       fileReference: string;
-      outputFileReference: string;
       uniqueColumns: string[];
-    }): Promise<void> => {
+      patches: DataSetPatch[];
+    }): Promise<SourceFileStatsPerColumn> => {
       console.time("generate-stats");
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
       );
-      const jsonData: Record<string, unknown>[] = JSON.parse(
-        fileData.toString()
-      );
-      const stats = dataAnalyzer.getStats(jsonData, params.uniqueColumns);
-      const statsData = Buffer.from(JSON.stringify(stats));
-      await fileStore.putFile(
-        params.bucket,
-        params.outputFileReference,
-        statsData
-      );
+      const jsonData: DataSet = JSON.parse(fileData.toString());
+      const patchedData = applyPatches(jsonData, params.patches);
+      const stats = dataAnalyzer.getStats(patchedData, params.uniqueColumns);
       console.timeEnd("generate-stats");
+      return stats;
     },
     mergeChunks: async (params: {
       bucket: string;
       fileReferences: string[];
       outputFileReference: string;
     }) => {
-      let allJsonData: Record<string, unknown>[] = [];
+      let allJsonData: DataSet = [];
       for (const fileReference of params.fileReferences) {
         const fileData = await fileStore.getFile(params.bucket, fileReference);
         allJsonData.push(...JSON.parse(fileData.toString()));
@@ -217,5 +209,47 @@ export function makeActivities(
         Buffer.from(JSON.stringify(allJsonData))
       );
     },
+    export: async (params: {
+      bucket: string;
+      fileReference: string;
+      patches: DataSetPatch[];
+      callbackUrl: string;
+      exportFileReference: string;
+    }): Promise<string> => {
+      const fileData = await fileStore.getFile(
+        params.bucket,
+        params.fileReference
+      );
+      const allJsonData: DataSet = JSON.parse(fileData.toString());
+      const patchedData = applyPatches(allJsonData, params.patches ?? []);
+      await fileStore.putFile(
+        params.bucket,
+        params.exportFileReference,
+        Buffer.from(JSON.stringify(patchedData))
+      );
+      const host = process.env.API_URL ?? "http://localhost:3000";
+      const downloadUrl = `${host}/api/download/${params.bucket}`;
+      fetch(params.callbackUrl, {
+        method: "POST",
+        body: downloadUrl,
+      });
+      return params.exportFileReference;
+    },
   };
+}
+
+function applyPatches(data: DataSet, patches: DataSetPatch[]): DataSet {
+  const newData = data.slice();
+  for (const patch of patches) {
+    const indexToUpdate = newData.findIndex(
+      (item) => item.__rowId === patch.rowId
+    );
+    if (indexToUpdate !== -1) {
+      newData[indexToUpdate] = {
+        ...newData[indexToUpdate],
+        [patch.column]: patch.newValue,
+      };
+    }
+  }
+  return newData;
 }

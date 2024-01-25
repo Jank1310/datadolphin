@@ -8,6 +8,7 @@ import {
   DataAnalyzer,
   SourceFileStatsPerColumn,
 } from "./DataAnalyzer";
+import { DataSetRow } from "./DataSet";
 
 describe("DataAnalyzer", () => {
   const analyzer = new DataAnalyzer();
@@ -101,7 +102,7 @@ describe("DataAnalyzer", () => {
 
   describe("validation", () => {
     it("should validate required columns", () => {
-      const rowsWithMissingName: Record<string, string | number | null>[] = [
+      const rowsWithMissingName: DataSetRow[] = [
         {
           __rowId: 0,
           name: "John",
@@ -570,14 +571,17 @@ describe("DataAnalyzer", () => {
   it("should return stats", () => {
     const jsonData = [
       {
+        __rowId: 0,
         name: "Florian",
         id: 1,
       },
       {
+        __rowId: 1,
         name: "Florian",
         id: 2,
       },
       {
+        __rowId: 2,
         name: "Egon",
         id: 1,
       },

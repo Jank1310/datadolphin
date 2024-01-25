@@ -1,10 +1,11 @@
 import { Validator } from ".";
 import { RegexColumnValidation } from "../ColumnValidation";
+import { DataSetRow } from "../DataSet";
 import { ValidationError } from "../ValidationError";
 
 export class RegexValidator implements Validator {
   validate(
-    row: Record<string, string | number | null>,
+    row: DataSetRow,
     columnConfig: { column: string; config: RegexColumnValidation }[]
   ): Record<string, ValidationError> {
     const errors: Record<string, ValidationError> = {};
