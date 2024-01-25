@@ -1,18 +1,14 @@
 import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { NextRequest, NextResponse } from "next/server";
+import { DataSetPatch } from "../ImporterDto";
 
-export async function PUT(
-  req: NextRequest,
+export async function GET(
+  _req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   const { slug: importerId } = params;
   const client = getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
-  const mappings = await req.json();
-  await handle.executeUpdate("importer:update-mapping", {
-    args: [{ mappings }],
-  });
-  return new NextResponse(undefined, {
-    status: 201,
-  });
+  const result = await handle.query<DataSetPatch[]>("importer:patches");
+  return NextResponse.json(result);
 }

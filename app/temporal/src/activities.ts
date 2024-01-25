@@ -1,10 +1,13 @@
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
-import { chunk } from "lodash";
+import { chunk, pull } from "lodash";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
-import { DataAnalyzer, DataMappingRecommendation } from "./domain/DataAnalyzer";
-import { ValidatorType } from "./domain/validators";
+import {
+  ColumnValidators,
+  DataAnalyzer,
+  DataMappingRecommendation,
+} from "./domain/DataAnalyzer";
 import { FileStore } from "./infrastructure/FileStore";
 import { Mapping } from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
@@ -16,11 +19,6 @@ export interface DownloadSourceFileReturnType {
   metaData: Record<string, string>;
   localFilePath: string;
 }
-
-export type ValidatorColumns = Record<
-  ValidatorType,
-  { column: string; regex?: string | undefined }[]
->;
 
 export function makeActivities(
   fileStore: FileStore,
@@ -64,7 +62,6 @@ export function makeActivities(
             }
           );
           console.log("received rows", json.length);
-
           break;
         case "xlsx":
           const workbook = XLSX.read(fileData, { type: "buffer" });
@@ -76,7 +73,6 @@ export function makeActivities(
             defval: "",
           });
           console.log("received rows", json.length);
-
           break;
         default:
           throw ApplicationFailure.nonRetryable(
@@ -104,26 +100,31 @@ export function makeActivities(
         params.bucket,
         params.fileReference
       );
-      const jsonData: Record<string, unknown>[] = JSON.parse(
+      const sourceJsonData: Record<string, unknown>[] = JSON.parse(
         fileData.toString()
       );
-      const mappedData = jsonData.map((row) => {
+      const mappedData = sourceJsonData.map((row) => {
         const newRow: Record<string, unknown> = {};
         newRow.__rowId = row.__rowId;
-        for (const mapping of params.dataMapping.filter(
+        const mappingsWithTargetColumn = params.dataMapping.filter(
           (mapping) => mapping.targetColumn
-        )) {
+        );
+        for (const mapping of mappingsWithTargetColumn) {
           newRow[mapping.targetColumn as string] = row[mapping.sourceColumn!];
         }
         return newRow;
       });
-
+      const mappedDataChunks = chunk(mappedData, 5000);
       return await Promise.all(
-        chunk(mappedData, 5000).map(async (json, index) => {
-          const jsonData = Buffer.from(JSON.stringify(json));
-          const chunktFileReference = `mapped-${index}.json`;
-          await fileStore.putFile(params.bucket, chunktFileReference, jsonData);
-          return chunktFileReference;
+        mappedDataChunks.map(async (json, index) => {
+          const mappedChunkJsonData = Buffer.from(JSON.stringify(json));
+          const chunkedFileReference = `mapped-${index}.json`;
+          await fileStore.putFile(
+            params.bucket,
+            chunkedFileReference,
+            mappedChunkJsonData
+          );
+          return chunkedFileReference;
         })
       );
     },
@@ -138,7 +139,7 @@ export function makeActivities(
       );
       const jsonData = JSON.parse(fileData.toString());
       // all rows should have all available headers (see source file processing)
-      const sourceColumns = Object.keys(jsonData[0]);
+      const sourceColumns = pull(Object.keys(jsonData[0]), "__rowId");
       return dataAnalyzer.generateMappingRecommendations(
         sourceColumns,
         params.columnConfig
@@ -148,8 +149,9 @@ export function makeActivities(
       bucket: string;
       fileReference: string;
       statsFileReference: string;
-      validatorColumns: ValidatorColumns;
+      validatorColumns: ColumnValidators;
     }) => {
+      console.time("validations");
       const referenceId = params.fileReference.split("-")[1].split(".")[0];
       const fileData = await fileStore.getFile(
         params.bucket,
@@ -173,6 +175,7 @@ export function makeActivities(
         errorFileReference,
         Buffer.from(JSON.stringify(errorData))
       );
+      console.timeEnd("validations");
       return errorFileReference;
     },
     generateStatsFile: async (params: {
@@ -181,6 +184,7 @@ export function makeActivities(
       outputFileReference: string;
       uniqueColumns: string[];
     }): Promise<void> => {
+      console.time("generate-stats");
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
@@ -195,6 +199,7 @@ export function makeActivities(
         params.outputFileReference,
         statsData
       );
+      console.timeEnd("generate-stats");
     },
     mergeChunks: async (params: {
       bucket: string;
