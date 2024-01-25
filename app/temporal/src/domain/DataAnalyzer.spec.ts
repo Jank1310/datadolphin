@@ -413,8 +413,11 @@ describe("DataAnalyzer", () => {
       ]);
     });
 
-    it("should validate multiple validations", () => {
-      const rowsWithDuplicateValues = [{ __rowId: 0 }, { __rowId: 1 }];
+    it("should validate all validations", () => {
+      const rowsWithDuplicateValues = [
+        { __rowId: 0, uniques: "Jan" },
+        { __rowId: 1, uniques: "Flo" },
+      ];
       const validatorColumns = {
         required: [{ column: "name", config: { type: "required" } }],
         unique: [{ column: "name", config: { type: "unique" } }],
@@ -427,6 +430,15 @@ describe("DataAnalyzer", () => {
               type: "regex",
               regex: "^[0-9]{5}$",
             } as RegexColumnValidation,
+          },
+        ],
+        enum: [
+          {
+            column: "uniques",
+            config: {
+              type: "enum",
+              values: ["Jan", "Florian"],
+            } as EnumerationColumnValidation,
           },
         ],
       } as ColumnValidators;
@@ -490,6 +502,16 @@ describe("DataAnalyzer", () => {
             {
               message: "value does not match regex ^[0-9]{5}$",
               type: "regex",
+            },
+          ],
+        },
+        {
+          rowId: 1,
+          column: "uniques",
+          errors: [
+            {
+              message: "value is not a valid enum",
+              type: "enum",
             },
           ],
         },
