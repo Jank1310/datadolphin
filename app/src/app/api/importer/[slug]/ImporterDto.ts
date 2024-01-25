@@ -75,7 +75,7 @@ export interface DataValidation {
 }
 
 export interface ValidationError {
-  type: "required" | "unique";
+  type: "required" | "unique" | "regex" | "phone" | "email";
   message: string;
 }
 
