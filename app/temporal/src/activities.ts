@@ -229,7 +229,6 @@ export function makeActivities(
       );
       const host = process.env.API_URL ?? "http://localhost:3000";
       const downloadUrl = `${host}/api/download/${params.bucket}`;
-      console.log("downloadUrl", downloadUrl);
       fetch(params.callbackUrl, {
         method: "POST",
         body: downloadUrl,
