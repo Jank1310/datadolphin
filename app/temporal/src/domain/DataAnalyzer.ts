@@ -1,6 +1,7 @@
 import Fuse from "fuse.js";
-import type { ValidatorColumns } from "../activities";
 import { ColumnConfig } from "./ColumnConfig";
+import { ColumnValidation } from "./ColumnValidation";
+import { DataSet } from "./DataSet";
 import { ValidationError } from "./ValidationError";
 import { ValidatorType, validators } from "./validators";
 
@@ -10,7 +11,15 @@ export interface DataMappingRecommendation {
   confidence: number;
 }
 
-export type Stats = Record<string, { nonunique: Record<string, number> }>;
+export type SourceFileStatsPerColumn = Record<
+  string,
+  { nonunique: Record<string, number> }
+>;
+
+export type ColumnValidators = Record<
+  ValidatorType,
+  { column: string; config: ColumnValidation }[]
+>;
 
 export class DataAnalyzer {
   constructor() {}
@@ -58,9 +67,9 @@ export class DataAnalyzer {
   }
 
   public processDataValidations(
-    data: Record<string, unknown>[],
-    validatorColumns: ValidatorColumns,
-    stats: Stats
+    data: DataSet,
+    validatorColumns: ColumnValidators,
+    stats: SourceFileStatsPerColumn
   ): { rowId: number; column: string; errors: ValidationError[] }[] {
     const chunkErrors: {
       rowId: number;
@@ -99,11 +108,11 @@ export class DataAnalyzer {
   }
 
   public getStats(
-    data: Record<string, unknown>[],
+    data: DataSet,
     columnsToVerify: string[]
-  ): Stats {
+  ): SourceFileStatsPerColumn {
     // nonunique
-    const stats = {} as Stats;
+    const stats = {} as SourceFileStatsPerColumn;
     for (const column of columnsToVerify) {
       const duplicates = new Map();
       data.forEach((row) => {

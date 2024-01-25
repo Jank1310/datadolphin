@@ -1,17 +1,22 @@
 import {
   ApplicationFailure,
+  CancellationScope,
   condition,
   defineQuery,
   defineSignal,
   defineUpdate,
+  isCancellation,
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
 import { sum } from "lodash";
 import pLimit from "p-limit";
-import { ValidatorColumns, makeActivities } from "../activities";
+import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
-import { DataMappingRecommendation } from "../domain/DataAnalyzer";
+import {
+  ColumnValidators,
+  DataMappingRecommendation,
+} from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
 export interface ImporterWorkflowParams {
   name: string;
@@ -37,6 +42,8 @@ export interface ImporterStatus {
   isWaitingForImport: boolean;
   isImporting: boolean;
   dataMappingRecommendations: DataMappingRecommendation[] | null;
+  sourceData: { bucket: string; fileReference: string } | null;
+  validations: { bucket: string; fileReference: string } | null;
 }
 
 export interface Mapping {
@@ -68,6 +75,7 @@ const mappingUpdate = defineUpdate<
     }
   ]
 >("importer:update-mapping");
+const importPatchesQuery = defineQuery<DataSetPatch[]>("importer:patches");
 
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
@@ -93,6 +101,14 @@ export async function importer(params: ImporterWorkflowParams) {
   let isValidating = false;
   let configuredMappings: Mapping[] | null = null;
   let errorCount = 0;
+  let mappedSourceData: {
+    bucket: string;
+    fileReference: string;
+  } | null = null;
+  let latestValidations: {
+    bucket: string;
+    fileReference: string;
+  } | null = null;
 
   setHandler(
     addFileUpdate,
@@ -115,7 +131,7 @@ export async function importer(params: ImporterWorkflowParams) {
       configuredMappings = params.mappings;
     },
     {
-      validator: (params) => {
+      validator: (_params) => {
         return !configuredMappings;
       },
     }
@@ -140,7 +156,12 @@ export async function importer(params: ImporterWorkflowParams) {
       isValidating,
       exportFileReference,
       dataMapping: configuredMappings,
+      sourceData: mappedSourceData,
+      validations: latestValidations,
     };
+  });
+  setHandler(importPatchesQuery, () => {
+    return patches;
   });
 
   try {
@@ -170,17 +191,28 @@ export async function importer(params: ImporterWorkflowParams) {
       columnConfig: params.columnConfig,
     });
 
-    // await condition(() => configuredMappings !== null, startImportTimeout);
-
+    const hasConfiguredMappings = await condition(
+      () => configuredMappings !== null,
+      startImportTimeout
+    );
+    if (!hasConfiguredMappings) {
+      throw ApplicationFailure.nonRetryable("Timeout: mappings not configured");
+    }
     const chunkedFileReferences = await acts.applyMappings({
       bucket: sourceFile!.bucket,
       fileReference: sourceFileReference,
-      dataMapping: dataMappingRecommendations.map((item) => ({
-        sourceColumn: item.sourceColumn,
-        targetColumn: item.targetColumn,
-      })),
+      dataMapping: configuredMappings!,
     });
-
+    const mappedSourceDataFileReference = "target.json";
+    await acts.mergeChunks({
+      bucket: sourceFile!.bucket,
+      fileReferences: chunkedFileReferences,
+      outputFileReference: mappedSourceDataFileReference,
+    });
+    mappedSourceData = {
+      bucket: sourceFile!.bucket,
+      fileReference: mappedSourceDataFileReference,
+    };
     await performValidations(sourceFileReference, chunkedFileReferences);
 
     const hasImportStartRequested = await condition(
@@ -203,18 +235,26 @@ export async function importer(params: ImporterWorkflowParams) {
       );
     }
 
-    // we dont have any more errors and target.json has all patches applied
-    exportFileReference = "target.json";
-
-    void acts.invokeCallback({
+    // we dont have any more errors
+    exportFileReference = await acts.export({
       bucket: sourceFile!.bucket,
+      fileReference: sourceFileReference,
+      patches,
       callbackUrl: params.callbackUrl,
+      exportFileReference: "export.json",
     });
   } catch (err) {
-    for (const compensation of compensations) {
-      await compensation();
+    const doCompensations = async () => {
+      for (const compensation of compensations) {
+        await compensation();
+      }
+    };
+    if (isCancellation(err)) {
+      await CancellationScope.nonCancellable(() => doCompensations());
+    } else if (err instanceof ApplicationFailure && err.nonRetryable) {
+      await doCompensations();
     }
-    throw err;
+    throw err; // <-- Fail the workflow
   } finally {
     await acts.deleteBucket({ bucket: sourceFile!.bucket });
   }
@@ -229,20 +269,16 @@ export async function importer(params: ImporterWorkflowParams) {
       (column) => column.validations?.length
     );
 
-    const validatorColumns = {} as ValidatorColumns;
+    const validatorColumns = {} as ColumnValidators;
     for (const column of allColumnsWithValidators) {
       for (const validator of column.validations!) {
-        if (validatorColumns[validator.type] === undefined) {
+        if (!validatorColumns[validator.type]) {
           validatorColumns[validator.type] = [];
         }
-        if (validator.type === "regex") {
-          validatorColumns[validator.type].push({
-            column: column.key,
-            regex: validator.regex,
-          });
-        } else {
-          validatorColumns[validator.type].push({ column: column.key });
-        }
+        validatorColumns[validator.type].push({
+          column: column.key,
+          config: validator,
+        });
       }
     }
 
@@ -253,7 +289,6 @@ export async function importer(params: ImporterWorkflowParams) {
       patches,
     });
 
-    const startAllValidations = Date.now();
     const limit = pLimit(100);
     const parallelValidations = chunkedFileReferences.map((fileReference) =>
       limit(() => {
@@ -271,18 +306,16 @@ export async function importer(params: ImporterWorkflowParams) {
     );
     const validationErrors = await Promise.all(parallelValidations);
     errorCount = sum(validationErrors.map((item) => item.errorCount));
+
     await acts.mergeChunks({
       bucket: sourceFile!.bucket,
       fileReferences: validationErrors.map((item) => item.errorFileReference),
-      outputFileReference: "errors.json",
+      outputFileReference: "validations.json",
     });
-    await acts.mergeChunks({
+    latestValidations = {
       bucket: sourceFile!.bucket,
-      fileReferences: chunkedFileReferences,
-      outputFileReference: "target.json",
-      patches,
-    });
-    console.log(`all validations took ${Date.now() - startAllValidations}ms`);
+      fileReference: "validations.json",
+    };
     isValidating = false;
   }
 }

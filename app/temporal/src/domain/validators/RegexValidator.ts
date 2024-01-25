@@ -1,26 +1,31 @@
+import { Validator } from ".";
+import { RegexColumnValidation } from "../ColumnValidation";
+import { DataSetRow } from "../DataSet";
 import { ValidationError } from "../ValidationError";
 
-export class RegexValidator {
+export class RegexValidator implements Validator {
   validate(
-    row: Record<string, unknown>,
-    columnConfig: { column: string; regex?: string }[]
+    row: DataSetRow,
+    columnConfig: { column: string; config: RegexColumnValidation }[]
   ): Record<string, ValidationError> {
     const errors: Record<string, ValidationError> = {};
     const cache: Record<string, boolean> = {};
-    for (const config of columnConfig) {
-      const { column: columnToValidate, regex } = config;
-      let dataToValidate = row[columnToValidate];
-      if (cache[columnToValidate] === false) {
-        errors[columnToValidate] = {
+    for (const {
+      column,
+      config: { regex },
+    } of columnConfig) {
+      let dataToValidate = row[column];
+      if (cache[column] === false) {
+        errors[column] = {
           type: "regex",
           message: `value does not match regex ${regex}`,
         };
       } else {
         const regexTestResult =
           regex && new RegExp(regex).test(dataToValidate as string);
-        cache[columnToValidate] = regexTestResult as boolean;
+        cache[column] = regexTestResult as boolean;
         if (regexTestResult === false) {
-          errors[columnToValidate] = {
+          errors[column] = {
             type: "regex",
             message: `value does not match regex ${regex}`,
           };

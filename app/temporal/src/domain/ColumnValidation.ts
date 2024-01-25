@@ -2,5 +2,12 @@ import { ValidatorType } from "./validators";
 
 export interface ColumnValidation {
   type: ValidatorType;
-  regex?: string;
+}
+
+export interface RegexColumnValidation extends ColumnValidation {
+  regex: string;
+}
+
+export interface EnumerationColumnValidation extends ColumnValidation {
+  values: string[];
 }

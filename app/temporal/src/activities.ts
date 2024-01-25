@@ -1,15 +1,15 @@
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
-import { chunk } from "lodash";
+import { chunk, pull } from "lodash";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import {
+  ColumnValidators,
   DataAnalyzer,
   DataMappingRecommendation,
-  Stats,
+  SourceFileStatsPerColumn,
 } from "./domain/DataAnalyzer";
-import { DataSetPatch } from "./domain/DataSet";
-import { ValidatorType } from "./domain/validators";
+import { DataSet, DataSetPatch, DataSetRow } from "./domain/DataSet";
 import { FileStore } from "./infrastructure/FileStore";
 import { Mapping } from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
@@ -21,11 +21,6 @@ export interface DownloadSourceFileReturnType {
   metaData: Record<string, string>;
   localFilePath: string;
 }
-
-export type ValidatorColumns = Record<
-  ValidatorType,
-  { column: string; regex?: string | undefined }[]
->;
 
 export function makeActivities(
   fileStore: FileStore,
@@ -69,7 +64,6 @@ export function makeActivities(
             }
           );
           console.log("received rows", json.length);
-
           break;
         case "xlsx":
           const workbook = XLSX.read(fileData, { type: "buffer" });
@@ -81,14 +75,13 @@ export function makeActivities(
             defval: "",
           });
           console.log("received rows", json.length);
-
           break;
         default:
           throw ApplicationFailure.nonRetryable(
             `Unsupported format ${params.format}`
           );
       }
-      const jsonWithRowIds = json.map((row, index) => ({
+      const jsonWithRowIds: DataSet = json.map((row, index) => ({
         __rowId: index,
         ...row,
       }));
@@ -109,26 +102,28 @@ export function makeActivities(
         params.bucket,
         params.fileReference
       );
-      const jsonData: Record<string, unknown>[] = JSON.parse(
-        fileData.toString()
-      );
-      const mappedData = jsonData.map((row) => {
-        const newRow: Record<string, unknown> = {};
-        newRow.__rowId = row.__rowId;
-        for (const mapping of params.dataMapping.filter(
+      const sourceJsonData: DataSet = JSON.parse(fileData.toString());
+      const mappedData = sourceJsonData.map((row) => {
+        const newRow: DataSetRow = { __rowId: row.__rowId };
+        const mappingsWithTargetColumn = params.dataMapping.filter(
           (mapping) => mapping.targetColumn
-        )) {
+        );
+        for (const mapping of mappingsWithTargetColumn) {
           newRow[mapping.targetColumn as string] = row[mapping.sourceColumn!];
         }
         return newRow;
       });
-
+      const mappedDataChunks = chunk(mappedData, 5000);
       return await Promise.all(
-        chunk(mappedData, 5000).map(async (json, index) => {
-          const jsonData = Buffer.from(JSON.stringify(json));
-          const chunktFileReference = `mapped-${index}.json`;
-          await fileStore.putFile(params.bucket, chunktFileReference, jsonData);
-          return chunktFileReference;
+        mappedDataChunks.map(async (json, index) => {
+          const mappedChunkJsonData = Buffer.from(JSON.stringify(json));
+          const chunkedFileReference = `mapped-${index}.json`;
+          await fileStore.putFile(
+            params.bucket,
+            chunkedFileReference,
+            mappedChunkJsonData
+          );
+          return chunkedFileReference;
         })
       );
     },
@@ -143,7 +138,7 @@ export function makeActivities(
       );
       const jsonData = JSON.parse(fileData.toString());
       // all rows should have all available headers (see source file processing)
-      const sourceColumns = Object.keys(jsonData[0]);
+      const sourceColumns = pull(Object.keys(jsonData[0]), "__rowId");
       return dataAnalyzer.generateMappingRecommendations(
         sourceColumns,
         params.columnConfig
@@ -152,11 +147,13 @@ export function makeActivities(
     processDataValidations: async (params: {
       bucket: string;
       fileReference: string;
-      validatorColumns: ValidatorColumns;
+      validatorColumns: ColumnValidators;
       outputFileReference: string;
-      stats: Stats;
+      stats: SourceFileStatsPerColumn;
       patches: DataSetPatch[];
     }): Promise<{ errorFileReference: string; errorCount: number }> => {
+      console.time("validations");
+      const referenceId = params.fileReference.split("-")[1].split(".")[0];
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
@@ -173,6 +170,7 @@ export function makeActivities(
         params.outputFileReference,
         Buffer.from(JSON.stringify(errorData))
       );
+      console.timeEnd("validations");
       return {
         errorFileReference: params.outputFileReference,
         errorCount: errorData.length,
@@ -183,36 +181,52 @@ export function makeActivities(
       fileReference: string;
       uniqueColumns: string[];
       patches: DataSetPatch[];
-    }): Promise<Stats> => {
+    }): Promise<SourceFileStatsPerColumn> => {
+      console.time("generate-stats");
       const fileData = await fileStore.getFile(
         params.bucket,
         params.fileReference
       );
-      const jsonData: Record<string, unknown>[] = JSON.parse(
-        fileData.toString()
-      );
+      const jsonData: DataSet = JSON.parse(fileData.toString());
       const patchedData = applyPatches(jsonData, params.patches);
-      return dataAnalyzer.getStats(patchedData, params.uniqueColumns);
+      const stats = dataAnalyzer.getStats(patchedData, params.uniqueColumns);
+      console.timeEnd("generate-stats");
+      return stats;
     },
     mergeChunks: async (params: {
       bucket: string;
       fileReferences: string[];
       outputFileReference: string;
-      patches?: DataSetPatch[];
     }) => {
-      let allJsonData: Record<string, unknown>[] = [];
+      let allJsonData: DataSet = [];
       for (const fileReference of params.fileReferences) {
         const fileData = await fileStore.getFile(params.bucket, fileReference);
         allJsonData.push(...JSON.parse(fileData.toString()));
       }
-      const patchedData = applyPatches(allJsonData, params.patches ?? []);
       await fileStore.putFile(
         params.bucket,
         params.outputFileReference,
-        Buffer.from(JSON.stringify(patchedData))
+        Buffer.from(JSON.stringify(allJsonData))
       );
     },
-    invokeCallback: async (params: { bucket: string; callbackUrl: string }) => {
+    export: async (params: {
+      bucket: string;
+      fileReference: string;
+      patches: DataSetPatch[];
+      callbackUrl: string;
+      exportFileReference: string;
+    }): Promise<string> => {
+      const fileData = await fileStore.getFile(
+        params.bucket,
+        params.fileReference
+      );
+      const allJsonData: DataSet = JSON.parse(fileData.toString());
+      const patchedData = applyPatches(allJsonData, params.patches ?? []);
+      await fileStore.putFile(
+        params.bucket,
+        params.exportFileReference,
+        Buffer.from(JSON.stringify(patchedData))
+      );
       const host = process.env.API_URL ?? "http://localhost:3000";
       const downloadUrl = `${host}/api/download/${params.bucket}`;
       console.log("downloadUrl", downloadUrl);
@@ -220,23 +234,21 @@ export function makeActivities(
         method: "POST",
         body: downloadUrl,
       });
+      return params.exportFileReference;
     },
   };
 }
 
-function applyPatches(
-  data: Record<string, unknown>[],
-  patches: DataSetPatch[]
-): Record<string, unknown>[] {
+function applyPatches(data: DataSet, patches: DataSetPatch[]): DataSet {
   const newData = data.slice();
   for (const patch of patches) {
     const indexToUpdate = newData.findIndex(
-      (item) => item.__rowId === patch.row
+      (item) => item.__rowId === patch.rowId
     );
     if (indexToUpdate !== -1) {
       newData[indexToUpdate] = {
         ...newData[indexToUpdate],
-        [patch.col]: patch.newValue,
+        [patch.column]: patch.newValue,
       };
     }
   }

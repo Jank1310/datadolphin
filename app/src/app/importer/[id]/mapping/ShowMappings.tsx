@@ -34,14 +34,27 @@ interface Mapping {
 
 const ShowMappings = ({ importerDto: initialImporterDto }: Props) => {
   const { push } = useRouter();
+  const [enablePolling, setEnablePolling] = React.useState(false);
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
-    undefined,
+    enablePolling ? 1000 : undefined,
     initialImporterDto
   );
   const {
     status: { dataMappingRecommendations },
   } = importer;
+
+  React.useEffect(() => {
+    if (
+      !dataMappingRecommendations ||
+      dataMappingRecommendations.length === 0
+    ) {
+      setEnablePolling(true);
+    } else {
+      setEnablePolling(false);
+    }
+  }, [dataMappingRecommendations]);
+
   const [currentMappings, setCurrentMappings] = React.useState<Mapping[]>([]);
   React.useEffect(() => {
     const newMapping =

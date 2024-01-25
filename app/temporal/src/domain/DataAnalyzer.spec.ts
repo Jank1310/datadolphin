@@ -1,6 +1,14 @@
 import { ColumnConfig } from "./ColumnConfig";
-import { DataAnalyzer, Stats } from "./DataAnalyzer";
-import { ValidatorType } from "./validators";
+import {
+  EnumerationColumnValidation,
+  RegexColumnValidation,
+} from "./ColumnValidation";
+import {
+  ColumnValidators,
+  DataAnalyzer,
+  SourceFileStatsPerColumn,
+} from "./DataAnalyzer";
+import { DataSetRow } from "./DataSet";
 
 describe("DataAnalyzer", () => {
   const analyzer = new DataAnalyzer();
@@ -94,7 +102,7 @@ describe("DataAnalyzer", () => {
 
   describe("validation", () => {
     it("should validate required columns", () => {
-      const rowsWithMissingName = [
+      const rowsWithMissingName: DataSetRow[] = [
         {
           __rowId: 0,
           name: "John",
@@ -103,11 +111,10 @@ describe("DataAnalyzer", () => {
         { __rowId: 2, age: 25 },
         { __rowId: 3, name: "" },
         { __rowId: 4, name: null },
-        { __rowId: 5, name: undefined },
       ];
       const validatorColumns = {
-        required: [{ column: "name" }],
-      } as Record<ValidatorType, { column: string; regex?: string }[]>;
+        required: [{ column: "name", config: { type: "required" } }],
+      } as ColumnValidators;
       const stats = {};
       const result = analyzer.processDataValidations(
         rowsWithMissingName,
@@ -155,16 +162,6 @@ describe("DataAnalyzer", () => {
             },
           ],
         },
-        {
-          rowId: 5,
-          column: "name",
-          errors: [
-            {
-              message: "value is required",
-              type: "required",
-            },
-          ],
-        },
       ]);
     });
 
@@ -176,14 +173,16 @@ describe("DataAnalyzer", () => {
         },
         { __rowId: 1, name: "John" },
         { __rowId: 2, name: "Egon" },
-        { __rowId: 3 },
-        { __rowId: 4 },
+        { __rowId: 3, name: "" },
+        { __rowId: 4, name: "" },
         { __rowId: 5, name: "John" },
       ];
       const validatorColumns = {
-        unique: [{ column: "name" }],
-      } as Record<ValidatorType, { column: string; regex?: string }[]>;
-      const stats: Stats = { name: { nonunique: { John: 3, undefined: 2 } } };
+        unique: [{ column: "name", config: { type: "unique" } }],
+      } as ColumnValidators;
+      const stats: SourceFileStatsPerColumn = {
+        name: { nonunique: { John: 3, "": 2 } },
+      };
       const result = analyzer.processDataValidations(
         rowsWithDuplicateValues,
         validatorColumns,
@@ -251,12 +250,20 @@ describe("DataAnalyzer", () => {
         },
         { __rowId: 1, Postleitzahl: "90596" },
         { __rowId: 2, Postleitzahl: "x90596" },
-        { __rowId: 3 },
+        { __rowId: 3, Postleitzahl: "" },
         { __rowId: 4, Postleitzahl: "123" },
       ];
       const validatorColumns = {
-        regex: [{ column: "Postleitzahl", regex: "^[0-9]{5}$" }],
-      } as Record<ValidatorType, { column: string; regex?: string }[]>;
+        regex: [
+          {
+            column: "Postleitzahl",
+            config: {
+              type: "regex",
+              regex: "^[0-9]{5}$",
+            } as RegexColumnValidation,
+          },
+        ],
+      } as ColumnValidators;
       const stats = {};
       const result = analyzer.processDataValidations(
         rowsWithRegexValues,
@@ -309,12 +316,12 @@ describe("DataAnalyzer", () => {
         },
         { __rowId: 2, phone: "+49 151/40604777 " },
         { __rowId: 3, phone: "foo" },
-        { __rowId: 4 },
+        { __rowId: 4, phone: "" },
       ];
 
       const validatorColumns = {
-        phone: [{ column: "phone" }],
-      } as Record<ValidatorType, { column: string; regex?: string }[]>;
+        phone: [{ column: "phone", config: { type: "phone" } }],
+      } as ColumnValidators;
       const stats = {};
       const result = analyzer.processDataValidations(
         rowsWithPhoneValues,
@@ -352,11 +359,11 @@ describe("DataAnalyzer", () => {
         { __rowId: 2, email: "fiedlefl@gmail" },
         { __rowId: 3, email: "fiedlefl@gmail@test.com" },
         { __rowId: 4, email: "foo" },
-        { __rowId: 5 },
+        { __rowId: 5, email: "" },
       ];
       const validatorColumns = {
-        email: [{ column: "email" }],
-      } as Record<ValidatorType, { column: string; regex?: string }[]>;
+        email: [{ column: "email", config: { type: "email" } }],
+      } as ColumnValidators;
       const stats = {};
       const result = analyzer.processDataValidations(
         rowsWithEmailValues,
@@ -407,16 +414,38 @@ describe("DataAnalyzer", () => {
       ]);
     });
 
-    it("should validate multiple validations", () => {
-      const rowsWithDuplicateValues = [{ __rowId: 0 }, { __rowId: 1 }];
+    it("should validate all validations", () => {
+      const rowsWithDuplicateValues = [
+        { __rowId: 0, uniques: "Jan" },
+        { __rowId: 1, uniques: "Flo" },
+      ];
       const validatorColumns = {
-        required: [{ column: "name" }],
-        unique: [{ column: "name" }],
-        phone: [{ column: "name" }],
-        email: [{ column: "name" }],
-        regex: [{ column: "name", regex: "^[0-9]{5}$" }],
-      } as Record<ValidatorType, { column: string; regex?: string }[]>;
-      const stats: Stats = { name: { nonunique: { undefined: 2 } } };
+        required: [{ column: "name", config: { type: "required" } }],
+        unique: [{ column: "name", config: { type: "unique" } }],
+        phone: [{ column: "name", config: { type: "phone" } }],
+        email: [{ column: "name", config: { type: "email" } }],
+        regex: [
+          {
+            column: "name",
+            config: {
+              type: "regex",
+              regex: "^[0-9]{5}$",
+            } as RegexColumnValidation,
+          },
+        ],
+        enum: [
+          {
+            column: "uniques",
+            config: {
+              type: "enum",
+              values: ["Jan", "Florian"],
+            } as EnumerationColumnValidation,
+          },
+        ],
+      } as ColumnValidators;
+      const stats: SourceFileStatsPerColumn = {
+        name: { nonunique: { undefined: 2 } },
+      };
       const result = analyzer.processDataValidations(
         rowsWithDuplicateValues,
         validatorColumns,
@@ -477,6 +506,64 @@ describe("DataAnalyzer", () => {
             },
           ],
         },
+        {
+          rowId: 1,
+          column: "uniques",
+          errors: [
+            {
+              message: "value is not a valid enum",
+              type: "enum",
+            },
+          ],
+        },
+      ]);
+    });
+
+    it("should validate enum values", () => {
+      const rowsWithEmailValues = [
+        { __rowId: 0, department: "Department 1" },
+        { __rowId: 1, department: "Department 2" },
+        { __rowId: 2, department: "Department 3" },
+        { __rowId: 3, department: "" },
+      ];
+      const validatorColumns = {
+        enum: [
+          {
+            column: "department",
+            config: {
+              type: "enum",
+              values: ["Department 1", "Department 2"],
+            } as EnumerationColumnValidation,
+          },
+        ],
+      } as ColumnValidators;
+      const stats = {};
+      const result = analyzer.processDataValidations(
+        rowsWithEmailValues,
+        validatorColumns,
+        stats
+      );
+      expect(result).toEqual([
+        {
+          column: "department",
+          rowId: 2,
+          errors: [
+            {
+              message: "value is not a valid enum",
+              type: "enum",
+            },
+          ],
+        },
+        {
+          column: "department",
+          errors: [
+            {
+              message: "value is not a valid enum",
+              type: "enum",
+            },
+          ],
+          rowId: 3,
+        },
       ]);
     });
   });
@@ -484,14 +571,17 @@ describe("DataAnalyzer", () => {
   it("should return stats", () => {
     const jsonData = [
       {
+        __rowId: 0,
         name: "Florian",
         id: 1,
       },
       {
+        __rowId: 1,
         name: "Florian",
         id: 2,
       },
       {
+        __rowId: 2,
         name: "Egon",
         id: 1,
       },

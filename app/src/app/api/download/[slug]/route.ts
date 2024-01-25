@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   const { slug: importerId } = params;
-  const fileReference = "target.json";
+  const fileReference = "export.json";
 
   if (!importerId) {
     return new Response("importerId missing", { status: 500 });
