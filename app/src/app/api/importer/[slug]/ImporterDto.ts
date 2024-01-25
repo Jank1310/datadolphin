@@ -52,6 +52,19 @@ export interface ColumnConfig {
    */
   keyAlternatives?: string[];
   type: "text" | "number" | "date";
+  validations?: ColumnValidation[];
+}
+
+export interface ColumnValidation {
+  type: "unique" | "regex" | "enum" | "required" | "phone" | "email";
+}
+
+export interface RegexColumnValidation extends ColumnValidation {
+  regex: string;
+}
+
+export interface EnumerationColumnValidation extends ColumnValidation {
+  values: string[];
 }
 
 export interface DataMapping {
@@ -65,6 +78,7 @@ export interface DataSetPatch {
    * target column
    */
   column: string;
+  previousValue: string | number | null;
   newValue: string | number | null;
 }
 

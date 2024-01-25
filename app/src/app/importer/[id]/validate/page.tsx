@@ -9,6 +9,7 @@ import Validation from "./Validation";
 
 export default async function page(props: { params: { id: string } }) {
   const importerId = props.params.id;
+  console.time("page start");
   const initialImporterDtoPromise = fetch(
     `${getHost()}/api/importer/${importerId}`,
     {
@@ -36,22 +37,17 @@ export default async function page(props: { params: { id: string } }) {
     //! cached
     `${getHost()}/api/importer/${importerId}/source-data`
   ).then((res) => res.json() as Promise<SourceData[]>);
-  const [
-    initialImporterDto,
-    initialPatches,
-    initialValidation,
-    initialSourceData,
-  ] = await Promise.all([
-    initialImporterDtoPromise,
-    initialPatchesPromise,
-    initialValidationPromise,
-    initialSourceDataPromise,
-  ]);
+  const [initialImporterDto, initialValidation, initialSourceData] =
+    await Promise.all([
+      initialImporterDtoPromise,
+      initialValidationPromise,
+      initialSourceDataPromise,
+    ]);
+  console.timeEnd("page start");
   return (
     <div className="p-4">
       <Validation
         initialImporterDto={initialImporterDto}
-        initialPatches={initialPatches}
         initialValidation={initialValidation}
         initialSourceData={initialSourceData}
       />
