@@ -30,6 +30,29 @@ services:
       - 5432
     volumes:
       - postgresql:/var/lib/postgresql/data
+  # ferretdb:
+  #   container_name: ferretdb
+  #   depends_on:
+  #     - postgresql
+  #   image: ghcr.io/ferretdb/ferretdb
+  #   restart: on-failure
+  #   ports:
+  #     - 27017:27017
+  #   environment:
+  #     - FERRETDB_POSTGRESQL_URL=postgres://temporal:temporal@postgresql:5432/ferretdb
+  #   networks:
+  #     - temporal-network
+  mongo:
+    container_name: mongo
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: datadolphin
+      MONGO_INITDB_ROOT_PASSWORD: datadolphin
+    ports:
+      - 27017:27017
+    networks:
+      - temporal-network
   temporal:
     container_name: temporal
     depends_on:
