@@ -198,10 +198,7 @@ export async function importer(params: ImporterWorkflowParams) {
     const chunkedFileReferences = await acts.applyMappings({
       bucket: sourceFile!.bucket,
       fileReference: sourceFileReference,
-      dataMapping: configuredMappings!.map((item) => ({
-        sourceColumn: item.sourceColumn,
-        targetColumn: item.targetColumn,
-      })),
+      dataMapping: configuredMappings!,
     });
     const mappedSourceDataFileReference = "target.json";
     await acts.mergeChunks({
