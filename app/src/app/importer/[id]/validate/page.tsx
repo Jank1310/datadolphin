@@ -27,7 +27,9 @@ export default async function page(props: { params: { id: string } }) {
       cache: "no-cache",
     }
   ).then((res) => {
-    if (res.status === 404) return Promise.resolve([]);
+    if (res.status === 404) {
+      return Promise.resolve([]);
+    }
     return res.json() as Promise<DataValidation[]>;
   });
   const initialSourceDataPromise = fetch(
