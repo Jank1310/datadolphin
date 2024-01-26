@@ -46,7 +46,7 @@ services:
   ferretdb:
     container_name: ferretdb
     depends_on:
-      - postgresql
+      - postgresql-ferretdb
     image: ghcr.io/ferretdb/ferretdb
     restart: on-failure
     ports:
