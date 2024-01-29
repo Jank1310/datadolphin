@@ -8,6 +8,7 @@ import {
   DataAnalyzer,
   SourceFileStatsPerColumn,
 } from "./DataAnalyzer";
+import { DataSetRow } from "./DataSet";
 
 describe("DataAnalyzer", () => {
   const analyzer = new DataAnalyzer();
@@ -101,15 +102,25 @@ describe("DataAnalyzer", () => {
 
   describe("validation", () => {
     it("should validate required columns", () => {
-      const rowsWithMissingName: Record<string, string | number | null>[] = [
+      const rowsWithMissingName: DataSetRow[] = [
         {
-          __rowId: 0,
-          name: "John",
+          __sourceRowId: 0,
+          data: {
+            name: { value: "John", messages: [] },
+          },
         },
-        { __rowId: 1 },
-        { __rowId: 2, age: 25 },
-        { __rowId: 3, name: "" },
-        { __rowId: 4, name: null },
+        {
+          __sourceRowId: 1,
+          data: {
+            name: { value: "", messages: [] },
+          },
+        },
+        {
+          __sourceRowId: 2,
+          data: {
+            name: { value: null, messages: [] },
+          },
+        },
       ];
       const validatorColumns = {
         required: [{ column: "name", config: { type: "required" } }],
@@ -124,7 +135,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 1,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is required",
               type: "required",
@@ -134,27 +145,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 2,
           column: "name",
-          errors: [
-            {
-              message: "value is required",
-              type: "required",
-            },
-          ],
-        },
-        {
-          rowId: 3,
-          column: "name",
-          errors: [
-            {
-              message: "value is required",
-              type: "required",
-            },
-          ],
-        },
-        {
-          rowId: 4,
-          column: "name",
-          errors: [
+          messages: [
             {
               message: "value is required",
               type: "required",
@@ -167,14 +158,59 @@ describe("DataAnalyzer", () => {
     it("should validate unique columns", () => {
       const rowsWithDuplicateValues = [
         {
-          __rowId: 0,
-          name: "John",
+          __sourceRowId: 0,
+          data: {
+            name: {
+              value: "John",
+              messages: [],
+            },
+          },
         },
-        { __rowId: 1, name: "John" },
-        { __rowId: 2, name: "Egon" },
-        { __rowId: 3, name: "" },
-        { __rowId: 4, name: "" },
-        { __rowId: 5, name: "John" },
+        {
+          __sourceRowId: 1,
+          data: {
+            name: {
+              value: "John",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 2,
+          data: {
+            name: {
+              value: "Egon",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 3,
+          data: {
+            name: {
+              value: "",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 4,
+          data: {
+            name: {
+              value: "",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 5,
+          data: {
+            name: {
+              value: "John",
+              messages: [],
+            },
+          },
+        },
       ];
       const validatorColumns = {
         unique: [{ column: "name", config: { type: "unique" } }],
@@ -191,7 +227,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 0,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is not unique",
               type: "unique",
@@ -201,7 +237,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 1,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is not unique",
               type: "unique",
@@ -211,7 +247,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 3,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is not unique",
               type: "unique",
@@ -221,7 +257,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 4,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is not unique",
               type: "unique",
@@ -231,7 +267,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 5,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is not unique",
               type: "unique",
@@ -244,13 +280,50 @@ describe("DataAnalyzer", () => {
     it("should validate regex columns", () => {
       const rowsWithRegexValues = [
         {
-          __rowId: 0,
-          Postleitzahl: 90596,
+          __sourceRowId: 0,
+          data: {
+            Postleitzahl: {
+              value: 90596,
+              messages: [],
+            },
+          },
         },
-        { __rowId: 1, Postleitzahl: "90596" },
-        { __rowId: 2, Postleitzahl: "x90596" },
-        { __rowId: 3, Postleitzahl: "" },
-        { __rowId: 4, Postleitzahl: "123" },
+        {
+          __sourceRowId: 1,
+          data: {
+            Postleitzahl: {
+              value: "90596",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 2,
+          data: {
+            Postleitzahl: {
+              value: "x90596",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 3,
+          data: {
+            Postleitzahl: {
+              value: "",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 4,
+          data: {
+            Postleitzahl: {
+              value: "123",
+              messages: [],
+            },
+          },
+        },
       ];
       const validatorColumns = {
         regex: [
@@ -273,7 +346,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 2,
           column: "Postleitzahl",
-          errors: [
+          messages: [
             {
               message: "value does not match regex ^[0-9]{5}$",
               type: "regex",
@@ -283,7 +356,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 3,
           column: "Postleitzahl",
-          errors: [
+          messages: [
             {
               message: "value does not match regex ^[0-9]{5}$",
               type: "regex",
@@ -293,7 +366,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 4,
           column: "Postleitzahl",
-          errors: [
+          messages: [
             {
               message: "value does not match regex ^[0-9]{5}$",
               type: "regex",
@@ -306,16 +379,50 @@ describe("DataAnalyzer", () => {
     it("should validate phone columns", () => {
       const rowsWithPhoneValues = [
         {
-          __rowId: 0,
-          phone: "015140604777",
+          __sourceRowId: 0,
+          data: {
+            phone: {
+              value: "015140604777",
+              messages: [],
+            },
+          },
         },
         {
-          __rowId: 1,
-          phone: "0151/40604777",
+          __sourceRowId: 1,
+          data: {
+            phone: {
+              value: "0151/40604777",
+              messages: [],
+            },
+          },
         },
-        { __rowId: 2, phone: "+49 151/40604777 " },
-        { __rowId: 3, phone: "foo" },
-        { __rowId: 4, phone: "" },
+        {
+          __sourceRowId: 2,
+          data: {
+            phone: {
+              value: "+49 151/40604777 ",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 3,
+          data: {
+            phone: {
+              value: "foo",
+              messages: [],
+            },
+          },
+        },
+        {
+          __sourceRowId: 4,
+          data: {
+            phone: {
+              value: "",
+              messages: [],
+            },
+          },
+        },
       ];
 
       const validatorColumns = {
@@ -331,7 +438,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 3,
           column: "phone",
-          errors: [
+          messages: [
             {
               message: "value is not a valid phone number",
               type: "phone",
@@ -341,7 +448,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 4,
           column: "phone",
-          errors: [
+          messages: [
             {
               message: "value is not a valid phone number",
               type: "phone",
@@ -353,12 +460,24 @@ describe("DataAnalyzer", () => {
 
     it("should validate email columns", () => {
       const rowsWithEmailValues = [
-        { __rowId: 0, email: "fiedlefl@gmail.com" },
-        { __rowId: 1, email: "fiedlefl+test@gmail.com" },
-        { __rowId: 2, email: "fiedlefl@gmail" },
-        { __rowId: 3, email: "fiedlefl@gmail@test.com" },
-        { __rowId: 4, email: "foo" },
-        { __rowId: 5, email: "" },
+        {
+          __sourceRowId: 0,
+          data: { email: { value: "fiedlefl@gmail.com", messages: [] } },
+        },
+        {
+          __sourceRowId: 1,
+          data: { email: { value: "fiedlefl+test@gmail.com", messages: [] } },
+        },
+        {
+          __sourceRowId: 2,
+          data: { email: { value: "fiedlefl@gmail", messages: [] } },
+        },
+        {
+          __sourceRowId: 3,
+          data: { email: { value: "fiedlefl@gmail@test.com", messages: [] } },
+        },
+        { __sourceRowId: 4, data: { email: { value: "foo", messages: [] } } },
+        { __sourceRowId: 5, data: { email: { value: "", messages: [] } } },
       ];
       const validatorColumns = {
         email: [{ column: "email", config: { type: "email" } }],
@@ -373,7 +492,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 2,
           column: "email",
-          errors: [
+          messages: [
             {
               message: "value is not a valid email",
               type: "email",
@@ -383,7 +502,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 3,
           column: "email",
-          errors: [
+          messages: [
             {
               message: "value is not a valid email",
               type: "email",
@@ -393,7 +512,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 4,
           column: "email",
-          errors: [
+          messages: [
             {
               message: "value is not a valid email",
               type: "email",
@@ -403,7 +522,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 5,
           column: "email",
-          errors: [
+          messages: [
             {
               message: "value is not a valid email",
               type: "email",
@@ -414,9 +533,21 @@ describe("DataAnalyzer", () => {
     });
 
     it("should validate all validations", () => {
-      const rowsWithDuplicateValues = [
-        { __rowId: 0, uniques: "Jan" },
-        { __rowId: 1, uniques: "Flo" },
+      const rows = [
+        {
+          __sourceRowId: 0,
+          data: {
+            name: { value: "", messages: [] },
+            uniques: { value: "Jan", messages: [] },
+          },
+        },
+        {
+          __sourceRowId: 1,
+          data: {
+            name: { value: "", messages: [] },
+            uniques: { value: "Flo", messages: [] },
+          },
+        },
       ];
       const validatorColumns = {
         required: [{ column: "name", config: { type: "required" } }],
@@ -443,10 +574,10 @@ describe("DataAnalyzer", () => {
         ],
       } as ColumnValidators;
       const stats: SourceFileStatsPerColumn = {
-        name: { nonunique: { undefined: 2 } },
+        name: { nonunique: { "": 2 } },
       };
       const result = analyzer.processDataValidations(
-        rowsWithDuplicateValues,
+        rows,
         validatorColumns,
         stats
       );
@@ -454,7 +585,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 0,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is required",
               type: "required",
@@ -481,7 +612,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 1,
           column: "name",
-          errors: [
+          messages: [
             {
               message: "value is required",
               type: "required",
@@ -508,7 +639,7 @@ describe("DataAnalyzer", () => {
         {
           rowId: 1,
           column: "uniques",
-          errors: [
+          messages: [
             {
               message: "value is not a valid enum",
               type: "enum",
@@ -520,10 +651,19 @@ describe("DataAnalyzer", () => {
 
     it("should validate enum values", () => {
       const rowsWithEmailValues = [
-        { __rowId: 0, department: "Department 1" },
-        { __rowId: 1, department: "Department 2" },
-        { __rowId: 2, department: "Department 3" },
-        { __rowId: 3, department: "" },
+        {
+          __sourceRowId: 0,
+          data: { department: { value: "Department 1", messages: [] } },
+        },
+        {
+          __sourceRowId: 1,
+          data: { department: { value: "Department 2", messages: [] } },
+        },
+        {
+          __sourceRowId: 2,
+          data: { department: { value: "Department 3", messages: [] } },
+        },
+        { __sourceRowId: 3, data: { department: { value: "", messages: [] } } },
       ];
       const validatorColumns = {
         enum: [
@@ -546,7 +686,7 @@ describe("DataAnalyzer", () => {
         {
           column: "department",
           rowId: 2,
-          errors: [
+          messages: [
             {
               message: "value is not a valid enum",
               type: "enum",
@@ -555,7 +695,7 @@ describe("DataAnalyzer", () => {
         },
         {
           column: "department",
-          errors: [
+          messages: [
             {
               message: "value is not a valid enum",
               type: "enum",
@@ -570,16 +710,25 @@ describe("DataAnalyzer", () => {
   it("should return stats", () => {
     const jsonData = [
       {
-        name: "Florian",
-        id: 1,
+        __sourceRowId: 0,
+        data: {
+          name: { value: "Florian", messages: [] },
+          id: { value: 1, messages: [] },
+        },
       },
       {
-        name: "Florian",
-        id: 2,
+        __sourceRowId: 1,
+        data: {
+          name: { value: "Florian", messages: [] },
+          id: { value: 2, messages: [] },
+        },
       },
       {
-        name: "Egon",
-        id: 1,
+        __sourceRowId: 2,
+        data: {
+          name: { value: "Egon", messages: [] },
+          id: { value: 1, messages: [] },
+        },
       },
     ];
     const result = analyzer.getStats(jsonData, ["name", "id"]);

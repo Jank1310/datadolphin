@@ -10,6 +10,10 @@ export function useGetSourceData(
     ([url]) => fetch(url).then((res) => res.json()),
     {
       fallbackData,
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnMount: false,
+      revalidateOnReconnect: false,
     }
   );
   return {

@@ -1,19 +1,20 @@
 import { Validator } from ".";
 import { ColumnValidation } from "../ColumnValidation";
-import { ValidationError } from "../ValidationError";
+import { DataSetRow } from "../DataSet";
+import { ValidationMessage } from "../ValidationMessage";
 
 const EMAIL_REGEX =
   /^[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 
 export class EmailValidator implements Validator {
   validate(
-    row: Record<string, unknown>,
+    row: DataSetRow,
     columnConfig: { column: string; config: ColumnValidation }[]
-  ): Record<string, ValidationError> {
-    const errors: Record<string, ValidationError> = {};
+  ): Record<string, ValidationMessage> {
+    const errors: Record<string, ValidationMessage> = {};
     const columnsToValidate = columnConfig.map((item) => item.column);
     for (const columnToValidate of columnsToValidate) {
-      let dataToValidate = row[columnToValidate];
+      let dataToValidate = row.data[columnToValidate].value;
       if (EMAIL_REGEX.test((dataToValidate as string) ?? "") === false) {
         errors[columnToValidate] = {
           type: "email",

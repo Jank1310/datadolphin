@@ -1,19 +1,20 @@
 import { Validator } from ".";
 import { ColumnValidation } from "../ColumnValidation";
 import { SourceFileStatsPerColumn } from "../DataAnalyzer";
-import { ValidationError } from "../ValidationError";
+import { DataSetRow } from "../DataSet";
+import { ValidationMessage } from "../ValidationMessage";
 
 export class UniqueValidator implements Validator {
   constructor() {}
 
   validate(
-    row: Record<string, unknown>,
+    row: DataSetRow,
     columnConfig: { column: string; config: ColumnValidation }[],
     stats: SourceFileStatsPerColumn = {}
   ) {
-    const errors: Record<string, ValidationError> = {};
+    const errors: Record<string, ValidationMessage> = {};
     for (const { column } of columnConfig) {
-      let dataToValidate = row[column];
+      let dataToValidate = row.data[column].value;
       if (stats[column] && stats[column].nonunique[dataToValidate as string]) {
         errors[column] = {
           type: "unique",

@@ -1,15 +1,16 @@
 import { Validator } from ".";
 import { EnumerationColumnValidation } from "../ColumnValidation";
-import { ValidationError } from "../ValidationError";
+import { DataSetRow } from "../DataSet";
+import { ValidationMessage } from "../ValidationMessage";
 
 export class EnumValidator implements Validator {
   public validate(
-    row: Record<string, string | number | null>,
+    row: DataSetRow,
     columnConfigs: { column: string; config: EnumerationColumnValidation }[]
-  ): Record<string, ValidationError> {
-    const errors: Record<string, ValidationError> = {};
+  ): Record<string, ValidationMessage> {
+    const errors: Record<string, ValidationMessage> = {};
     for (const { column, config } of columnConfigs) {
-      let dataToValidate = row[column];
+      let dataToValidate = row.data[column].value;
       if (!dataToValidate || typeof dataToValidate !== "string") {
         errors[column] = {
           type: "enum",

@@ -1,13 +1,23 @@
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
-import { chunk, pull } from "lodash";
+import { pull } from "lodash";
+import { AnyBulkWriteOperation, ObjectId } from "mongodb";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import {
   ColumnValidators,
   DataAnalyzer,
   DataMappingRecommendation,
+  SourceFileStatsPerColumn,
 } from "./domain/DataAnalyzer";
+import {
+  DataSet,
+  DataSetPatch,
+  DataSetRow,
+  SourceDataSet,
+  SourceDataSetRow,
+} from "./domain/DataSet";
+import { Database } from "./infrastructure/Database";
 import { FileStore } from "./infrastructure/FileStore";
 import { Mapping } from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
@@ -22,6 +32,7 @@ export interface DownloadSourceFileReturnType {
 
 export function makeActivities(
   fileStore: FileStore,
+  database: Database,
   dataAnalyzer: DataAnalyzer
 ) {
   return {
@@ -29,14 +40,13 @@ export function makeActivities(
       await fileStore.deleteBucket(params.bucket);
     },
     processSourceFile: async (params: {
-      bucket: string;
+      importerId: string;
       fileReference: string;
       format: string;
       formatOptions: { delimiter?: string };
-      outputFileReference: string;
     }): Promise<void> => {
       const fileData = await fileStore.getFile(
-        params.bucket,
+        params.importerId,
         params.fileReference
       );
       let json: Record<string, unknown>[];
@@ -79,143 +89,215 @@ export function makeActivities(
             `Unsupported format ${params.format}`
           );
       }
-      const jsonWithRowIds = json.map((row, index) => ({
-        __rowId: index,
-        ...row,
-      }));
-
-      const jsonData = Buffer.from(JSON.stringify(jsonWithRowIds));
-      await fileStore.putFile(
-        params.bucket,
-        params.outputFileReference,
-        jsonData
+      const jsonWithRowIds: SourceDataSet = json.map(
+        (row, index) =>
+          ({
+            __sourceRowId: index,
+            ...row,
+            _id: new ObjectId(),
+          } as SourceDataSetRow)
       );
+      console.log("insert rows", jsonWithRowIds.length);
+      console.time("insert");
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("sourceData")
+        .deleteMany();
+      const result = await database.mongoClient
+        .db(params.importerId)
+        .collection("sourceData")
+        .insertMany(jsonWithRowIds);
+      console.timeEnd("insert");
+      if (result.insertedCount !== jsonWithRowIds.length) {
+        throw ApplicationFailure.nonRetryable("Failed to insert all rows");
+      }
     },
     applyMappings: async (params: {
-      bucket: string;
-      fileReference: string;
+      importerId: string;
       dataMapping: Mapping[];
-    }): Promise<string[]> => {
-      const fileData = await fileStore.getFile(
-        params.bucket,
-        params.fileReference
-      );
-      const sourceJsonData: Record<string, unknown>[] = JSON.parse(
-        fileData.toString()
+    }): Promise<void> => {
+      const sourceJsonData: SourceDataSet = await database.mongoClient
+        .db(params.importerId)
+        .collection<SourceDataSetRow>("sourceData")
+        .find()
+        .toArray();
+
+      console.log("got sourceData", sourceJsonData.length);
+      // stats
+      // {name: {messageCount: 104}}
+      const mappingsWithTargetColumn = params.dataMapping.filter(
+        (mapping) => mapping.targetColumn
       );
       const mappedData = sourceJsonData.map((row) => {
-        const newRow: Record<string, unknown> = {};
-        newRow.__rowId = row.__rowId;
-        const mappingsWithTargetColumn = params.dataMapping.filter(
-          (mapping) => mapping.targetColumn
-        );
+        const newRow: DataSetRow = {
+          __sourceRowId: row.__sourceRowId,
+          data: {},
+        };
         for (const mapping of mappingsWithTargetColumn) {
-          newRow[mapping.targetColumn as string] = row[mapping.sourceColumn!];
+          newRow.data[mapping.targetColumn as string] = {
+            value: row[mapping.sourceColumn!],
+            messages: [],
+          };
         }
         return newRow;
       });
-      const mappedDataChunks = chunk(mappedData, 5000);
-      return await Promise.all(
-        mappedDataChunks.map(async (json, index) => {
-          const mappedChunkJsonData = Buffer.from(JSON.stringify(json));
-          const chunkedFileReference = `mapped-${index}.json`;
-          await fileStore.putFile(
-            params.bucket,
-            chunkedFileReference,
-            mappedChunkJsonData
-          );
-          return chunkedFileReference;
-        })
-      );
+
+      console.log("creating indexes");
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .createIndexes([
+          {
+            key: {
+              "data.$**": 1,
+            },
+            name: "data_1",
+          },
+          {
+            key: {
+              __sourceRowId: 1,
+            },
+            name: "sourceRowId_1",
+            unique: true,
+          },
+        ]);
+
+      console.time("writing data");
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .insertMany(mappedData);
+      console.timeEnd("writing data");
     },
     getMappingRecommendations: async (params: {
-      bucket: string;
-      fileReference: string;
+      importerId: string;
       columnConfig: ColumnConfig[];
     }): Promise<DataMappingRecommendation[]> => {
-      const fileData = await fileStore.getFile(
-        params.bucket,
-        params.fileReference
-      );
-      const jsonData = JSON.parse(fileData.toString());
+      const firstRecord = await database.mongoClient
+        .db(params.importerId)
+        .collection<DataSetRow>("sourceData")
+        .findOne();
       // all rows should have all available headers (see source file processing)
-      const sourceColumns = pull(Object.keys(jsonData[0]), "__rowId");
+      const sourceColumns = pull(
+        Object.keys(firstRecord as DataSetRow),
+        "__sourceRowId"
+      );
       return dataAnalyzer.generateMappingRecommendations(
         sourceColumns,
         params.columnConfig
       );
     },
     processDataValidations: async (params: {
-      bucket: string;
-      fileReference: string;
-      statsFileReference: string;
+      importerId: string;
       validatorColumns: ColumnValidators;
-    }) => {
-      console.time("validations");
-      const referenceId = params.fileReference.split("-")[1].split(".")[0];
-      const fileData = await fileStore.getFile(
-        params.bucket,
-        params.fileReference
-      );
-      const jsonData = JSON.parse(fileData.toString());
+      stats: SourceFileStatsPerColumn;
+      skip: number;
+      limit: number;
+    }): Promise<number> => {
+      const jsonData: DataSet = await database.mongoClient
+        .db(params.importerId)
+        .collection<DataSetRow>("data")
+        .find()
+        .skip(params.skip)
+        .limit(params.limit)
+        .toArray();
 
-      const statsFileData = await fileStore.getFile(
-        params.bucket,
-        params.statsFileReference
-      );
-      const statsData = JSON.parse(statsFileData.toString());
-      const errorData = dataAnalyzer.processDataValidations(
+      const validationResults = dataAnalyzer.processDataValidations(
         jsonData,
         params.validatorColumns,
-        statsData
+        params.stats
       );
-      const errorFileReference = `errors-${referenceId}.json`;
-      await fileStore.putFile(
-        params.bucket,
-        errorFileReference,
-        Buffer.from(JSON.stringify(errorData))
-      );
-      console.timeEnd("validations");
-      return errorFileReference;
-    },
-    generateStatsFile: async (params: {
-      bucket: string;
-      fileReference: string;
-      outputFileReference: string;
-      uniqueColumns: string[];
-    }): Promise<void> => {
-      console.time("generate-stats");
-      const fileData = await fileStore.getFile(
-        params.bucket,
-        params.fileReference
-      );
-      const jsonData: Record<string, unknown>[] = JSON.parse(
-        fileData.toString()
-      );
-      const stats = dataAnalyzer.getStats(jsonData, params.uniqueColumns);
-      const statsData = Buffer.from(JSON.stringify(stats));
-      await fileStore.putFile(
-        params.bucket,
-        params.outputFileReference,
-        statsData
-      );
-      console.timeEnd("generate-stats");
-    },
-    mergeChunks: async (params: {
-      bucket: string;
-      fileReferences: string[];
-      outputFileReference: string;
-    }) => {
-      let allJsonData: Record<string, unknown>[] = [];
-      for (const fileReference of params.fileReferences) {
-        const fileData = await fileStore.getFile(params.bucket, fileReference);
-        allJsonData.push(...JSON.parse(fileData.toString()));
+
+      const writes: AnyBulkWriteOperation<Document>[] = [];
+      for (const validationResult of validationResults) {
+        writes.push({
+          updateOne: {
+            filter: {
+              __sourceRowId: validationResult.rowId,
+            },
+            update: {
+              $push: {
+                [`data.${validationResult.column}.messages`]:
+                  validationResult.messages,
+              },
+            },
+          },
+        });
       }
-      await fileStore.putFile(
-        params.bucket,
-        params.outputFileReference,
-        Buffer.from(JSON.stringify(allJsonData))
-      );
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .bulkWrite(writes);
+      // .updateOne(
+      //   { __sourceRowId: validationResult.rowId },
+      //   {
+      //     $push: {
+      //       [`data.${validationResult.column}.messages`]:
+      //         validationResult.messages,
+      //     },
+      //   }
+      // );
+
+      return validationResults.length;
+    },
+    applyPatches: async (params: {
+      importerId: string;
+      patches: DataSetPatch[];
+    }): Promise<void> => {
+      for (const patch of params.patches) {
+        const targetColumn = `data.${patch.column}`;
+        await database.mongoClient
+          .db(params.importerId)
+          .collection("data")
+          .updateOne(
+            { __sourceRowId: patch.rowId },
+            { $set: { [targetColumn]: patch.newValue } }
+          );
+      }
+    },
+    generateStats: async (params: {
+      importerId: string;
+      uniqueColumns: string[];
+    }): Promise<SourceFileStatsPerColumn> => {
+      console.time("generate-stats");
+      const jsonData: DataSet = await database.mongoClient
+        .db(params.importerId)
+        .collection<DataSetRow>("data")
+        .find()
+        .toArray();
+      const stats = dataAnalyzer.getStats(jsonData, params.uniqueColumns);
+      console.timeEnd("generate-stats");
+      return stats;
+    },
+    invokeCallback: async (params: {
+      importerId: string;
+      callbackUrl: string;
+    }): Promise<void> => {
+      const host = process.env.API_URL ?? "http://localhost:3000";
+      const downloadUrl = `${host}/api/download/${params.importerId}`;
+      fetch(params.callbackUrl, {
+        method: "POST",
+        body: downloadUrl,
+      });
+    },
+    getDataCount: async (params: { importerId: string }): Promise<number> => {
+      return database.mongoClient
+        .db(params.importerId)
+        .collection<DataSetRow>("data")
+        .countDocuments();
+    },
+    createDatabases: async (params: { importerId: string }): Promise<void> => {
+      // drop databases
+      await database.mongoClient.db(params.importerId).dropDatabase();
+
+      await database.mongoClient.db(params.importerId).createCollection("data");
+      await database.mongoClient
+        .db(params.importerId)
+        .createCollection("sourceData");
+      await database.mongoClient.db(params.importerId).createCollection("meta");
+    },
+    dropDatabase: async (params: { importerId: string }): Promise<void> => {
+      await database.mongoClient.db(params.importerId).dropDatabase();
     },
   };
 }
