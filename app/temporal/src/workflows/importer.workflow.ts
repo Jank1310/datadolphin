@@ -249,12 +249,18 @@ export async function importer(params: ImporterWorkflowParams) {
   async function performValidations() {
     isValidating = true;
 
-    const allColumnsWithValidators = params.columnConfig.filter(
-      (column) => column.validations?.length
+    const allMappedColumnsWithValidators = params.columnConfig.filter(
+      (column) =>
+        column.validations?.length &&
+        (configuredMappings ?? []).find(
+          (mapping) => mapping.targetColumn === column.key
+        )
     );
 
-    const validatorColumns = {} as ColumnValidators;
-    for (const column of allColumnsWithValidators) {
+    const validatorColumns = {
+      unique: [],
+    } as ColumnValidators;
+    for (const column of allMappedColumnsWithValidators) {
       for (const validator of column.validations!) {
         if (!validatorColumns[validator.type]) {
           validatorColumns[validator.type] = [];
@@ -265,8 +271,6 @@ export async function importer(params: ImporterWorkflowParams) {
         });
       }
     }
-    await acts.applyPatches({ importerId, patches });
-
     const stats = await acts.generateStats({
       importerId,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),

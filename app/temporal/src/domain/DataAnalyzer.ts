@@ -117,6 +117,11 @@ export class DataAnalyzer {
     for (const column of columnsToVerify) {
       const duplicates = new Map();
       data.forEach((row) => {
+        if (!row.data[column]) {
+          throw new Error(
+            `Column ${column} not found in data rowId: ${row.__sourceRowId}`
+          );
+        }
         duplicates.set(
           row.data[column].value,
           (duplicates.get(row.data[column].value) ?? 0) + 1

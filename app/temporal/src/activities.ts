@@ -1,7 +1,7 @@
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
 import { pull } from "lodash";
-import { ObjectId } from "mongodb";
+import { AnyBulkWriteOperation, ObjectId } from "mongodb";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import {
@@ -97,10 +97,20 @@ export function makeActivities(
             _id: new ObjectId(),
           } as SourceDataSetRow)
       );
+      console.log("insert rows", jsonWithRowIds.length);
+      console.time("insert");
       await database.mongoClient
         .db(params.importerId)
         .collection("sourceData")
+        .deleteMany();
+      const result = await database.mongoClient
+        .db(params.importerId)
+        .collection("sourceData")
         .insertMany(jsonWithRowIds);
+      console.timeEnd("insert");
+      if (result.insertedCount !== jsonWithRowIds.length) {
+        throw ApplicationFailure.nonRetryable("Failed to insert all rows");
+      }
     },
     applyMappings: async (params: {
       importerId: string;
@@ -115,14 +125,14 @@ export function makeActivities(
       console.log("got sourceData", sourceJsonData.length);
       // stats
       // {name: {messageCount: 104}}
+      const mappingsWithTargetColumn = params.dataMapping.filter(
+        (mapping) => mapping.targetColumn
+      );
       const mappedData = sourceJsonData.map((row) => {
         const newRow: DataSetRow = {
           __sourceRowId: row.__sourceRowId,
           data: {},
         };
-        const mappingsWithTargetColumn = params.dataMapping.filter(
-          (mapping) => mapping.targetColumn
-        );
         for (const mapping of mappingsWithTargetColumn) {
           newRow.data[mapping.targetColumn as string] = {
             value: row[mapping.sourceColumn!],
@@ -132,25 +142,32 @@ export function makeActivities(
         return newRow;
       });
 
-      console.log("writing data");
+      console.log("creating indexes");
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .createIndexes([
+          {
+            key: {
+              "data.$**": 1,
+            },
+            name: "data_1",
+          },
+          {
+            key: {
+              __sourceRowId: 1,
+            },
+            name: "sourceRowId_1",
+            unique: true,
+          },
+        ]);
+
+      console.time("writing data");
       await database.mongoClient
         .db(params.importerId)
         .collection("data")
         .insertMany(mappedData);
-      console.log("writing data - finished");
-
-      console.log("creating indexes");
-
-      // create indexes
-      await database.mongoClient
-        .db(params.importerId)
-        .collection("data")
-        .createIndex({ __sourceRowId: 1 });
-      await database.mongoClient
-        .db(params.importerId)
-        .collection("data")
-        .createIndex({ "data.$**": 1 });
-      console.log("creating indexes - finished");
+      console.timeEnd("writing data");
     },
     getMappingRecommendations: async (params: {
       importerId: string;
@@ -191,20 +208,35 @@ export function makeActivities(
         params.stats
       );
 
+      const writes: AnyBulkWriteOperation<Document>[] = [];
       for (const validationResult of validationResults) {
-        await database.mongoClient
-          .db(params.importerId)
-          .collection("data")
-          .updateOne(
-            { __sourceRowId: validationResult.rowId },
-            {
+        writes.push({
+          updateOne: {
+            filter: {
+              __sourceRowId: validationResult.rowId,
+            },
+            update: {
               $push: {
                 [`data.${validationResult.column}.messages`]:
                   validationResult.messages,
               },
-            }
-          );
+            },
+          },
+        });
       }
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .bulkWrite(writes);
+      // .updateOne(
+      //   { __sourceRowId: validationResult.rowId },
+      //   {
+      //     $push: {
+      //       [`data.${validationResult.column}.messages`]:
+      //         validationResult.messages,
+      //     },
+      //   }
+      // );
 
       return validationResults.length;
     },
