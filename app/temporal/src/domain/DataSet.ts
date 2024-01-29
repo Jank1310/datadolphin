@@ -1,3 +1,5 @@
+import { ObjectId } from "mongodb";
+
 export type FieldValues = string | number | null;
 
 export type DataSetRow = {
@@ -13,6 +15,7 @@ export type DataSetRow = {
 export type DataSet = DataSetRow[];
 
 export type SourceDataSetRow = {
+  _id: ObjectId;
   __sourceRowId: number;
 } & Record<string, FieldValues>;
 

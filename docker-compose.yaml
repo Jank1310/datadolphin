@@ -30,31 +30,42 @@ services:
       - 5432
     volumes:
       - postgresql:/var/lib/postgresql/data
-  postgresql-ferretdb:
-    container_name: ferretdb-postgresql
+  # postgresql-ferretdb:
+  #   container_name: ferretdb-postgresql
+  #   environment:
+  #     POSTGRES_PASSWORD: ferretdb
+  #     POSTGRES_USER: ferretdb
+  #     POSTGRES_DB: ferretdb
+  #   image: postgres:${POSTGRESQL_VERSION}
+  #   networks:
+  #     - ferretdb-network
+  #   expose:
+  #     - 5432
+  #   volumes:
+  #     - postgresql-ferretdb:/var/lib/postgresql/data
+  # ferretdb:
+  #   container_name: ferretdb
+  #   depends_on:
+  #     - postgresql
+  #   image: ghcr.io/ferretdb/ferretdb
+  #   restart: on-failure
+  #   ports:
+  #     - 27017:27017
+  #   environment:
+  #     - FERRETDB_POSTGRESQL_URL=postgres://ferretdb:ferretdb@postgresql-ferretdb:5432/ferretdb
+  #   networks:
+  #     - ferretdb-network
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
     environment:
-      POSTGRES_PASSWORD: ferretdb
-      POSTGRES_USER: ferretdb
-      POSTGRES_DB: ferretdb
-    image: postgres:${POSTGRESQL_VERSION}
-    networks:
-      - ferretdb-network
-    expose:
-      - 5432
-    volumes:
-      - postgresql-ferretdb:/var/lib/postgresql/data
-  ferretdb:
-    container_name: ferretdb
-    depends_on:
-      - postgresql
-    image: ghcr.io/ferretdb/ferretdb
-    restart: on-failure
+      MONGO_INITDB_ROOT_USERNAME: datadolphin
+      MONGO_INITDB_ROOT_PASSWORD: datadolphin
     ports:
       - 27017:27017
-    environment:
-      - FERRETDB_POSTGRESQL_URL=postgres://ferretdb:ferretdb@postgresql-ferretdb:5432/ferretdb
     networks:
-      - ferretdb-network
+      - temporal-network
   temporal:
     container_name: temporal
     depends_on:

@@ -8,6 +8,7 @@ import {
   isCancellation,
   proxyActivities,
   setHandler,
+  workflowInfo,
 } from "@temporalio/workflow";
 import { sum } from "lodash";
 import pLimit from "p-limit";
@@ -72,7 +73,7 @@ const mappingUpdate = defineUpdate<
       mappings: Mapping[];
     }
   ]
->("importer:update-mapping∂");
+>("importer:update-mapping");
 const importPatchesQuery = defineQuery<DataSetPatch[]>("importer:patches");
 
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
@@ -159,6 +160,8 @@ export async function importer(params: ImporterWorkflowParams) {
     return patches;
   });
 
+  const importerId = workflowInfo().workflowId;
+
   try {
     const hasSourceFile = await condition(
       () => sourceFile !== null,
@@ -172,14 +175,14 @@ export async function importer(params: ImporterWorkflowParams) {
 
     // perform import
     await acts.processSourceFile({
-      importerId: sourceFile!.bucket,
+      importerId,
       fileReference: sourceFile!.fileReference,
       format: sourceFile!.fileFormat,
       formatOptions: {},
     });
 
     dataMappingRecommendations = await acts.getMappingRecommendations({
-      bucket: sourceFile!.bucket,
+      importerId,
       columnConfig: params.columnConfig,
     });
 
@@ -191,7 +194,7 @@ export async function importer(params: ImporterWorkflowParams) {
       throw ApplicationFailure.nonRetryable("Timeout: mappings not configured");
     }
     await acts.applyMappings({
-      importertId: sourceFile!.bucket,
+      importerId,
       dataMapping: configuredMappings!,
     });
 
@@ -223,7 +226,7 @@ export async function importer(params: ImporterWorkflowParams) {
 
     // we dont have any more messages
     await acts.invokeCallback({
-      importerId: sourceFile!.bucket,
+      importerId,
       callbackUrl: params.callbackUrl,
     });
   } catch (err) {
@@ -240,6 +243,7 @@ export async function importer(params: ImporterWorkflowParams) {
     throw err; // <-- Fail the workflow
   } finally {
     await acts.deleteBucket({ bucket: sourceFile!.bucket });
+    await acts.dropDatabase({ importerId });
   }
 
   async function performValidations() {
@@ -261,29 +265,30 @@ export async function importer(params: ImporterWorkflowParams) {
         });
       }
     }
-    await acts.applyPatches({ importerId: sourceFile!.bucket, patches });
+    await acts.applyPatches({ importerId, patches });
 
     const stats = await acts.generateStats({
-      importerId: sourceFile!.bucket,
+      importerId,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
     });
     const limitFct = pLimit(100);
     // TODO: check if limit is ok
     const limit = 5000;
     const dataCount = await acts.getDataCount({
-      importerId: sourceFile!.bucket,
+      importerId,
     });
-    const parallelValidations = Array(dataCount / limit).map(
-      (_x: number, index: number) =>
-        limitFct(() => {
-          return acts.processDataValidations({
-            importerId: sourceFile!.bucket,
-            validatorColumns,
-            stats,
-            skip: index * limit,
-            limit,
-          });
-        })
+    const parallelValidations = Array.from(
+      Array(Math.ceil(dataCount / limit)).keys()
+    ).map((_key: number, index: number) =>
+      limitFct(() => {
+        return acts.processDataValidations({
+          importerId,
+          validatorColumns,
+          stats,
+          skip: index * limit,
+          limit,
+        });
+      })
     );
     const messageCountArray = await Promise.all(parallelValidations);
     messageCount = sum(messageCountArray);

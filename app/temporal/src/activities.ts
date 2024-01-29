@@ -1,6 +1,7 @@
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
 import { pull } from "lodash";
+import { ObjectId } from "mongodb";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
 import {
@@ -88,25 +89,30 @@ export function makeActivities(
             `Unsupported format ${params.format}`
           );
       }
-      const jsonWithRowIds: SourceDataSet = json.map((row, index) => ({
-        __sourceRowId: index,
-        ...row,
-      }));
+      const jsonWithRowIds: SourceDataSet = json.map(
+        (row, index) =>
+          ({
+            __sourceRowId: index,
+            ...row,
+            _id: new ObjectId(),
+          } as SourceDataSetRow)
+      );
       await database.mongoClient
         .db(params.importerId)
         .collection("sourceData")
         .insertMany(jsonWithRowIds);
     },
     applyMappings: async (params: {
-      importertId: string;
+      importerId: string;
       dataMapping: Mapping[];
     }): Promise<void> => {
       const sourceJsonData: SourceDataSet = await database.mongoClient
-        .db(params.importertId)
+        .db(params.importerId)
         .collection<SourceDataSetRow>("sourceData")
         .find()
         .toArray();
 
+      console.log("got sourceData", sourceJsonData.length);
       // stats
       // {name: {messageCount: 104}}
       const mappedData = sourceJsonData.map((row) => {
@@ -126,17 +132,32 @@ export function makeActivities(
         return newRow;
       });
 
+      console.log("writing data");
       await database.mongoClient
-        .db(params.importertId)
+        .db(params.importerId)
         .collection("data")
         .insertMany(mappedData);
+      console.log("writing data - finished");
+
+      console.log("creating indexes");
+
+      // create indexes
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .createIndex({ __sourceRowId: 1 });
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .createIndex({ "data.$**": 1 });
+      console.log("creating indexes - finished");
     },
     getMappingRecommendations: async (params: {
-      bucket: string;
+      importerId: string;
       columnConfig: ColumnConfig[];
     }): Promise<DataMappingRecommendation[]> => {
       const firstRecord = await database.mongoClient
-        .db(params.bucket)
+        .db(params.importerId)
         .collection<DataSetRow>("sourceData")
         .findOne();
       // all rows should have all available headers (see source file processing)
@@ -232,6 +253,19 @@ export function makeActivities(
         .db(params.importerId)
         .collection<DataSetRow>("data")
         .countDocuments();
+    },
+    createDatabases: async (params: { importerId: string }): Promise<void> => {
+      // drop databases
+      await database.mongoClient.db(params.importerId).dropDatabase();
+
+      await database.mongoClient.db(params.importerId).createCollection("data");
+      await database.mongoClient
+        .db(params.importerId)
+        .createCollection("sourceData");
+      await database.mongoClient.db(params.importerId).createCollection("meta");
+    },
+    dropDatabase: async (params: { importerId: string }): Promise<void> => {
+      await database.mongoClient.db(params.importerId).dropDatabase();
     },
   };
 }
