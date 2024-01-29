@@ -44,7 +44,7 @@ export function makeActivities(
       fileReference: string;
       format: string;
       formatOptions: { delimiter?: string };
-    }): Promise<void> => {
+    }): Promise<number> => {
       const fileData = await fileStore.getFile(
         params.importerId,
         params.fileReference
@@ -111,6 +111,7 @@ export function makeActivities(
       if (result.insertedCount !== jsonWithRowIds.length) {
         throw ApplicationFailure.nonRetryable("Failed to insert all rows");
       }
+      return result.insertedCount;
     },
     applyMappings: async (params: {
       importerId: string;

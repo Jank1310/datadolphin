@@ -43,6 +43,7 @@ export interface ImporterStatus {
   isWaitingForImport: boolean;
   isImporting: boolean;
   dataMappingRecommendations: DataMappingRecommendation[] | null;
+  totalRows: number;
 }
 
 export interface Mapping {
@@ -96,18 +97,10 @@ export async function importer(params: ImporterWorkflowParams) {
   let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
-  let exportFileReference: string | null = null;
   let isValidating = false;
   let configuredMappings: Mapping[] | null = null;
   let messageCount = 0;
-  let mappedSourceData: {
-    bucket: string;
-    fileReference: string;
-  } | null = null;
-  let latestValidations: {
-    bucket: string;
-    fileReference: string;
-  } | null = null;
+  let totalRows = 0;
 
   setHandler(
     addFileUpdate,
@@ -154,6 +147,7 @@ export async function importer(params: ImporterWorkflowParams) {
       dataMappingRecommendations,
       isValidating,
       dataMapping: configuredMappings,
+      totalRows,
     };
   });
   setHandler(importPatchesQuery, () => {
@@ -174,7 +168,7 @@ export async function importer(params: ImporterWorkflowParams) {
     }
 
     // perform import
-    await acts.processSourceFile({
+    totalRows = await acts.processSourceFile({
       importerId,
       fileReference: sourceFile!.fileReference,
       format: sourceFile!.fileFormat,

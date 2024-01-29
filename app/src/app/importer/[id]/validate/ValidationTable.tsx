@@ -16,6 +16,7 @@ import {
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Row,
   RowData,
@@ -24,6 +25,8 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { produce } from "immer";
+import { isString } from "lodash";
 import { AlertCircle, Badge } from "lucide-react";
 import React from "react";
 import { InputCell } from "./cells/InputCell";
@@ -35,7 +38,7 @@ type Props = {
   totalRows: number;
   validations: DataValidation[];
   onUpdateData: (
-    rowIndex: number,
+    rowId: string,
     columnId: string,
     value: string | number | null,
     previousValue: string | number | null
@@ -59,13 +62,17 @@ const ValidationTable = (props: Props) => {
   const columns = React.useMemo(() => {
     const columnHelper = createColumnHelper<SourceData | "loading">();
     return props.importerDto.config.columnConfig.map((config) =>
-      columnHelper.accessor(config.key, {
+      columnHelper.accessor(`data.${config.key}.value`, {
         header: config.label,
         size: 300,
         cell: (props) => {
           const value = props.getValue();
-          if (value === "loading") {
-            return <div>Loading...</div>;
+          if (!value && isString(value) === false) {
+            return (
+              <div className="h-[36px] p-2 flex items-center justify-center">
+                <Skeleton className="h-4 w-full" />
+              </div>
+            );
           }
           const allErrorsForCell = [];
           const columnValidations = config.validations ?? [];
@@ -126,28 +133,41 @@ const ValidationTable = (props: Props) => {
       })
     );
   }, [props.importerDto.config.columnConfig]);
-
+  const allEmptyData = React.useMemo(() => {
+    const emptyRowEntry = props.importerDto.config.columnConfig.reduce(
+      (acc, config) => {
+        acc.data[config.key] = { value: null, messages: [] };
+        return acc;
+      },
+      { data: {} } as SourceData
+    );
+    return new Array(props.totalRows).fill(emptyRowEntry);
+  }, [props.importerDto.config.columnConfig, props.totalRows]);
   const allData = React.useMemo(() => {
-    const dataWithNulls: (SourceData | "loading")[] = new Array(
-      props.totalRows
-    ).fill("loading");
-    // insert all page data
-    for (const pageNumber of Object.keys(props.data).map((k) => parseInt(k))) {
-      const start = pageNumber * 100;
-      const pageData = props.data[pageNumber];
-      for (let i = 0; i < pageData.length; i++) {
-        dataWithNulls[start + i] = pageData[i];
+    // TODO find better way
+    return produce(allEmptyData, (draft) => {
+      // insert all page data
+      for (const pageNumber of Object.keys(props.data).map((k) =>
+        parseInt(k)
+      )) {
+        const start = pageNumber * 100;
+        const pageData = props.data[pageNumber];
+        for (let i = 0; i < pageData.length; i++) {
+          draft[start + i] = pageData[i];
+        }
       }
-    }
-    return dataWithNulls;
-  }, [props.data, props.totalRows]);
-
+    });
+  }, [allEmptyData, props.data]);
+  console.log("all data", allData);
   const table = useReactTable({
     data: allData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     meta: {
-      updateData: props.onUpdateData,
+      updateData: (rowIndex, columnId, value, previousValue) => {
+        const rowId = allData[rowIndex]._id;
+        props.onUpdateData(rowId, columnId, value, previousValue);
+      },
     },
   });
 
@@ -173,15 +193,20 @@ const ValidationTable = (props: Props) => {
     }
     const firstItem = virtualItems[0];
     const lastItem = virtualItems[virtualItems.length - 1];
+    console.log(firstItem, lastItem);
     if (firstItem) {
       const pageOfFirstItem = Math.floor(firstItem.index / 100);
+      console.log("page of first item", pageOfFirstItem);
       if (pageOfFirstItem in data === false) {
+        console.log("load page of first item", pageOfFirstItem);
         onLoadPage(pageOfFirstItem);
       }
     }
     if (lastItem) {
       const pageOfLastItem = Math.floor(lastItem.index / 100);
+      console.log("page of last item", pageOfLastItem);
       if (pageOfLastItem in data === false) {
+        console.log("load page of last item", pageOfLastItem);
         onLoadPage(pageOfLastItem);
       }
     }

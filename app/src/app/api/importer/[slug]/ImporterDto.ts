@@ -30,12 +30,7 @@ export interface ImporterStatus {
   dataMappingRecommendations: DataMappingRecommendation[] | null;
   dataMapping: DataMapping[] | null;
 
-  sourceData: {
-    bucket: string;
-    fileReference: string;
-  } | null;
-
-  validations: { bucket: string; fileReference: string } | null;
+  totalRows: number;
 }
 
 export interface DataMappingRecommendation {
@@ -93,6 +88,14 @@ export interface ValidationError {
   message: string;
 }
 
+export type ColumnName = string;
 export type SourceData = {
-  rowId: number;
-} & Record<string, string | number | null>;
+  _id: string;
+  __sourceRowId: number;
+  data: Record<ColumnName, CellValue>;
+};
+
+export interface CellValue {
+  value: string | number | null;
+  messages: ValidationError[];
+}

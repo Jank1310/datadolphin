@@ -1,95 +1,91 @@
 "use client";
 
-import {
-  DataValidation,
-  ImporterDto,
-  SourceData,
-} from "@/app/api/importer/[slug]/ImporterDto";
+import { ImporterDto, SourceData } from "@/app/api/importer/[slug]/ImporterDto";
+import { useFetchRecords } from "@/components/hooks/useFetchRecords";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
-import { useGetValidations } from "@/components/hooks/useGetValidations";
 import { Button } from "@/components/ui/button";
-import { enableMapSet, produce } from "immer";
-import { chunk } from "lodash";
+import { enableMapSet } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import React from "react";
 import ValidationTable from "./ValidationTable";
 enableMapSet();
 type Props = {
   initialImporterDto: ImporterDto;
-  initialSourceData: SourceData[];
-  initialValidation: DataValidation[];
+  initialRecords: SourceData[];
 };
 
 const Validation = ({
   initialImporterDto,
-  initialSourceData,
-  initialValidation,
+  initialRecords: initialData,
 }: Props) => {
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
     undefined,
     initialImporterDto
   );
-  // const { data: sourceData } = useGetSourceData(
-  //   initialImporterDto.importerId,
-  //   initialSourceData
-  // );
-  console.time("RENDER validation");
-  const chunks = React.useMemo(
-    () => chunk(initialSourceData, 100),
-    [initialSourceData]
-  );
-  const [currentlyLoading, setCurrentlyLoading] = React.useState({});
+  const [currentlyLoading, setCurrentlyLoading] = React.useState<
+    Record<string, boolean>
+  >({});
   const [pageData, setPageData] = React.useState<Record<number, SourceData[]>>({
-    0: chunks[0],
+    0: initialData,
   });
-  const { validations } = useGetValidations(
-    initialImporterDto.importerId,
-    undefined,
-    initialValidation
-  );
+  const fetchRecords = useFetchRecords(initialImporterDto.importerId);
 
   const handleUpdateData = React.useCallback(
-    (rowIndex: number, columnId: string, value: string | number | null) => {
+    async (rowId: string, columnId: string, value: string | number | null) => {
       console.log("handle update data");
-      const newData = produce(pageData, (draft) => {
-        const expectedPageNumber = Math.floor(rowIndex / 100);
-        if (expectedPageNumber in draft === false) {
-          throw new Error("Page not found");
+      const result = await fetch(
+        `/api/importer/${initialImporterDto.importerId}/records`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // TODO send correct format
+          body: JSON.stringify({
+            _id: rowId,
+            data: {
+              [columnId]: value,
+            },
+          }),
         }
-        const page = draft[expectedPageNumber];
-        const entry = page.find((entry) => entry.rowIndex === rowIndex);
-        if (entry) {
-          entry[columnId] = value;
-        } else {
-          throw new Error("Row not found");
-        }
-      });
-      setPageData(newData);
+      );
+      // TODO handle result (reload etc.)
     },
-    [pageData]
+    [initialImporterDto.importerId]
   );
 
   const handleLoadPage = React.useCallback(
-    (pageNumber: number) => {
-      // TODO: Load page
-      console.log("would load page", pageNumber);
-      if (pageNumber in currentlyLoading) {
-        return;
-      }
-      console.log("set page data", pageNumber);
-      setPageData({
-        ...pageData,
-        [pageNumber]: chunks[pageNumber],
+    async (pageNumber: number) => {
+      setTimeout(async () => {
+        // needed to get the latest states
+        if (currentlyLoading[pageNumber.toFixed()] || pageNumber in pageData) {
+          return;
+        }
+        setCurrentlyLoading({
+          ...currentlyLoading,
+          [pageNumber]: true,
+        });
+        try {
+          const result = await fetchRecords(pageNumber, 100);
+          setPageData({
+            ...pageData,
+            [pageNumber]: result,
+          });
+        } finally {
+          setCurrentlyLoading({
+            ...currentlyLoading,
+            [pageNumber]: false,
+          });
+        }
       });
     },
-    [chunks, currentlyLoading, pageData]
+    [currentlyLoading, fetchRecords, pageData]
   );
 
   const dataStats = {
-    total: initialSourceData.length,
+    total: initialImporterDto.status.totalRows,
   };
-  console.timeEnd("RENDER validation");
   return (
     <div>
       <h1 className="text-3xl font-bold mb-4">Validate your data</h1>
@@ -97,7 +93,7 @@ const Validation = ({
         <ValidationTable
           importerDto={importer}
           data={pageData}
-          validations={validations}
+          validations={[]}
           totalRows={dataStats.total}
           onUpdateData={handleUpdateData}
           onLoadPage={handleLoadPage}

@@ -30,20 +30,39 @@ export const InputCell = ({
   isRequired,
 }: InputCellProps) => {
   const [value, setValue] = React.useState<string>(initialValue);
-  const onBlur = () => {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  React.useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+  const handleSubmit = () => {
     if (isRequired && !value) {
       setValue(initialValue);
       return;
     }
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
     onChange(value);
   };
+
+  const onBlur = () => {
+    handleSubmit();
+  };
+  const onKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.code === "Enter") {
+      handleSubmit();
+    }
+  };
+
   return (
     <Input
+      ref={inputRef}
       onBlur={onBlur}
       value={value}
       onChange={(e) => {
         setValue(e.target.value);
       }}
+      onKeyUp={onKeyUp}
     />
   );
 };
