@@ -5,11 +5,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
-  const url = new URL(req.url);
   const { slug: importerId } = params;
   const db = await getDb(importerId);
-  const page = parseInt(url.searchParams.get("page") ?? "0");
-  const size = parseInt(url.searchParams.get("size") ?? "100");
+  const page = parseInt(req.nextUrl.searchParams.get("page") ?? "0");
+  const size = parseInt(req.nextUrl.searchParams.get("size") ?? "100");
 
   // TODO validate access or so :)
   const records = await db
