@@ -92,8 +92,8 @@ export function makeActivities(
       const jsonWithRowIds: SourceDataSet = json.map(
         (row, index) =>
           ({
-            __sourceRowId: index,
             ...row,
+            __sourceRowId: index,
             _id: new ObjectId(),
           } as SourceDataSetRow)
       );
@@ -116,6 +116,11 @@ export function makeActivities(
       importerId: string;
       dataMapping: Mapping[];
     }): Promise<void> => {
+      // drop collection for idempotency
+      await database.mongoClient
+        .db(params.importerId)
+        .collection("data")
+        .drop();
       const sourceJsonData: SourceDataSet = await database.mongoClient
         .db(params.importerId)
         .collection<SourceDataSetRow>("sourceData")
@@ -130,6 +135,7 @@ export function makeActivities(
       );
       const mappedData = sourceJsonData.map((row) => {
         const newRow: DataSetRow = {
+          _id: new ObjectId(),
           __sourceRowId: row.__sourceRowId,
           data: {},
         };
@@ -210,34 +216,25 @@ export function makeActivities(
 
       const writes: AnyBulkWriteOperation<Document>[] = [];
       for (const validationResult of validationResults) {
-        writes.push({
-          updateOne: {
-            filter: {
-              __sourceRowId: validationResult.rowId,
-            },
-            update: {
-              $push: {
-                [`data.${validationResult.column}.messages`]:
-                  validationResult.messages,
+        for (const message of validationResult.messages) {
+          writes.push({
+            updateOne: {
+              filter: {
+                _id: validationResult.rowId,
+              },
+              update: {
+                $addToSet: {
+                  [`data.${validationResult.column}.messages`]: message,
+                },
               },
             },
-          },
-        });
+          });
+        }
       }
       await database.mongoClient
         .db(params.importerId)
         .collection("data")
         .bulkWrite(writes);
-      // .updateOne(
-      //   { __sourceRowId: validationResult.rowId },
-      //   {
-      //     $push: {
-      //       [`data.${validationResult.column}.messages`]:
-      //         validationResult.messages,
-      //     },
-      //   }
-      // );
-
       return validationResults.length;
     },
     applyPatches: async (params: {
@@ -251,23 +248,81 @@ export function makeActivities(
           .collection("data")
           .updateOne(
             { __sourceRowId: patch.rowId },
-            { $set: { [targetColumn]: patch.newValue } }
+            {
+              $set: {
+                [targetColumn]: patch.newValue,
+                $addToSet: {
+                  history: patch,
+                },
+              },
+            }
           );
       }
     },
     generateStats: async (params: {
       importerId: string;
       uniqueColumns: string[];
-    }): Promise<SourceFileStatsPerColumn> => {
+    }): Promise<{
+      columnStats: SourceFileStatsPerColumn;
+      totalCount: number;
+    }> => {
       console.time("generate-stats");
-      const jsonData: DataSet = await database.mongoClient
+      const $facet: Record<string, unknown> = {};
+      const $replaceRoot: Record<string, unknown> = {};
+      for (const uniqueColumn of params.uniqueColumns) {
+        $facet[uniqueColumn] = [
+          {
+            $group: {
+              _id: `$data.${uniqueColumn}.value`,
+              count: { $sum: 1 },
+            },
+          },
+          {
+            $match: {
+              count: { $ne: 1 },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              k: "$_id",
+              v: "$count",
+            },
+          },
+        ];
+        $replaceRoot[uniqueColumn] = {
+          nonuniqe: {
+            $arrayToObject: `$${uniqueColumn}`,
+          },
+        };
+      }
+      const stats = (
+        await database.mongoClient
+          .db(params.importerId)
+          .collection<DataSetRow>("data")
+          .aggregate<SourceFileStatsPerColumn>([
+            {
+              $facet: $facet,
+            },
+            {
+              $replaceRoot: {
+                newRoot: $replaceRoot,
+              },
+            },
+          ])
+          .toArray()
+      )[0];
+
+      console.timeEnd("generate-stats");
+
+      console.time("total-count");
+      const totalCount = await database.mongoClient
         .db(params.importerId)
         .collection<DataSetRow>("data")
-        .find()
-        .toArray();
-      const stats = dataAnalyzer.getStats(jsonData, params.uniqueColumns);
-      console.timeEnd("generate-stats");
-      return stats;
+        .countDocuments();
+      console.timeEnd("total-count");
+
+      return { columnStats: stats, totalCount };
     },
     invokeCallback: async (params: {
       importerId: string;
@@ -275,16 +330,11 @@ export function makeActivities(
     }): Promise<void> => {
       const host = process.env.API_URL ?? "http://localhost:3000";
       const downloadUrl = `${host}/api/download/${params.importerId}`;
+      // we dont await the call
       fetch(params.callbackUrl, {
         method: "POST",
         body: downloadUrl,
       });
-    },
-    getDataCount: async (params: { importerId: string }): Promise<number> => {
-      return database.mongoClient
-        .db(params.importerId)
-        .collection<DataSetRow>("data")
-        .countDocuments();
     },
     createDatabases: async (params: { importerId: string }): Promise<void> => {
       // drop databases

@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 export type FieldValues = string | number | null;
 
 export type DataSetRow = {
+  _id: ObjectId;
   __sourceRowId: number;
   data: {
     [key: string]: {

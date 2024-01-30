@@ -244,9 +244,7 @@ export async function importer(params: ImporterWorkflowParams) {
         )
     );
 
-    const validatorColumns = {
-      unique: [],
-    } as ColumnValidators;
+    const validatorColumns = {} as ColumnValidators;
     for (const column of allMappedColumnsWithValidators) {
       for (const validator of column.validations!) {
         if (!validatorColumns[validator.type]) {
@@ -258,24 +256,21 @@ export async function importer(params: ImporterWorkflowParams) {
         });
       }
     }
-    const stats = await acts.generateStats({
+    const { columnStats, totalCount } = await acts.generateStats({
       importerId,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
     });
     const limitFct = pLimit(100);
     // TODO: check if limit is ok
     const limit = 5000;
-    const dataCount = await acts.getDataCount({
-      importerId,
-    });
     const parallelValidations = Array.from(
-      Array(Math.ceil(dataCount / limit)).keys()
+      Array(Math.ceil(totalCount / limit)).keys()
     ).map((_key: number, index: number) =>
       limitFct(() => {
         return acts.processDataValidations({
           importerId,
           validatorColumns,
-          stats,
+          stats: columnStats,
           skip: index * limit,
           limit,
         });
