@@ -96,18 +96,9 @@ export async function importer(params: ImporterWorkflowParams) {
   let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
-  let exportFileReference: string | null = null;
   let isValidating = false;
   let configuredMappings: Mapping[] | null = null;
   let messageCount = 0;
-  let mappedSourceData: {
-    bucket: string;
-    fileReference: string;
-  } | null = null;
-  let latestValidations: {
-    bucket: string;
-    fileReference: string;
-  } | null = null;
 
   setHandler(
     addFileUpdate,
