@@ -189,10 +189,6 @@ export async function importer(params: ImporterWorkflowParams) {
       dataMapping: configuredMappings!,
     });
 
-    // mappedSourceData = {
-    //   bucket: sourceFile!.bucket,
-    //   fileReference: mappedSourceDataFileReference,
-    // };
     await performValidations();
 
     const hasImportStartRequested = await condition(
@@ -287,11 +283,6 @@ export async function importer(params: ImporterWorkflowParams) {
     );
     const messageCountArray = await Promise.all(parallelValidations);
     messageCount = sum(messageCountArray);
-
-    // latestValidations = {
-    //   bucket: sourceFile!.bucket,
-    //   fileReference: "validations.json",
-    // };
     isValidating = false;
   }
 }
