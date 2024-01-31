@@ -1,3 +1,4 @@
+import { Context } from "@temporalio/activity";
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
 import { pull } from "lodash";
@@ -201,6 +202,9 @@ export function makeActivities(
       skip: number;
       limit: number;
     }): Promise<number> => {
+      console.time(
+        `process time validations - ${Context.current().info.activityId}`
+      );
       const jsonData: DataSet = await database.mongoClient
         .db(params.importerId)
         .collection<DataSetRow>("data")
@@ -214,7 +218,12 @@ export function makeActivities(
         params.validatorColumns,
         params.stats
       );
-
+      console.timeEnd(
+        `process time validations - ${Context.current().info.activityId}`
+      );
+      console.time(
+        `write time validations - ${Context.current().info.activityId}`
+      );
       const writes: AnyBulkWriteOperation<Document>[] = [];
       for (const validationResult of validationResults) {
         for (const message of validationResult.messages) {
@@ -236,6 +245,9 @@ export function makeActivities(
         .db(params.importerId)
         .collection("data")
         .bulkWrite(writes);
+      console.timeEnd(
+        `write time validations - ${Context.current().info.activityId}`
+      );
       return validationResults.length;
     },
     applyPatches: async (params: {
@@ -292,7 +304,7 @@ export function makeActivities(
           },
         ];
         $replaceRoot[uniqueColumn] = {
-          nonuniqe: {
+          nonunique: {
             $arrayToObject: `$${uniqueColumn}`,
           },
         };

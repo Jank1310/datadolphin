@@ -263,7 +263,7 @@ export async function importer(params: ImporterWorkflowParams) {
       importerId,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
     });
-    const limitFct = pLimit(100);
+    const limitFct = pLimit(10);
     // TODO: check if limit is ok
     const limit = 5000;
     const parallelValidations = Array.from(
