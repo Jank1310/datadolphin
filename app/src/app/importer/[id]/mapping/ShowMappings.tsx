@@ -1,6 +1,10 @@
 "use client";
-import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
+import {
+  DataMappingRecommendation,
+  ImporterDto,
+} from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
+import { useGetMappingRecommendations } from "@/components/hooks/useGetMappingRecommendations";
 import {
   Table,
   TableBody,
@@ -10,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/basicTable";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import {
   Select,
   SelectContent,
@@ -24,7 +29,8 @@ import { useRouter } from "next/navigation";
 import React from "react";
 
 type Props = {
-  importerDto: ImporterDto;
+  initialImporterDto: ImporterDto;
+  initialDataMappingsRecommendations: DataMappingRecommendation[] | null;
 };
 
 interface Mapping {
@@ -32,28 +38,34 @@ interface Mapping {
   targetColumn: string | null;
 }
 
-const ShowMappings = ({ importerDto: initialImporterDto }: Props) => {
+const ShowMappings = ({
+  initialImporterDto,
+  initialDataMappingsRecommendations,
+}: Props) => {
   const { push } = useRouter();
   const [enablePolling, setEnablePolling] = React.useState(false);
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
-    enablePolling ? 1000 : undefined,
+    enablePolling ? 500 : undefined,
     initialImporterDto
   );
-  const {
-    status: { dataMappingRecommendations },
-  } = importer;
+  const { recommendations: dataMappingRecommendations } =
+    useGetMappingRecommendations(
+      initialImporterDto.importerId,
+      enablePolling ? 500 : undefined,
+      initialDataMappingsRecommendations
+    );
 
+  const isWaitingForMappings =
+    importer.status.isProcessingSourceFile ||
+    dataMappingRecommendations === null;
   React.useEffect(() => {
-    if (
-      !dataMappingRecommendations ||
-      dataMappingRecommendations.length === 0
-    ) {
+    if (isWaitingForMappings) {
       setEnablePolling(true);
     } else {
       setEnablePolling(false);
     }
-  }, [dataMappingRecommendations]);
+  }, [isWaitingForMappings]);
 
   const [currentMappings, setCurrentMappings] = React.useState<Mapping[]>([]);
   React.useEffect(() => {
@@ -102,72 +114,85 @@ const ShowMappings = ({ importerDto: initialImporterDto }: Props) => {
     }
   };
 
+  if (isWaitingForMappings) {
+    return (
+      <div className="w-full h-full flex justify-center items-center">
+        <div className="flex flex-col items-center">
+          <span className="text-slate-500"> Waiting for mappings...</span>
+          <LoadingSpinner className="text-slate-500 mt-2" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight mb-4">
-        Change or confirm column matches
-      </h1>
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm mb-4">
-        <Table className="">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-1/2">Columns in your file</TableHead>
-              <TableHead className="w-1/2">Import fields</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentMappings.map((mapping, n) => {
-              return (
-                <TableRow key={`recommendation-${mapping.sourceColumn}-${n}`}>
-                  <TableCell>{mapping.sourceColumn}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={mapping.targetColumn ?? "none"}
-                      onValueChange={(newTargetColumn) =>
-                        handleChangeMapping(
-                          mapping.sourceColumn,
-                          newTargetColumn === "none" ? null : newTargetColumn
-                        )
-                      }
-                    >
-                      <SelectTrigger
-                        className={
-                          mapping.targetColumn === null
-                            ? "text-gray-400"
-                            : "text-primary font-semibold"
+      <div className="h-14 flex justify-between items-center px-4">
+        <h1 className="text-3xl font-bold">Change or confirm column matches</h1>
+        <div className="">
+          <Button disabled={isSavingMapping} onClick={handleSaveMapping}>
+            Confirm mapping <ChevronRightCircleIcon className="ml-2" />
+          </Button>
+        </div>
+      </div>
+      <div className="px-4">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm mb-4 h-[calc(100vh_-_4.5rem)] overflow-auto">
+          <Table className="">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-1/2">Columns in your file</TableHead>
+                <TableHead className="w-1/2">Import fields</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentMappings.map((mapping, n) => {
+                return (
+                  <TableRow key={`recommendation-${mapping.sourceColumn}-${n}`}>
+                    <TableCell>{mapping.sourceColumn}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={mapping.targetColumn ?? "none"}
+                        onValueChange={(newTargetColumn) =>
+                          handleChangeMapping(
+                            mapping.sourceColumn,
+                            newTargetColumn === "none" ? null : newTargetColumn
+                          )
                         }
                       >
-                        <SelectValue placeholder="Select field" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={"none"}>None</SelectItem>
+                        <SelectTrigger
+                          className={
+                            mapping.targetColumn === null
+                              ? "text-gray-400"
+                              : "text-primary font-semibold"
+                          }
+                        >
+                          <SelectValue placeholder="Select field" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={"none"}>None</SelectItem>
 
-                        {importer.config.columnConfig.map((targetColumn) => (
-                          <SelectItem
-                            disabled={
-                              currentMappings.find(
-                                (m) => m.targetColumn === targetColumn.key
-                              ) !== undefined
-                            }
-                            value={targetColumn.key}
-                            key={`recommendation-${mapping.sourceColumn}-select-option-${targetColumn.key}`}
-                          >
-                            {targetColumn.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex justify-end">
-        <Button disabled={isSavingMapping} onClick={handleSaveMapping}>
-          Confirm mapping <ChevronRightCircleIcon className="ml-2" />
-        </Button>
+                          {importer.config.columnConfig.map((targetColumn) => (
+                            <SelectItem
+                              disabled={
+                                currentMappings.find(
+                                  (m) => m.targetColumn === targetColumn.key
+                                ) !== undefined
+                              }
+                              value={targetColumn.key}
+                              key={`recommendation-${mapping.sourceColumn}-select-option-${targetColumn.key}`}
+                            >
+                              {targetColumn.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

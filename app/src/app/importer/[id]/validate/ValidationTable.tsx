@@ -206,26 +206,20 @@ const ValidationTable = (props: Props) => {
   const { onLoadPage, data } = props;
   const virtualItems = rowVirtualizer.getVirtualItems();
   React.useEffect(() => {
-    console.log("update");
     if (!virtualItems || virtualItems.length === 0) {
       return;
     }
     const firstItem = virtualItems[0];
     const lastItem = virtualItems[virtualItems.length - 1];
-    console.log(firstItem, lastItem);
     if (firstItem) {
       const pageOfFirstItem = Math.floor(firstItem.index / 100);
-      console.log("page of first item", pageOfFirstItem);
       if (pageOfFirstItem in data === false) {
-        console.log("load page of first item", pageOfFirstItem);
         onLoadPage(pageOfFirstItem);
       }
     }
     if (lastItem) {
       const pageOfLastItem = Math.floor(lastItem.index / 100);
-      console.log("page of last item", pageOfLastItem);
       if (pageOfLastItem in data === false) {
-        console.log("load page of last item", pageOfLastItem);
         onLoadPage(pageOfLastItem);
       }
     }

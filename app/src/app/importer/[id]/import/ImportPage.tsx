@@ -44,6 +44,7 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
   const hasUploadedFile = importer.status.isWaitingForFile === false;
   if (hasUploadedFile) {
     replace("mapping");
+    return null;
   }
 
   return (

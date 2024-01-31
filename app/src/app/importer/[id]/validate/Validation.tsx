@@ -4,6 +4,7 @@ import { ImporterDto, SourceData } from "@/app/api/importer/[slug]/ImporterDto";
 import { useFetchRecords } from "@/components/hooks/useFetchRecords";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { enableMapSet } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import React from "react";
@@ -18,9 +19,10 @@ const Validation = ({
   initialImporterDto,
   initialRecords: initialData,
 }: Props) => {
+  const [enablePolling, setEnablePolling] = React.useState(false);
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
-    undefined,
+    enablePolling ? 500 : undefined,
     initialImporterDto
   );
   const [currentlyLoading, setCurrentlyLoading] = React.useState<
@@ -30,24 +32,27 @@ const Validation = ({
     0: initialData,
   });
   const fetchRecords = useFetchRecords(initialImporterDto.importerId);
-
+  const isMappingData = importer.status.isMappingData;
+  React.useEffect(() => {
+    if (isMappingData) {
+      setEnablePolling(true);
+    } else {
+      setEnablePolling(false);
+    }
+  }, [isMappingData]);
   const handleUpdateData = React.useCallback(
     async (rowId: string, columnId: string, value: string | number | null) => {
-      console.log("handle update data");
-      const result = await fetch(
-        `/api/importer/${initialImporterDto.importerId}/records`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            _id: rowId,
-            columnId,
-            value,
-          }),
-        }
-      );
+      await fetch(`/api/importer/${initialImporterDto.importerId}/records`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          _id: rowId,
+          columnId,
+          value,
+        }),
+      });
       // TODO handle result (reload etc.)
     },
     [initialImporterDto.importerId]
@@ -84,6 +89,18 @@ const Validation = ({
   const dataStats = {
     total: initialImporterDto.status.totalRows,
   };
+
+  if (isMappingData) {
+    return (
+      <div className="w-full h-full flex justify-center items-center">
+        <div className="flex flex-col items-center">
+          <span className="text-slate-500">Processing data...</span>
+          <LoadingSpinner className="text-slate-500 mt-2" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="h-14 flex justify-between items-center px-4">
