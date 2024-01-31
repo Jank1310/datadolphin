@@ -16,7 +16,7 @@ export default async function ImporterPage({ params, children }: PageProps) {
   return (
     <section className="h-screen flex">
       <SidebarMenu importerDto={importerDto} />
-      <main className="h-full flex-1">{children}</main>
+      <main className="h-[100vh] flex-1 w-0">{children}</main>
     </section>
   );
 }
