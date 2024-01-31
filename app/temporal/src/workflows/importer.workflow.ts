@@ -94,7 +94,6 @@ export async function importer(params: ImporterWorkflowParams) {
     fileReference: string;
     fileFormat: "csv" | "xlsx";
   } | null = null;
-  let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
   let isValidating = false;
@@ -137,8 +136,8 @@ export async function importer(params: ImporterWorkflowParams) {
       });
     },
     {
-      validator: (_params) => {
-        return !patches;
+      validator: (params) => {
+        return params.patches.length > 0;
       },
     }
   );
