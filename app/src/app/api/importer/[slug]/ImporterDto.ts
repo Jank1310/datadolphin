@@ -89,6 +89,7 @@ export interface ValidationError {
 }
 
 export type ColumnName = string;
+// TODO rename to DataRecord?
 export type SourceData = {
   _id: string;
   __sourceRowId: number;

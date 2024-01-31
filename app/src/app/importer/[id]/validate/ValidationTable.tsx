@@ -34,7 +34,7 @@ import SelectCell from "./cells/SelectCell";
 
 type Props = {
   importerDto: ImporterDto;
-  data: Record<number, SourceData[]>; // TODO pass data by page number {1:[...], 2:[...]}
+  data: Record<number, SourceData[]>;
   totalRows: number;
   validations: DataValidation[];
   onUpdateData: (
@@ -277,15 +277,6 @@ const ValidationTable = (props: Props) => {
                     data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => {
-                      // const validationsForCell = props.validations.filter(
-                      //   (validation) =>
-                      //     validation.rowId === parseInt(row.id) &&
-                      //     validation.column === cell.column.id
-                      // );
-                      // const allErrors = validationsForCell.flatMap(
-                      //   (validation) => validation.errors
-                      // );
-                      // const hasErrors = allErrors.length > 0;
                       return (
                         <TableCell
                           className="border-r"

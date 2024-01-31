@@ -41,7 +41,6 @@ const Validation = ({
           headers: {
             "Content-Type": "application/json",
           },
-          // TODO send correct format
           body: JSON.stringify({
             _id: rowId,
             columnId,

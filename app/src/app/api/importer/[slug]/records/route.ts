@@ -11,15 +11,6 @@ export async function GET(
   const db = await getDb(importerId);
   const page = parseInt(req.nextUrl.searchParams.get("page") ?? "0");
   const size = parseInt(req.nextUrl.searchParams.get("size") ?? "100");
-  console.log(
-    "GET records",
-    page,
-    size,
-    "from",
-    page * size,
-    "to",
-    page * size + size
-  );
   // TODO validate access or so :)
   const records = await db
     .collection("data")
@@ -28,7 +19,6 @@ export async function GET(
     .skip(page * size)
     .limit(size)
     .toArray();
-  console.log("found records", records.length, "for page", page);
   return NextResponse.json({ records });
 }
 
