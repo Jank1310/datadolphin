@@ -158,7 +158,6 @@ const ValidationTable = (props: Props) => {
       }
     });
   }, [allEmptyData, props.data]);
-  console.log("all data", allData);
   const table = useReactTable({
     data: allData,
     columns,
