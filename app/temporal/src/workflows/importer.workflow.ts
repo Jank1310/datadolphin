@@ -81,7 +81,7 @@ const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
 
-const valiationParallelLimit = env
+const validationParallelLimit = env
   .get("VALIDATION_PARALLEL_LIMIT")
   .default(10)
   .asIntPositive();
@@ -275,7 +275,7 @@ export async function importer(params: ImporterWorkflowParams) {
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
     });
     //! Optimize import limit
-    const limitFct = pLimit(valiationParallelLimit);
+    const limitFct = pLimit(validationParallelLimit);
     const limit = 5000;
     const parallelValidations = Array.from(
       Array(Math.ceil(totalCount / limit)).keys()
