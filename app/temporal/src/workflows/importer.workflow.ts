@@ -10,7 +10,7 @@ import {
   setHandler,
   workflowInfo,
 } from "@temporalio/workflow";
-import { sum } from "lodash";
+import env from "env-var";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
@@ -81,6 +81,10 @@ const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
 
+const valiationParallelLimit = env
+  .get("VALIDATION_PARALLEL_LIMIT")
+  .default(10)
+  .asIntPositive();
 /**
  * Entity workflow which represents a complete importer workflow
  */
@@ -270,8 +274,8 @@ export async function importer(params: ImporterWorkflowParams) {
       importerId,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
     });
-    const limitFct = pLimit(10);
-    // TODO: check if limit is ok
+    //! Optimize import limit
+    const limitFct = pLimit(valiationParallelLimit);
     const limit = 5000;
     const parallelValidations = Array.from(
       Array(Math.ceil(totalCount / limit)).keys()
