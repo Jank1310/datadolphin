@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { ColumnConfig } from "./ColumnConfig";
 import {
   EnumerationColumnValidation,
@@ -104,18 +105,21 @@ describe("DataAnalyzer", () => {
     it("should validate required columns", () => {
       const rowsWithMissingName: DataSetRow[] = [
         {
+          _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
           data: {
             name: { value: "John", messages: [] },
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1b"),
           __sourceRowId: 1,
           data: {
             name: { value: "", messages: [] },
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1c"),
           __sourceRowId: 2,
           data: {
             name: { value: null, messages: [] },
@@ -133,7 +137,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: 1,
+          rowId: new ObjectId("65b39818ab8b36794717db1b"),
           column: "name",
           messages: [
             {
@@ -143,7 +147,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 2,
+          rowId: new ObjectId("65b39818ab8b36794717db1c"),
           column: "name",
           messages: [
             {
@@ -158,6 +162,7 @@ describe("DataAnalyzer", () => {
     it("should validate unique columns", () => {
       const rowsWithDuplicateValues = [
         {
+          _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
           data: {
             name: {
@@ -167,6 +172,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1b"),
           __sourceRowId: 1,
           data: {
             name: {
@@ -176,6 +182,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1c"),
           __sourceRowId: 2,
           data: {
             name: {
@@ -185,6 +192,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1d"),
           __sourceRowId: 3,
           data: {
             name: {
@@ -194,6 +202,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1e"),
           __sourceRowId: 4,
           data: {
             name: {
@@ -203,6 +212,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1f"),
           __sourceRowId: 5,
           data: {
             name: {
@@ -225,7 +235,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: 0,
+          rowId: new ObjectId("65b39818ab8b36794717db1a"),
           column: "name",
           messages: [
             {
@@ -235,7 +245,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 1,
+          rowId: new ObjectId("65b39818ab8b36794717db1b"),
           column: "name",
           messages: [
             {
@@ -245,7 +255,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 3,
+          rowId: new ObjectId("65b39818ab8b36794717db1d"),
           column: "name",
           messages: [
             {
@@ -255,7 +265,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 4,
+          rowId: new ObjectId("65b39818ab8b36794717db1e"),
           column: "name",
           messages: [
             {
@@ -265,7 +275,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 5,
+          rowId: new ObjectId("65b39818ab8b36794717db1f"),
           column: "name",
           messages: [
             {
@@ -280,6 +290,7 @@ describe("DataAnalyzer", () => {
     it("should validate regex columns", () => {
       const rowsWithRegexValues = [
         {
+          _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
           data: {
             Postleitzahl: {
@@ -289,6 +300,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1b"),
           __sourceRowId: 1,
           data: {
             Postleitzahl: {
@@ -298,6 +310,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1c"),
           __sourceRowId: 2,
           data: {
             Postleitzahl: {
@@ -307,6 +320,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1d"),
           __sourceRowId: 3,
           data: {
             Postleitzahl: {
@@ -316,6 +330,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1e"),
           __sourceRowId: 4,
           data: {
             Postleitzahl: {
@@ -344,7 +359,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: 2,
+          rowId: new ObjectId("65b39818ab8b36794717db1c"),
           column: "Postleitzahl",
           messages: [
             {
@@ -354,7 +369,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 3,
+          rowId: new ObjectId("65b39818ab8b36794717db1d"),
           column: "Postleitzahl",
           messages: [
             {
@@ -364,7 +379,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 4,
+          rowId: new ObjectId("65b39818ab8b36794717db1e"),
           column: "Postleitzahl",
           messages: [
             {
@@ -379,6 +394,7 @@ describe("DataAnalyzer", () => {
     it("should validate phone columns", () => {
       const rowsWithPhoneValues = [
         {
+          _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
           data: {
             phone: {
@@ -388,6 +404,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1b"),
           __sourceRowId: 1,
           data: {
             phone: {
@@ -397,6 +414,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1c"),
           __sourceRowId: 2,
           data: {
             phone: {
@@ -406,6 +424,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1d"),
           __sourceRowId: 3,
           data: {
             phone: {
@@ -415,6 +434,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1e"),
           __sourceRowId: 4,
           data: {
             phone: {
@@ -436,7 +456,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: 3,
+          rowId: new ObjectId("65b39818ab8b36794717db1d"),
           column: "phone",
           messages: [
             {
@@ -446,7 +466,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 4,
+          rowId: new ObjectId("65b39818ab8b36794717db1e"),
           column: "phone",
           messages: [
             {
@@ -461,23 +481,35 @@ describe("DataAnalyzer", () => {
     it("should validate email columns", () => {
       const rowsWithEmailValues = [
         {
+          _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
           data: { email: { value: "fiedlefl@gmail.com", messages: [] } },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1b"),
           __sourceRowId: 1,
           data: { email: { value: "fiedlefl+test@gmail.com", messages: [] } },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1c"),
           __sourceRowId: 2,
           data: { email: { value: "fiedlefl@gmail", messages: [] } },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1d"),
           __sourceRowId: 3,
           data: { email: { value: "fiedlefl@gmail@test.com", messages: [] } },
         },
-        { __sourceRowId: 4, data: { email: { value: "foo", messages: [] } } },
-        { __sourceRowId: 5, data: { email: { value: "", messages: [] } } },
+        {
+          _id: new ObjectId("65b39818ab8b36794717db1e"),
+          __sourceRowId: 4,
+          data: { email: { value: "foo", messages: [] } },
+        },
+        {
+          _id: new ObjectId("65b39818ab8b36794717db1f"),
+          __sourceRowId: 5,
+          data: { email: { value: "", messages: [] } },
+        },
       ];
       const validatorColumns = {
         email: [{ column: "email", config: { type: "email" } }],
@@ -490,7 +522,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: 2,
+          rowId: new ObjectId("65b39818ab8b36794717db1c"),
           column: "email",
           messages: [
             {
@@ -500,7 +532,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 3,
+          rowId: new ObjectId("65b39818ab8b36794717db1d"),
           column: "email",
           messages: [
             {
@@ -510,7 +542,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 4,
+          rowId: new ObjectId("65b39818ab8b36794717db1e"),
           column: "email",
           messages: [
             {
@@ -520,7 +552,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 5,
+          rowId: new ObjectId("65b39818ab8b36794717db1f"),
           column: "email",
           messages: [
             {
@@ -535,6 +567,7 @@ describe("DataAnalyzer", () => {
     it("should validate all validations", () => {
       const rows = [
         {
+          _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
           data: {
             name: { value: "", messages: [] },
@@ -542,6 +575,7 @@ describe("DataAnalyzer", () => {
           },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1b"),
           __sourceRowId: 1,
           data: {
             name: { value: "", messages: [] },
@@ -583,7 +617,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: 0,
+          rowId: new ObjectId("65b39818ab8b36794717db1a"),
           column: "name",
           messages: [
             {
@@ -610,7 +644,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 1,
+          rowId: new ObjectId("65b39818ab8b36794717db1b"),
           column: "name",
           messages: [
             {
@@ -637,7 +671,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: 1,
+          rowId: new ObjectId("65b39818ab8b36794717db1b"),
           column: "uniques",
           messages: [
             {
@@ -652,18 +686,25 @@ describe("DataAnalyzer", () => {
     it("should validate enum values", () => {
       const rowsWithEmailValues = [
         {
+          _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
           data: { department: { value: "Department 1", messages: [] } },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1b"),
           __sourceRowId: 1,
           data: { department: { value: "Department 2", messages: [] } },
         },
         {
+          _id: new ObjectId("65b39818ab8b36794717db1c"),
           __sourceRowId: 2,
           data: { department: { value: "Department 3", messages: [] } },
         },
-        { __sourceRowId: 3, data: { department: { value: "", messages: [] } } },
+        {
+          _id: new ObjectId("65b39818ab8b36794717db1d"),
+          __sourceRowId: 3,
+          data: { department: { value: "", messages: [] } },
+        },
       ];
       const validatorColumns = {
         enum: [
@@ -685,7 +726,7 @@ describe("DataAnalyzer", () => {
       expect(result).toEqual([
         {
           column: "department",
-          rowId: 2,
+          rowId: new ObjectId("65b39818ab8b36794717db1c"),
           messages: [
             {
               message: "value is not a valid enum",
@@ -695,13 +736,13 @@ describe("DataAnalyzer", () => {
         },
         {
           column: "department",
+          rowId: new ObjectId("65b39818ab8b36794717db1d"),
           messages: [
             {
               message: "value is not a valid enum",
               type: "enum",
             },
           ],
-          rowId: 3,
         },
       ]);
     });
@@ -710,6 +751,7 @@ describe("DataAnalyzer", () => {
   it("should return stats", () => {
     const jsonData = [
       {
+        _id: new ObjectId("65b39818ab8b36794717db1a"),
         __sourceRowId: 0,
         data: {
           name: { value: "Florian", messages: [] },
@@ -717,6 +759,7 @@ describe("DataAnalyzer", () => {
         },
       },
       {
+        _id: new ObjectId("65b39818ab8b36794717db1b"),
         __sourceRowId: 1,
         data: {
           name: { value: "Florian", messages: [] },
@@ -724,6 +767,7 @@ describe("DataAnalyzer", () => {
         },
       },
       {
+        _id: new ObjectId("65b39818ab8b36794717db1c"),
         __sourceRowId: 2,
         data: {
           name: { value: "Egon", messages: [] },

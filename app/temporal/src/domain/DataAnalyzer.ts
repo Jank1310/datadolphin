@@ -1,4 +1,5 @@
 import Fuse from "fuse.js";
+import { ObjectId } from "mongodb";
 import { ColumnConfig } from "./ColumnConfig";
 import { ColumnValidation } from "./ColumnValidation";
 import { DataSet } from "./DataSet";
@@ -70,9 +71,9 @@ export class DataAnalyzer {
     data: DataSet,
     validatorColumns: ColumnValidators,
     stats: SourceFileStatsPerColumn
-  ): { rowId: number; column: string; messages: ValidationMessage[] }[] {
+  ): { rowId: ObjectId; column: string; messages: ValidationMessage[] }[] {
     const chunkMessages: {
-      rowId: number;
+      rowId: ObjectId;
       column: string;
       messages: ValidationMessage[];
     }[] = [];
@@ -89,14 +90,13 @@ export class DataAnalyzer {
           for (const column of Object.keys(messages as any)) {
             const message = messages[column] as any;
             const messageForRowAndColumn = chunkMessages.find(
-              (item) =>
-                item.rowId === row.__sourceRowId && item.column === column
+              (item) => item.rowId === row._id && item.column === column
             );
             if (messageForRowAndColumn) {
               messageForRowAndColumn.messages.push(message);
             } else {
               chunkMessages.push({
-                rowId: row.__sourceRowId as number,
+                rowId: row._id,
                 column,
                 messages: [message],
               });
@@ -119,7 +119,7 @@ export class DataAnalyzer {
       data.forEach((row) => {
         if (!row.data[column]) {
           throw new Error(
-            `Column ${column} not found in data rowId: ${row.__sourceRowId}`
+            `Column ${column} not found in data rowId: ${row._id.toString()}`
           );
         }
         duplicates.set(
