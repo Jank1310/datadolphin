@@ -2,7 +2,7 @@ import { Validator } from ".";
 import { ColumnValidation } from "../ColumnValidation";
 import { SourceFileStatsPerColumn } from "../DataAnalyzer";
 import { DataSetRow } from "../DataSet";
-import { ValidationError } from "../ValidationError";
+import { ValidationMessage } from "../ValidationMessage";
 
 export class UniqueValidator implements Validator {
   constructor() {}
@@ -12,9 +12,9 @@ export class UniqueValidator implements Validator {
     columnConfig: { column: string; config: ColumnValidation }[],
     stats: SourceFileStatsPerColumn = {}
   ) {
-    const errors: Record<string, ValidationError> = {};
+    const errors: Record<string, ValidationMessage> = {};
     for (const { column } of columnConfig) {
-      let dataToValidate = row[column];
+      let dataToValidate = row.data[column].value;
       if (stats[column] && stats[column].nonunique[dataToValidate as string]) {
         errors[column] = {
           type: "unique",

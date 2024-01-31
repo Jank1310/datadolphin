@@ -1,8 +1,9 @@
 import Fuse from "fuse.js";
+import { ObjectId } from "mongodb";
 import { ColumnConfig } from "./ColumnConfig";
 import { ColumnValidation } from "./ColumnValidation";
 import { DataSet } from "./DataSet";
-import { ValidationError } from "./ValidationError";
+import { ValidationMessage } from "./ValidationMessage";
 import { ValidatorType, validators } from "./validators";
 
 export interface DataMappingRecommendation {
@@ -70,41 +71,41 @@ export class DataAnalyzer {
     data: DataSet,
     validatorColumns: ColumnValidators,
     stats: SourceFileStatsPerColumn
-  ): { rowId: number; column: string; errors: ValidationError[] }[] {
-    const chunkErrors: {
-      rowId: number;
+  ): { rowId: ObjectId; column: string; messages: ValidationMessage[] }[] {
+    const chunkMessages: {
+      rowId: ObjectId;
       column: string;
-      errors: ValidationError[];
+      messages: ValidationMessage[];
     }[] = [];
     const validatorKeys = Object.keys(validatorColumns) as ValidatorType[];
     for (const row of data) {
       for (const validatorKey of validatorKeys) {
         if (validatorColumns[validatorKey].length > 0) {
-          const errors = validators[validatorKey].validate(
+          const messages = validators[validatorKey].validate(
             row,
             validatorColumns[validatorKey],
             stats
           );
 
-          for (const column of Object.keys(errors as any)) {
-            const error = errors[column] as any;
-            const errorForRowAndColumn = chunkErrors.find(
-              (item) => item.rowId === row.__rowId && item.column === column
+          for (const column of Object.keys(messages as any)) {
+            const message = messages[column] as any;
+            const messageForRowAndColumn = chunkMessages.find(
+              (item) => item.rowId === row._id && item.column === column
             );
-            if (errorForRowAndColumn) {
-              errorForRowAndColumn.errors.push(error);
+            if (messageForRowAndColumn) {
+              messageForRowAndColumn.messages.push(message);
             } else {
-              chunkErrors.push({
-                rowId: row.__rowId as number,
+              chunkMessages.push({
+                rowId: row._id,
                 column,
-                errors: [error],
+                messages: [message],
               });
             }
           }
         }
       }
     }
-    return chunkErrors;
+    return chunkMessages;
   }
 
   public getStats(
@@ -116,7 +117,15 @@ export class DataAnalyzer {
     for (const column of columnsToVerify) {
       const duplicates = new Map();
       data.forEach((row) => {
-        duplicates.set(row[column], (duplicates.get(row[column]) ?? 0) + 1);
+        if (!row.data[column]) {
+          throw new Error(
+            `Column ${column} not found in data rowId: ${row._id.toString()}`
+          );
+        }
+        duplicates.set(
+          row.data[column].value,
+          (duplicates.get(row.data[column].value) ?? 0) + 1
+        );
       });
       duplicates.forEach((value, key) => {
         if (value === 1) {

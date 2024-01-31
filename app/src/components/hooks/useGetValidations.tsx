@@ -12,6 +12,10 @@ export function useGetValidations(
     {
       refreshInterval: pollInterval,
       fallbackData,
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnMount: false,
+      revalidateOnReconnect: false,
     }
   );
   return {

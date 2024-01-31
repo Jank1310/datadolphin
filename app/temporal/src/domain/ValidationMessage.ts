@@ -1,6 +1,6 @@
 import { ValidatorType } from "./validators";
 
-export interface ValidationError {
+export interface ValidationMessage {
   type: ValidatorType;
   message: string;
 }

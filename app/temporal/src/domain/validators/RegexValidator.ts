@@ -1,20 +1,20 @@
 import { Validator } from ".";
 import { RegexColumnValidation } from "../ColumnValidation";
 import { DataSetRow } from "../DataSet";
-import { ValidationError } from "../ValidationError";
+import { ValidationMessage } from "../ValidationMessage";
 
 export class RegexValidator implements Validator {
   validate(
     row: DataSetRow,
     columnConfig: { column: string; config: RegexColumnValidation }[]
-  ): Record<string, ValidationError> {
-    const errors: Record<string, ValidationError> = {};
+  ): Record<string, ValidationMessage> {
+    const errors: Record<string, ValidationMessage> = {};
     const cache: Record<string, boolean> = {};
     for (const {
       column,
       config: { regex },
     } of columnConfig) {
-      let dataToValidate = row[column];
+      let dataToValidate = row.data[column].value;
       if (cache[column] === false) {
         errors[column] = {
           type: "regex",

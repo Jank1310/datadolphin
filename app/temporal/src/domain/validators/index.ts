@@ -1,7 +1,7 @@
 import { ColumnValidation } from "../ColumnValidation";
 import { SourceFileStatsPerColumn } from "../DataAnalyzer";
 import { DataSetRow } from "../DataSet";
-import { ValidationError } from "../ValidationError";
+import { ValidationMessage } from "../ValidationMessage";
 import { EmailValidator } from "./EmailValidator";
 import { EnumValidator } from "./EnumValidator";
 import { PhoneValidator } from "./PhoneValidator";
@@ -25,5 +25,5 @@ export interface Validator {
     row: DataSetRow,
     columnConfigs: { column: string; config: ColumnValidation }[],
     stats: SourceFileStatsPerColumn
-  ): Record<string, ValidationError>;
+  ): Record<string, ValidationMessage>;
 }
