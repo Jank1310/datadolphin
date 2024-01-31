@@ -86,8 +86,15 @@ const Validation = ({
   };
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Validate your data</h1>
-      <div className="mb-4">
+      <div className="h-14 flex justify-between items-center px-4">
+        <h1 className="text-3xl font-bold">Validate your data</h1>
+        <div className="">
+          <Button>
+            Start import <ChevronRightCircleIcon className="ml-2" />
+          </Button>
+        </div>
+      </div>
+      <div className="px-4">
         <ValidationTable
           importerDto={importer}
           data={pageData}
@@ -96,11 +103,6 @@ const Validation = ({
           onUpdateData={handleUpdateData}
           onLoadPage={handleLoadPage}
         />
-      </div>
-      <div className="flex justify-end">
-        <Button>
-          Start import <ChevronRightCircleIcon className="ml-2" />
-        </Button>
       </div>
     </div>
   );

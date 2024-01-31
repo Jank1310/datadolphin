@@ -234,7 +234,7 @@ const ValidationTable = (props: Props) => {
   const { rows } = table.getRowModel();
   return (
     <div
-      className="rounded-md overflow-y-auto border h-[80vh]"
+      className="rounded-md overflow-auto border h-[calc(100vh_-_4.5rem)]"
       ref={tableContainerRef}
     >
       <TooltipProvider>

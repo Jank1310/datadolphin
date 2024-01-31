@@ -13,7 +13,7 @@ export default async function page(props: { params: { id: string } }) {
   ).then((res) => res.json() as Promise<ImporterDto>);
   const initialRecords = await fetchRecords(importerId, 0, 100);
   return (
-    <div className="p-4">
+    <div className="h-full">
       <Validation
         initialImporterDto={initialImporterDto}
         initialRecords={initialRecords}
