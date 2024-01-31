@@ -22,7 +22,7 @@ export type SourceDataSetRow = {
 
 export type SourceDataSet = SourceDataSetRow[];
 export interface DataSetPatch {
-  rowId: number;
+  rowId: string;
   /**
    * target column
    */

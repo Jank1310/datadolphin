@@ -44,9 +44,8 @@ const Validation = ({
           // TODO send correct format
           body: JSON.stringify({
             _id: rowId,
-            data: {
-              [columnId]: value,
-            },
+            columnId,
+            value,
           }),
         }
       );

@@ -253,24 +253,47 @@ export function makeActivities(
     applyPatches: async (params: {
       importerId: string;
       patches: DataSetPatch[];
-    }): Promise<void> => {
+    }): Promise<{
+      modifiedRecords: { rowId: string; column: string }[];
+    }> => {
+      Context.current().log.info(
+        `applying ${params.patches.length} patches`,
+        params
+      );
+      let patchIndex = 0;
+      let modifiedRecords: { rowId: string; column: string }[] = [];
       for (const patch of params.patches) {
+        const patchesCallId =
+          Context.current().info.activityId + `-${patchIndex}`;
         const targetColumn = `data.${patch.column}`;
-        await database.mongoClient
+        const result = await database.mongoClient
           .db(params.importerId)
           .collection("data")
           .updateOne(
-            { __sourceRowId: patch.rowId },
+            {
+              _id: new ObjectId(patch.rowId),
+              appliedPatches: { $nin: [patchesCallId] },
+            },
             {
               $set: {
-                [targetColumn]: patch.newValue,
-                $addToSet: {
-                  history: patch,
-                },
+                [`${targetColumn}.value`]: patch.newValue,
+                [`${targetColumn}.messages`]: [],
+              },
+              $push: {
+                history: patch,
+                appliedPatches: patchesCallId,
               },
             }
           );
+        if (result.modifiedCount > 0) {
+          modifiedRecords.push({
+            rowId: patch.rowId,
+            column: patch.column,
+          });
+        }
+        patchIndex++;
       }
+      return { modifiedRecords };
     },
     generateStats: async (params: {
       importerId: string;

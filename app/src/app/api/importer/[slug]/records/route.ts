@@ -1,6 +1,7 @@
 import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "../../../../../lib/mongoClient";
+import { DataSetPatch } from "../ImporterDto";
 
 export async function GET(
   req: NextRequest,
@@ -38,7 +39,23 @@ export async function PATCH(
   const { slug: importerId } = params;
   const client = getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
-  console.log("got patch", await req.json());
+  const updateData = await req.json();
+  handle.executeUpdate<void, [{ patches: DataSetPatch[] }]>(
+    "importer:update-record",
+    {
+      args: [
+        {
+          patches: [
+            {
+              column: updateData.columnId,
+              rowId: updateData._id,
+              newValue: updateData.value,
+            },
+          ],
+        },
+      ],
+    }
+  );
   // CALL update for patches
   // TODO return new messages for cell and return if it whole column changed (client can reload pages and stats)
   return NextResponse.json({

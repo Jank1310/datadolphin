@@ -73,7 +73,7 @@ export interface DataSetPatch {
    * target column
    */
   column: string;
-  previousValue: string | number | null;
+  previousValue?: string | number | null;
   newValue: string | number | null;
 }
 

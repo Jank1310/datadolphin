@@ -61,8 +61,6 @@ const addFileUpdate = defineUpdate<
     }
   ]
 >("importer:add-file");
-const addPatchesSignal =
-  defineSignal<[{ patches: DataSetPatch[] }]>("importer:add-patch");
 const startImportSignal = defineSignal<[]>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const importConfigQuery =
@@ -75,7 +73,9 @@ const mappingUpdate = defineUpdate<
     }
   ]
 >("importer:update-mapping");
-const importPatchesQuery = defineQuery<DataSetPatch[]>("importer:patches");
+const recordUpdate = defineUpdate<void, [{ patches: DataSetPatch[] }]>(
+  "importer:update-record"
+);
 
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
@@ -128,9 +128,20 @@ export async function importer(params: ImporterWorkflowParams) {
       },
     }
   );
-  setHandler(addPatchesSignal, (params) => {
-    patches.push(...params.patches);
-  });
+  setHandler(
+    recordUpdate,
+    async (updateParams) => {
+      await acts.applyPatches({
+        importerId: workflowInfo().workflowId,
+        patches: updateParams.patches,
+      });
+    },
+    {
+      validator: (_params) => {
+        return !patches;
+      },
+    }
+  );
   setHandler(startImportSignal, () => {
     importStartRequested = true;
   });
@@ -149,9 +160,6 @@ export async function importer(params: ImporterWorkflowParams) {
       dataMapping: configuredMappings,
       totalRows,
     };
-  });
-  setHandler(importPatchesQuery, () => {
-    return patches;
   });
 
   const importerId = workflowInfo().workflowId;

@@ -50,7 +50,9 @@ export const InputCell = ({
   };
   const onKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.code === "Enter") {
-      handleSubmit();
+      if (inputRef.current) {
+        inputRef.current.blur();
+      }
     }
   };
 

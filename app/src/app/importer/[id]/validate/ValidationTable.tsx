@@ -66,6 +66,7 @@ const ValidationTable = (props: Props) => {
         header: config.label,
         size: 300,
         cell: (props) => {
+          const mapperColumnId = config.key;
           const value = props.getValue();
           if (!value && isString(value) === false) {
             return (
@@ -87,7 +88,7 @@ const ValidationTable = (props: Props) => {
             const handleChangeMapping = (newValue: string) => {
               props.table.options.meta?.updateData(
                 props.row.index,
-                config.key,
+                mapperColumnId,
                 newValue,
                 value
               );
@@ -111,7 +112,7 @@ const ValidationTable = (props: Props) => {
                 onChange={(newValue) =>
                   props.table.options.meta?.updateData(
                     props.row.index,
-                    props.cell.id,
+                    mapperColumnId,
                     newValue,
                     value
                   )
