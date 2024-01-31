@@ -1,4 +1,7 @@
-import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
+import {
+  DataMappingRecommendation,
+  ImporterDto,
+} from "@/app/api/importer/[slug]/ImporterDto";
 import { getHost } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import ShowMappings from "./ShowMappings";
@@ -11,19 +14,33 @@ type Props = {
 
 const MappingPage = async (props: Props) => {
   const importerId = props.params.id;
-  const initialImporterDto = (await fetch(
+  const initialImporterDtoPromise = fetch(
     `${getHost()}/api/importer/${importerId}`,
     {
       cache: "no-cache",
     }
-  ).then((res) => res.json())) as ImporterDto;
+  ).then(async (res) => (await res.json()) as ImporterDto);
+  const initialDataMappingsPromise = fetch(
+    `${getHost()}/api/importer/${importerId}/mappings/recommendations`,
+    {
+      cache: "no-cache",
+    }
+  ).then(
+    async (res) => (await res.json()) as DataMappingRecommendation[] | null
+  );
+  const [initialImporterDto, initialDataMappings] = await Promise.all([
+    initialImporterDtoPromise,
+    initialDataMappingsPromise,
+  ]);
   if (initialImporterDto.status.isWaitingForFile) {
-    redirect("import");
+    return redirect("import");
   }
-
   return (
-    <div className="p-4">
-      <ShowMappings importerDto={initialImporterDto} />
+    <div className="h-full">
+      <ShowMappings
+        initialImporterDto={initialImporterDto}
+        initialDataMappingsRecommendations={initialDataMappings}
+      />
     </div>
   );
 };

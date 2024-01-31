@@ -10,7 +10,7 @@ import {
   setHandler,
   workflowInfo,
 } from "@temporalio/workflow";
-import { sum } from "lodash";
+import env from "env-var";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
@@ -40,10 +40,13 @@ export interface ImporterWorkflowParams {
 
 export interface ImporterStatus {
   isWaitingForFile: boolean;
+  isProcessingSourceFile: boolean;
+  isMappingData: boolean;
+  isValidatingData: boolean;
   isWaitingForImport: boolean;
   isImporting: boolean;
-  dataMappingRecommendations: DataMappingRecommendation[] | null;
   totalRows: number;
+  dataMapping: Mapping[] | null;
 }
 
 export interface Mapping {
@@ -63,7 +66,10 @@ const addFileUpdate = defineUpdate<
 >("importer:add-file");
 const startImportSignal = defineSignal<[]>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
-const importConfigQuery =
+const dataMappingRecommendationsQuery = defineQuery<
+  DataMappingRecommendation[]
+>("importer:data-mapping-recommendations");
+const importerConfigQuery =
   defineQuery<ImporterWorkflowParams>("importer:config");
 const mappingUpdate = defineUpdate<
   void,
@@ -81,6 +87,10 @@ const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
 
+const validationParallelLimit = env
+  .get("VALIDATION_PARALLEL_LIMIT")
+  .default(10)
+  .asIntPositive();
 /**
  * Entity workflow which represents a complete importer workflow
  */
@@ -94,11 +104,13 @@ export async function importer(params: ImporterWorkflowParams) {
     fileReference: string;
     fileFormat: "csv" | "xlsx";
   } | null = null;
-  let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
+  let importStartRequested = false;
   let isValidating = false;
+  let isProcessingSourceFile = false;
+  let isMappingData = false;
   let configuredMappings: Mapping[] | null = null;
-  let messageCount = 0;
+  let markedAsClosed = false;
   let totalRows = 0;
 
   setHandler(
@@ -144,18 +156,22 @@ export async function importer(params: ImporterWorkflowParams) {
   setHandler(startImportSignal, () => {
     importStartRequested = true;
   });
-  setHandler(importConfigQuery, () => {
+  setHandler(importerConfigQuery, () => {
     return params;
   });
+  setHandler(dataMappingRecommendationsQuery, () => {
+    return dataMappingRecommendations ?? [];
+  });
+
   setHandler(importStatusQuery, () => {
     return {
       isWaitingForFile: sourceFile === null,
       isWaitingForMapping: configuredMappings === null,
       isWaitingForImport: importStartRequested === false,
       isImporting: importStartRequested === true,
-      fileHasMessages: messageCount > 0,
-      dataMappingRecommendations,
-      isValidating,
+      isMappingData,
+      isValidatingData: isValidating,
+      isProcessingSourceFile,
       dataMapping: configuredMappings,
       totalRows,
     };
@@ -173,19 +189,18 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: source file not uploaded"
       );
     }
-
-    // perform import
+    isProcessingSourceFile = true;
     totalRows = await acts.processSourceFile({
       importerId,
       fileReference: sourceFile!.fileReference,
       format: sourceFile!.fileFormat,
       formatOptions: {},
     });
-
     dataMappingRecommendations = await acts.getMappingRecommendations({
       importerId,
       columnConfig: params.columnConfig,
     });
+    isProcessingSourceFile = false;
 
     const hasConfiguredMappings = await condition(
       () => configuredMappings !== null,
@@ -194,12 +209,15 @@ export async function importer(params: ImporterWorkflowParams) {
     if (!hasConfiguredMappings) {
       throw ApplicationFailure.nonRetryable("Timeout: mappings not configured");
     }
+    isMappingData = true;
     await acts.applyMappings({
       importerId,
       dataMapping: configuredMappings!,
     });
-
+    isMappingData = false;
+    isValidating = true;
     await performValidations();
+    isValidating = false;
 
     const hasImportStartRequested = await condition(
       () => importStartRequested === true,
@@ -211,34 +229,35 @@ export async function importer(params: ImporterWorkflowParams) {
       );
     }
 
-    const hasValidationMessages = await condition(
-      () => messageCount === 0,
-      startImportTimeout // own timeout for messages?
-    );
-    if (!hasValidationMessages) {
-      throw ApplicationFailure.nonRetryable(
-        "Timeout: validation still has messages"
-      );
-    }
+    // TODO add activity to get current number messages and prevent import if existing messages
+    // @see https://github.com/Jank1310/datadolphin/issues/40
 
     // we dont have any more messages
     await acts.invokeCallback({
       importerId,
       callbackUrl: params.callbackUrl,
     });
+
+    const hasImportMarkedAsClosed = await condition(
+      () => markedAsClosed === true,
+      "14 days" // internal max lifetime
+    );
+    if (!hasImportMarkedAsClosed) {
+      throw ApplicationFailure.nonRetryable(
+        "Timeout: import not marked as closed"
+      );
+    }
   } catch (err) {
-    const doCompensations = async () => {
-      for (const compensation of compensations) {
-        await compensation();
-      }
-    };
     if (isCancellation(err)) {
-      await CancellationScope.nonCancellable(() => doCompensations());
-    } else if (err instanceof ApplicationFailure && err.nonRetryable) {
-      await doCompensations();
+      await CancellationScope.nonCancellable(() => cleanUp());
     }
     throw err; // <-- Fail the workflow
   } finally {
+    // <-- Wont be called on cancellation or termination!
+    await cleanUp();
+  }
+
+  async function cleanUp() {
     await acts.deleteBucket({ bucket: sourceFile!.bucket });
     await acts.dropDatabase({ importerId });
   }
@@ -270,8 +289,8 @@ export async function importer(params: ImporterWorkflowParams) {
       importerId,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
     });
-    const limitFct = pLimit(10);
-    // TODO: check if limit is ok
+    //! Optimize import limit
+    const limitFct = pLimit(validationParallelLimit);
     const limit = 5000;
     const parallelValidations = Array.from(
       Array(Math.ceil(totalCount / limit)).keys()
@@ -286,8 +305,7 @@ export async function importer(params: ImporterWorkflowParams) {
         });
       })
     );
-    const messageCountArray = await Promise.all(parallelValidations);
-    messageCount = sum(messageCountArray);
+    await Promise.all(parallelValidations);
     isValidating = false;
   }
 }

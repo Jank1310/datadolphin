@@ -25,12 +25,13 @@ export interface ImporterConfig {
 
 export interface ImporterStatus {
   isWaitingForFile: boolean;
+  isProcessingSourceFile: boolean;
+  isMappingData: boolean;
+  isValidatingData: boolean;
   isWaitingForImport: boolean;
   isImporting: boolean;
-  dataMappingRecommendations: DataMappingRecommendation[] | null;
-  dataMapping: DataMapping[] | null;
-
   totalRows: number;
+  dataMapping: DataMapping[] | null;
 }
 
 export interface DataMappingRecommendation {
