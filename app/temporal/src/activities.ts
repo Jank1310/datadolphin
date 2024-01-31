@@ -1,3 +1,4 @@
+import { Context } from "@temporalio/activity";
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
 import { pull } from "lodash";
@@ -44,7 +45,7 @@ export function makeActivities(
       fileReference: string;
       format: string;
       formatOptions: { delimiter?: string };
-    }): Promise<void> => {
+    }): Promise<number> => {
       const fileData = await fileStore.getFile(
         params.importerId,
         params.fileReference
@@ -107,6 +108,7 @@ export function makeActivities(
       if (result.insertedCount !== jsonWithRowIds.length) {
         throw ApplicationFailure.nonRetryable("Failed to insert all rows");
       }
+      return result.insertedCount;
     },
     applyMappings: async (params: {
       importerId: string;
@@ -186,10 +188,19 @@ export function makeActivities(
     applyPatches: async (params: {
       importerId: string;
       patches: DataSetPatch[];
-    }): Promise<void> => {
-      for (const patch of params.patches) {
-        await database.applyPatch(params.importerId, patch);
-      }
+    }): Promise<{
+      modifiedRecords: { rowId: string; column: string }[];
+    }> => {
+      Context.current().log.info(
+        `applying ${params.patches.length} patches`,
+        params
+      );
+      const idempotencyKey = `patch-${Context.current().info.activityId}`;
+      return await database.applyPatches(
+        params.importerId,
+        idempotencyKey,
+        params.patches
+      );
     },
     generateStats: async (params: {
       importerId: string;

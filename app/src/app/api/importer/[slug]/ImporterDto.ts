@@ -30,12 +30,7 @@ export interface ImporterStatus {
   dataMappingRecommendations: DataMappingRecommendation[] | null;
   dataMapping: DataMapping[] | null;
 
-  sourceData: {
-    bucket: string;
-    fileReference: string;
-  } | null;
-
-  validations: { bucket: string; fileReference: string } | null;
+  totalRows: number;
 }
 
 export interface DataMappingRecommendation {
@@ -52,6 +47,19 @@ export interface ColumnConfig {
    */
   keyAlternatives?: string[];
   type: "text" | "number" | "date";
+  validations?: ColumnValidation[];
+}
+
+export interface ColumnValidation {
+  type: "unique" | "regex" | "enum" | "required" | "phone" | "email";
+}
+
+export interface RegexColumnValidation extends ColumnValidation {
+  regex: string;
+}
+
+export interface EnumerationColumnValidation extends ColumnValidation {
+  values: string[];
 }
 
 export interface DataMapping {
@@ -65,6 +73,7 @@ export interface DataSetPatch {
    * target column
    */
   column: string;
+  previousValue?: string | number | null;
   newValue: string | number | null;
 }
 
@@ -79,6 +88,15 @@ export interface ValidationError {
   message: string;
 }
 
+export type ColumnName = string;
+// TODO rename to DataRecord?
 export type SourceData = {
-  rowId: number;
-} & Record<string, string | number | null>;
+  _id: string;
+  __sourceRowId: number;
+  data: Record<ColumnName, CellValue>;
+};
+
+export interface CellValue {
+  value: string | number | null;
+  messages: ValidationError[];
+}

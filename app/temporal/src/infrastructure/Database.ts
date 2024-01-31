@@ -191,21 +191,44 @@ export class Database {
     await this.mongoClient.db(importerId).collection("data").bulkWrite(writes);
   }
 
-  async applyPatch(importerId: string, patch: DataSetPatch) {
-    const targetColumn = `data.${patch.column}`;
-    return this.mongoClient
-      .db(importerId)
-      .collection("data")
-      .updateOne(
-        { __sourceRowId: patch.rowId },
+  async applyPatches(
+    importerId: string,
+    idempotencyKey: string,
+    patches: DataSetPatch[]
+  ) {
+    let patchIndex = 0;
+    let modifiedRecords: { rowId: string; column: string }[] = [];
+    for (const patch of patches) {
+      const patchesIdempotencyKey = `${idempotencyKey}-${patchIndex}`;
+      const targetColumn = `data.${patch.column}`;
+      const result = await this.getDataCollection(importerId).updateOne(
+        {
+          _id: new ObjectId(patch.rowId),
+          appliedPatches: { $nin: [patchesIdempotencyKey] },
+        },
         {
           $set: {
-            [targetColumn]: patch.newValue,
-            $addToSet: {
-              history: patch,
-            },
+            [`${targetColumn}.value`]: patch.newValue,
+            [`${targetColumn}.messages`]: [],
+          },
+          $push: {
+            history: patch,
+            appliedPatches: patchesIdempotencyKey,
           },
         }
       );
+      if (result.modifiedCount > 0) {
+        modifiedRecords.push({
+          rowId: patch.rowId,
+          column: patch.column,
+        });
+      }
+      patchIndex++;
+    }
+    return { modifiedRecords };
+  }
+
+  private getDataCollection(importerId: string) {
+    return this.mongoClient.db(importerId).collection("data");
   }
 }

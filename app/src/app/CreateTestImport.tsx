@@ -15,10 +15,66 @@ export const CreateTestImporter = () => {
           "Hier können Sie Ihre Mitarbeiterdaten sicher hochladen und validieren.",
         logo: "https://placehold.co/200x100",
         callbackUrl: "some-url",
+        // columnConfig: [
+        //   {
+        //     key: "email",
+        //     label: "E-Mail",
+        //     type: "text",
+        //     validations: [
+        //       {
+        //         type: "email",
+        //       },
+        //       { type: "unique" },
+        //     ],
+        //   },
+        //   {
+        //     key: "work role",
+        //     keyAlternatives: ["position"],
+        //     label: "Role",
+        //     type: "text",
+        //   },
+        //   {
+        //     key: "department",
+        //     label: "Department",
+        //     keyAlternatives: ["abteilung"],
+        //     type: "text",
+        //     validations: [
+        //       {
+        //         type: "enum",
+
+        //         values: ["IT", "HR", "Support"],
+        //       },
+        //     ],
+        //   },
+        // ],
+
         columnConfig: [
+          // {
+          //   key: "email",
+          //   label: "E-Mail",
+          //   type: "text",
+          // },
+          // {
+          //   key: "work role",
+          //   keyAlternatives: ["position"],
+          //   label: "Role",
+          //   type: "text",
+          // },
           {
-            key: "email",
-            label: "E-Mail",
+            key: "BSNR",
+            label: "BSNR",
+            type: "text",
+            validations: [{ type: "required" }, { type: "unique" }],
+          },
+          {
+            key: "Name Kunde",
+            label: "Name Kunde",
+            type: "text",
+            validations: [{ type: "required" }],
+          },
+          {
+            key: "Adresse Kunde",
+            label: "Adresse Kunde",
             type: "text",
             validations: [
               {
@@ -28,9 +84,14 @@ export const CreateTestImporter = () => {
             ],
           },
           {
-            key: "work role",
-            keyAlternatives: ["position"],
-            label: "Role",
+            key: "PLZ Kunde",
+            label: "PLZ Kunde",
+            type: "text",
+            validations: [{ type: "regex", regex: "^[0-9]{5}$" }],
+          },
+          {
+            key: "Ort Kunde",
+            label: "Ort Kunde",
             type: "text",
           },
           {

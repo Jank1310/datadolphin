@@ -43,6 +43,7 @@ export interface ImporterStatus {
   isWaitingForImport: boolean;
   isImporting: boolean;
   dataMappingRecommendations: DataMappingRecommendation[] | null;
+  totalRows: number;
 }
 
 export interface Mapping {
@@ -60,8 +61,6 @@ const addFileUpdate = defineUpdate<
     }
   ]
 >("importer:add-file");
-const addPatchesSignal =
-  defineSignal<[{ patches: DataSetPatch[] }]>("importer:add-patch");
 const startImportSignal = defineSignal<[]>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const importConfigQuery =
@@ -74,7 +73,9 @@ const mappingUpdate = defineUpdate<
     }
   ]
 >("importer:update-mapping");
-const importPatchesQuery = defineQuery<DataSetPatch[]>("importer:patches");
+const recordUpdate = defineUpdate<void, [{ patches: DataSetPatch[] }]>(
+  "importer:update-record"
+);
 
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
@@ -93,12 +94,12 @@ export async function importer(params: ImporterWorkflowParams) {
     fileReference: string;
     fileFormat: "csv" | "xlsx";
   } | null = null;
-  let patches: DataSetPatch[] = [];
   let importStartRequested = false;
   let dataMappingRecommendations: DataMappingRecommendation[] | null = null;
   let isValidating = false;
   let configuredMappings: Mapping[] | null = null;
   let messageCount = 0;
+  let totalRows = 0;
 
   setHandler(
     addFileUpdate,
@@ -126,9 +127,20 @@ export async function importer(params: ImporterWorkflowParams) {
       },
     }
   );
-  setHandler(addPatchesSignal, (params) => {
-    patches.push(...params.patches);
-  });
+  setHandler(
+    recordUpdate,
+    async (updateParams) => {
+      await acts.applyPatches({
+        importerId: workflowInfo().workflowId,
+        patches: updateParams.patches,
+      });
+    },
+    {
+      validator: (params) => {
+        return params.patches.length > 0;
+      },
+    }
+  );
   setHandler(startImportSignal, () => {
     importStartRequested = true;
   });
@@ -145,10 +157,8 @@ export async function importer(params: ImporterWorkflowParams) {
       dataMappingRecommendations,
       isValidating,
       dataMapping: configuredMappings,
+      totalRows,
     };
-  });
-  setHandler(importPatchesQuery, () => {
-    return patches;
   });
 
   const importerId = workflowInfo().workflowId;
@@ -165,7 +175,7 @@ export async function importer(params: ImporterWorkflowParams) {
     }
 
     // perform import
-    await acts.processSourceFile({
+    totalRows = await acts.processSourceFile({
       importerId,
       fileReference: sourceFile!.fileReference,
       format: sourceFile!.fileFormat,
@@ -260,7 +270,7 @@ export async function importer(params: ImporterWorkflowParams) {
       importerId,
       uniqueColumns: validatorColumns.unique.map((item) => item.column),
     });
-    const limitFct = pLimit(100);
+    const limitFct = pLimit(10);
     // TODO: check if limit is ok
     const limit = 5000;
     const parallelValidations = Array.from(
