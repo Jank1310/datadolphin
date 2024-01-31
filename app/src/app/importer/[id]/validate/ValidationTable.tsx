@@ -13,7 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,7 +31,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { produce } from "immer";
-import { isString } from "lodash";
+import { isObject, isString } from "lodash";
 import { AlertCircle, Badge } from "lucide-react";
 import React from "react";
 import { InputCell } from "./cells/InputCell";
@@ -75,7 +80,10 @@ const ValidationTable = (props: Props) => {
               </div>
             );
           }
-          const allErrorsForCell = [];
+          const originalRecord = props.row.original;
+          const allMessagesForCell = isObject(originalRecord)
+            ? originalRecord.data?.[mapperColumnId]?.messages ?? []
+            : [];
           const columnValidations = config.validations ?? [];
           const enumValidators = columnValidations.filter(
             (validation) => validation.type === "enum"
@@ -125,8 +133,19 @@ const ValidationTable = (props: Props) => {
             <div className="flex items-center p-2">
               {displayValue}
               {/* TODO show tooltip */}
-              {allErrorsForCell.length > 0 && (
-                <AlertCircle className="ml-2 text-red-500 size-5" />
+              {allMessagesForCell.length > 0 && (
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger>
+                    <AlertCircle className="ml-2 text-red-500 size-5" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {allMessagesForCell.map((message, index) => (
+                      <div key={index}>
+                        {message.message} [{message.type}]
+                      </div>
+                    ))}
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           );
@@ -215,7 +234,7 @@ const ValidationTable = (props: Props) => {
   const { rows } = table.getRowModel();
   return (
     <div
-      className="rounded-md overflow-auto border h-[80vh]"
+      className="rounded-md overflow-y-auto border h-[80vh]"
       ref={tableContainerRef}
     >
       <TooltipProvider>

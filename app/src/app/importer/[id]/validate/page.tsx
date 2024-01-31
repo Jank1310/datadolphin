@@ -5,7 +5,6 @@ import Validation from "./Validation";
 
 export default async function page(props: { params: { id: string } }) {
   const importerId = props.params.id;
-  console.time("page start");
   const initialImporterDto = await fetch(
     `${getHost()}/api/importer/${importerId}`,
     {
