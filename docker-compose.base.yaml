@@ -6,19 +6,14 @@ services:
     restart: always
     ports:
       - 3000:3000
-    # Set environment variables directly in the docker-compose file
     environment:
-      ENV_VARIABLE: ${ENV_VARIABLE}
-      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
   worker:
     image: ghcr.io/jank1310/datadolphin:latest
     command: node /app/worker/worker.js
-    restart:
-      always
-      # Set environment variables directly in the docker-compose file
+    restart: always
     environment:
-      ENV_VARIABLE: ${ENV_VARIABLE}
-      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
   # STORAGE
   minio:
     image: minio/minio:${MINIO_VERSION}
