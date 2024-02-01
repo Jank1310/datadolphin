@@ -3,24 +3,16 @@ version: "3.7"
 services:
   app:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.base.yaml
       service: app
   worker-1:
     extends:
-      file: docker-compose.yml
-      service: worker
-  worker-2:
-    extends:
-      file: docker-compose.yml
-      service: worker
-  worker-3:
-    extends:
-      file: docker-compose.yml
+      file: docker-compose.base.yaml
       service: worker
   # STORAGE
   minio:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.base.yaml
       service: minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -29,7 +21,7 @@ services:
       - miniostorage:/data
   temporal-postgresql:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.base.yaml
       service: temporal-postgresql
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -37,10 +29,10 @@ services:
     networks:
       - temporal-network
     volumes:
-      - postgresql:/var/lib/postgresql/data
+      - temporal-postgresql:/var/lib/postgresql/data
   mongodb:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.base.yaml
       service: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
@@ -50,7 +42,7 @@ services:
   # TEMPORAL
   temporal:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.base.yaml
       service: temporal
     networks:
       - temporal-network
@@ -59,11 +51,11 @@ services:
       - DB_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PWD=${POSTGRES_PASSWORD}
-      - POSTGRES_SEEDS=postgresql
+      - POSTGRES_SEEDS=temporal-postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml
   temporal-ui:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.base.yaml
       service: temporal-ui
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
