@@ -56,9 +56,7 @@ export class Database {
       };
     }
     const stats = (
-      await this.mongoClient
-        .db(importerId)
-        .collection<DataSetRow>("data")
+      await this.getDataCollection(importerId)
         .aggregate<SourceFileStatsPerColumn>([
           {
             $facet: $facet,
@@ -75,10 +73,7 @@ export class Database {
   }
 
   async getTotalCount(importerId: string): Promise<number> {
-    return this.mongoClient
-      .db(importerId)
-      .collection<DataSetRow>("data")
-      .countDocuments();
+    return this.getDataCollection(importerId).countDocuments();
   }
 
   async createDatabases(importerId: string): Promise<void> {
@@ -95,26 +90,16 @@ export class Database {
     importerId: string,
     sourceData: SourceDataSet
   ): Promise<InsertManyResult<SourceDataSetRow>> {
-    await this.mongoClient
-      .db(importerId)
-      .collection<SourceDataSetRow>("sourceData")
-      .drop();
-    return this.mongoClient
-      .db(importerId)
-      .collection<SourceDataSetRow>("sourceData")
-      .insertMany(sourceData);
+    await this.getSourceDataCollection(importerId).drop();
+    return this.getSourceDataCollection(importerId).insertMany(sourceData);
   }
 
   async dropDataCollection(importerId: string): Promise<void> {
-    await this.mongoClient.db(importerId).collection("data").drop();
+    await this.getDataCollection(importerId).drop();
   }
 
   async getSourceData(importerId: string): Promise<SourceDataSet> {
-    return this.mongoClient
-      .db(importerId)
-      .collection<SourceDataSetRow>("sourceData")
-      .find()
-      .toArray();
+    return this.getSourceDataCollection(importerId).find().toArray();
   }
 
   async getData(
@@ -122,9 +107,7 @@ export class Database {
     skip: number,
     limit: number
   ): Promise<DataSet> {
-    return this.mongoClient
-      .db(importerId)
-      .collection<DataSetRow>("data")
+    return this.getDataCollection(importerId)
       .find()
       .skip(skip)
       .limit(limit)
@@ -135,47 +118,40 @@ export class Database {
     importerId: string,
     rowId: string
   ): Promise<DataSetRow | null> {
-    return this.mongoClient
-      .db(importerId)
-      .collection<DataSetRow>("data")
-      .findOne({ _id: new ObjectId(rowId) });
+    return this.getDataCollection(importerId).findOne({
+      _id: new ObjectId(rowId),
+    });
   }
 
   async createIndexes(importerId: string): Promise<void> {
-    await this.mongoClient
-      .db(importerId)
-      .collection("data")
-      .createIndexes([
-        {
-          key: {
-            "data.$**": 1,
-          },
-          name: "data_1",
+    await this.getDataCollection(importerId).createIndexes([
+      {
+        key: {
+          "data.$**": 1,
         },
-        {
-          key: {
-            __sourceRowId: 1,
-          },
-          name: "sourceRowId_1",
-          unique: true,
+        name: "data_1",
+      },
+      {
+        key: {
+          __sourceRowId: 1,
         },
-      ]);
+        name: "sourceRowId_1",
+        unique: true,
+      },
+    ]);
   }
 
   async saveData(
     importerId: string,
     data: DataSet
   ): Promise<InsertManyResult<DataSetRow>> {
-    return this.mongoClient.db(importerId).collection("data").insertMany(data);
+    return this.getDataCollection(importerId).insertMany(data);
   }
 
   async getFirstSourceRow(
     importerId: string
   ): Promise<SourceDataSetRow | null> {
-    return this.mongoClient
-      .db(importerId)
-      .collection<SourceDataSetRow>("sourceData")
-      .findOne();
+    return this.getSourceDataCollection(importerId).findOne();
   }
 
   async updateDataWithValidationMessages(
@@ -186,7 +162,7 @@ export class Database {
       messages: ValidationMessage[];
     }[]
   ) {
-    const writes: AnyBulkWriteOperation<Document>[] = [];
+    const writes: AnyBulkWriteOperation<DataSetRow>[] = [];
     for (const validationResult of validationResults) {
       // clear messages
       writes.push({
@@ -220,7 +196,7 @@ export class Database {
     if (writes.length === 0) {
       return;
     }
-    await this.mongoClient.db(importerId).collection("data").bulkWrite(writes);
+    await this.getDataCollection(importerId).bulkWrite(writes);
   }
 
   async applyPatches(
@@ -261,9 +237,7 @@ export class Database {
   }
 
   async getMeta(importerId: string): Promise<Meta> {
-    const messageCounts = await this.mongoClient
-      .db(importerId)
-      .collection("data")
+    const messageCounts = await this.getDataCollection(importerId)
       .aggregate<{ column: string; count: number }>([
         {
           $project: {
@@ -310,6 +284,12 @@ export class Database {
   }
 
   private getDataCollection(importerId: string) {
-    return this.mongoClient.db(importerId).collection("data");
+    return this.mongoClient.db(importerId).collection<DataSetRow>("data");
+  }
+
+  private getSourceDataCollection(importerId: string) {
+    return this.mongoClient
+      .db(importerId)
+      .collection<SourceDataSetRow>("sourceData");
   }
 }

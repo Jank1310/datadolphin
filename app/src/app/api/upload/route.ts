@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
 import { extname } from "path";
 
-import minioClient from "../../../lib/minioClient";
+import { getMinioClient } from "../../../lib/minioClient";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
   }
 
   const bucket = importerId;
-  const bucketExists = await minioClient.bucketExists(bucket);
+  const bucketExists = await getMinioClient().bucketExists(bucket);
 
   if (bucketExists === false) {
-    await minioClient.makeBucket(bucket);
+    await getMinioClient().makeBucket(bucket);
   }
 
   const metadata = {
@@ -33,7 +33,12 @@ export async function POST(req: NextRequest) {
 
   const destFileName = `${randomUUID()}${extname(file.name)}`;
   try {
-    await minioClient.putObject(bucket, destFileName, fileBuffer, metadata);
+    await getMinioClient().putObject(
+      bucket,
+      destFileName,
+      fileBuffer,
+      metadata
+    );
   } catch (error) {
     console.error(error);
     return new Response("Failed to upload file", { status: 500 });
