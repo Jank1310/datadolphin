@@ -1,12 +1,7 @@
-# see https://docs.temporal.io/dev-guide/typescript/foundations#using-nodeslim-images
-FROM node:18-bullseye-slim
-
-RUN apt-get update \
-    && apt-get install -y ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Stage 1: Build environment
+FROM node:18-bullseye-slim AS build
 
 RUN mkdir /build
-RUN mkdir /app
 WORKDIR /build
 
 COPY package*.json ./
@@ -18,11 +13,22 @@ COPY . .
 RUN npm run build:next
 RUN npm run build:temporal
 
-# build folder is from nextjs
-RUN cp -r ./build/standalone /app/nextjs
-RUN cp -r ./temporal/lib /app/worker
+# Stage 2: Production environment
+FROM node:18-bullseye-slim AS production
 
+RUN apt-get update \
+    && apt-get install -y ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir /app
 WORKDIR /app
+
+COPY --from=build /build/build/standalone /app/nextjs
+COPY --from=build /build/temporal/lib /app/worker
+COPY --from=build /build/package*.json /app
+
+# Install only production dependencies
+RUN npm install --omit=dev
 
 
 ARG BUILD_VERSION="not_set"
