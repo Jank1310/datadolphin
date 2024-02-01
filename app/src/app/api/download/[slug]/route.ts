@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-import minioClient from "../../../../lib/minioClient";
+import { getMinioClient } from "../../../../lib/minioClient";
 
 export async function GET(
   req: NextRequest,
@@ -14,7 +14,7 @@ export async function GET(
   }
 
   const bucket = importerId;
-  const bucketExists = await minioClient.bucketExists(bucket);
+  const bucketExists = await getMinioClient().bucketExists(bucket);
 
   if (bucketExists === false) {
     return new Response("bucket does not exist", { status: 500 });
@@ -27,14 +27,14 @@ export async function GET(
 
 async function getFile(bucket: string, fileReference: string): Promise<Buffer> {
   try {
-    const fileStats = await minioClient.statObject(bucket, fileReference);
+    const fileStats = await getMinioClient().statObject(bucket, fileReference);
     if (!fileStats) {
       throw new Error();
     }
   } catch (error) {
     throw new Error(`could not find file ${fileReference} in bucket ${bucket}`);
   }
-  const stream = await minioClient.getObject(bucket, fileReference);
+  const stream = await getMinioClient().getObject(bucket, fileReference);
   const data = await new Promise<Buffer>((resolve, reject) => {
     let chunks: Buffer[] = [];
     stream.on("error", reject);
