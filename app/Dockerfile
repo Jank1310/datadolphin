@@ -6,7 +6,7 @@ WORKDIR /build
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm ci && npm cache clean --force
 
 COPY . .
 
@@ -28,7 +28,7 @@ COPY --from=build /build/temporal/lib /app/worker
 COPY --from=build /build/package*.json /app
 
 # Install only production dependencies
-RUN npm install --omit=dev
+RUN npm install --omit=dev && npm cache clean --force
 
 
 ARG BUILD_VERSION="not_set"
