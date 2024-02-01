@@ -1,0 +1,64 @@
+# base file for dev and prod deployments
+services:
+  app:
+    image: ghcr.io/jank1310/datadolphin:latest
+    command: node /app/nextjs/server.js
+    restart: always
+    ports:
+      - 3000:3000
+    # Set environment variables directly in the docker-compose file
+    environment:
+      ENV_VARIABLE: ${ENV_VARIABLE}
+      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+  worker:
+    image: ghcr.io/jank1310/datadolphin:latest
+    command: node /app/worker/worker.js
+    restart:
+      always
+      # Set environment variables directly in the docker-compose file
+    environment:
+      ENV_VARIABLE: ${ENV_VARIABLE}
+      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+  # STORAGE
+  minio:
+    image: minio/minio:${MINIO_VERSION}
+    command: server --console-address ":9001" /data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    hostname: minio
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+  temporal-postgresql:
+    container_name: temporal-postgresql
+    image: postgres:${POSTGRESQL_VERSION}
+    expose:
+      - 5432
+    volumes:
+      - postgresql:/var/lib/postgresql/data
+  # TEMPORAL
+  temporal:
+    container_name: temporal
+    depends_on:
+      - temporal-postgresql
+    image: temporalio/auto-setup:${TEMPORAL_VERSION}
+    ports:
+      - 7233:7233
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    image: temporalio/ui:${TEMPORAL_UI_VERSION}
+    ports:
+      - 8080:8080
