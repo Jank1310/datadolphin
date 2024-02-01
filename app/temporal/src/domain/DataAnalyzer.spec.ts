@@ -747,38 +747,4 @@ describe("DataAnalyzer", () => {
       ]);
     });
   });
-
-  it("should return stats", () => {
-    const jsonData = [
-      {
-        _id: new ObjectId("65b39818ab8b36794717db1a"),
-        __sourceRowId: 0,
-        data: {
-          name: { value: "Florian", messages: [] },
-          id: { value: 1, messages: [] },
-        },
-      },
-      {
-        _id: new ObjectId("65b39818ab8b36794717db1b"),
-        __sourceRowId: 1,
-        data: {
-          name: { value: "Florian", messages: [] },
-          id: { value: 2, messages: [] },
-        },
-      },
-      {
-        _id: new ObjectId("65b39818ab8b36794717db1c"),
-        __sourceRowId: 2,
-        data: {
-          name: { value: "Egon", messages: [] },
-          id: { value: 1, messages: [] },
-        },
-      },
-    ];
-    const result = analyzer.getStats(jsonData, ["name", "id"]);
-    expect(result).toEqual({
-      id: { nonunique: { "1": 2 } },
-      name: { nonunique: { Florian: 2 } },
-    });
-  });
 });

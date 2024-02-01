@@ -54,6 +54,10 @@ export interface Mapping {
   sourceColumn: string;
 }
 
+export interface Meta {
+  messageCount: Record<string, number>;
+}
+
 const addFileUpdate = defineUpdate<
   void,
   [
@@ -112,6 +116,7 @@ export async function importer(params: ImporterWorkflowParams) {
   let configuredMappings: Mapping[] | null = null;
   let markedAsClosed = false;
   let totalRows = 0;
+  let meta: Meta | null = null;
 
   setHandler(
     addFileUpdate,
@@ -146,6 +151,24 @@ export async function importer(params: ImporterWorkflowParams) {
         importerId: workflowInfo().workflowId,
         patches: updateParams.patches,
       });
+      for (const patch of updateParams.patches) {
+        const columnConfig = params.columnConfig.find(
+          (item) => item.key === patch.column
+        );
+        if (!columnConfig) {
+          continue;
+        }
+        const columnValidations = columnConfig.validations;
+        if (columnValidations?.length) {
+          if (columnValidations.find((item) => item.type === "unique")) {
+            // unique validation
+            await performValidations([columnConfig]);
+          } else {
+            // other validations
+            await performRecordValidation([columnConfig], patch.rowId);
+          }
+        }
+      }
     },
     {
       validator: (params) => {
@@ -174,6 +197,7 @@ export async function importer(params: ImporterWorkflowParams) {
       isProcessingSourceFile,
       dataMapping: configuredMappings,
       totalRows,
+      meta,
     };
   });
 
@@ -215,9 +239,15 @@ export async function importer(params: ImporterWorkflowParams) {
       dataMapping: configuredMappings!,
     });
     isMappingData = false;
-    isValidating = true;
-    await performValidations();
-    isValidating = false;
+
+    const allMappedColumnsWithValidators = params.columnConfig.filter(
+      (column) =>
+        column.validations?.length &&
+        (configuredMappings ?? []).find(
+          (mapping) => mapping.targetColumn === column.key
+        )
+    );
+    await performValidations(allMappedColumnsWithValidators);
 
     const hasImportStartRequested = await condition(
       () => importStartRequested === true,
@@ -262,32 +292,24 @@ export async function importer(params: ImporterWorkflowParams) {
     await acts.dropDatabase({ importerId });
   }
 
-  async function performValidations() {
+  async function performValidations(columnConfigs: ColumnConfig[]) {
     isValidating = true;
 
-    const allMappedColumnsWithValidators = params.columnConfig.filter(
-      (column) =>
-        column.validations?.length &&
-        (configuredMappings ?? []).find(
-          (mapping) => mapping.targetColumn === column.key
-        )
-    );
-
-    const validatorColumns = {} as ColumnValidators;
-    for (const column of allMappedColumnsWithValidators) {
+    const columnValidators = {} as ColumnValidators;
+    for (const column of columnConfigs) {
       for (const validator of column.validations!) {
-        if (!validatorColumns[validator.type]) {
-          validatorColumns[validator.type] = [];
+        if (!columnValidators[validator.type]) {
+          columnValidators[validator.type] = [];
         }
-        validatorColumns[validator.type].push({
+        columnValidators[validator.type].push({
           column: column.key,
           config: validator,
         });
       }
     }
-    const { columnStats, totalCount } = await acts.generateStats({
+    const { columnStats, totalCount } = await acts.generateStatsPerColumn({
       importerId,
-      uniqueColumns: validatorColumns.unique.map((item) => item.column),
+      uniqueColumns: columnValidators.unique.map((item) => item.column),
     });
     //! Optimize import limit
     const limitFct = pLimit(validationParallelLimit);
@@ -298,7 +320,7 @@ export async function importer(params: ImporterWorkflowParams) {
       limitFct(() => {
         return acts.processDataValidations({
           importerId,
-          validatorColumns,
+          columnValidators,
           stats: columnStats,
           skip: index * limit,
           limit,
@@ -306,6 +328,39 @@ export async function importer(params: ImporterWorkflowParams) {
       })
     );
     await Promise.all(parallelValidations);
+    meta = await acts.generateMeta({ importerId });
+    isValidating = false;
+  }
+
+  async function performRecordValidation(
+    columnConfigs: ColumnConfig[],
+    rowId: string
+  ) {
+    isValidating = true;
+
+    const columnValidators = {} as ColumnValidators;
+    for (const column of columnConfigs) {
+      for (const validator of column.validations!) {
+        if (!columnValidators[validator.type]) {
+          columnValidators[validator.type] = [];
+        }
+        columnValidators[validator.type].push({
+          column: column.key,
+          config: validator,
+        });
+      }
+    }
+    const { columnStats } = await acts.generateStatsPerColumn({
+      importerId,
+      uniqueColumns: columnValidators.unique?.map((item) => item.column) ?? [],
+    });
+    await acts.processDataValidationForRecord({
+      importerId,
+      columnValidators,
+      stats: columnStats,
+      rowId,
+    });
+    meta = await acts.generateMeta({ importerId });
     isValidating = false;
   }
 }

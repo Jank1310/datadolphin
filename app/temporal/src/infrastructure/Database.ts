@@ -1,3 +1,4 @@
+import { keyBy, mapValues } from "lodash";
 import {
   AnyBulkWriteOperation,
   InsertManyResult,
@@ -13,14 +14,18 @@ import {
   SourceDataSetRow,
 } from "../domain/DataSet";
 import { ValidationMessage } from "../domain/ValidationMessage";
+import { Meta } from "../workflows/importer.workflow";
 
 export class Database {
   constructor(private mongoClient: MongoClient) {}
 
-  async getStats(
+  async getStatsPerColumn(
     importerId: string,
     uniqueColumns: string[]
   ): Promise<SourceFileStatsPerColumn> {
+    if (uniqueColumns.length === 0) {
+      return {};
+    }
     const $facet: Record<string, unknown> = {};
     const $replaceRoot: Record<string, unknown> = {};
     for (const uniqueColumn of uniqueColumns) {
@@ -126,6 +131,16 @@ export class Database {
       .toArray();
   }
 
+  async getDataRecord(
+    importerId: string,
+    rowId: string
+  ): Promise<DataSetRow | null> {
+    return this.mongoClient
+      .db(importerId)
+      .collection<DataSetRow>("data")
+      .findOne({ _id: new ObjectId(rowId) });
+  }
+
   async createIndexes(importerId: string): Promise<void> {
     await this.mongoClient
       .db(importerId)
@@ -173,7 +188,21 @@ export class Database {
   ) {
     const writes: AnyBulkWriteOperation<Document>[] = [];
     for (const validationResult of validationResults) {
+      // clear messages
+      writes.push({
+        updateOne: {
+          filter: {
+            _id: validationResult.rowId,
+          },
+          update: {
+            $set: {
+              [`data.${validationResult.column}.messages`]: [],
+            },
+          },
+        },
+      });
       for (const message of validationResult.messages) {
+        // write messages
         writes.push({
           updateOne: {
             filter: {
@@ -187,6 +216,9 @@ export class Database {
           },
         });
       }
+    }
+    if (writes.length === 0) {
+      return;
     }
     await this.mongoClient.db(importerId).collection("data").bulkWrite(writes);
   }
@@ -226,6 +258,55 @@ export class Database {
       patchIndex++;
     }
     return { modifiedRecords };
+  }
+
+  async getMeta(importerId: string): Promise<Meta> {
+    const messageCounts = await this.mongoClient
+      .db(importerId)
+      .collection("data")
+      .aggregate<{ column: string; count: number }>([
+        {
+          $project: {
+            data: 1,
+          },
+        },
+        {
+          $project: {
+            messages: {
+              $objectToArray: "$data",
+            },
+          },
+        },
+        {
+          $unwind: "$messages",
+        },
+        {
+          $project: {
+            field: "$messages.k",
+            numberOfMessages: {
+              $size: "$messages.v.messages",
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$field",
+            count: {
+              $sum: "$numberOfMessages",
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            column: "$_id",
+            count: 1,
+          },
+        },
+      ])
+      .toArray();
+
+    return { messageCount: mapValues(keyBy(messageCounts, "column"), "count") };
   }
 
   private getDataCollection(importerId: string) {

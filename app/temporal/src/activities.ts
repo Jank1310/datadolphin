@@ -20,7 +20,7 @@ import {
 } from "./domain/DataSet";
 import { Database } from "./infrastructure/Database";
 import { FileStore } from "./infrastructure/FileStore";
-import { Mapping } from "./workflows/importer.workflow";
+import { Mapping, Meta } from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
   filename: string;
   importerId: string;
@@ -162,7 +162,7 @@ export function makeActivities(
     },
     processDataValidations: async (params: {
       importerId: string;
-      validatorColumns: ColumnValidators;
+      columnValidators: ColumnValidators;
       stats: SourceFileStatsPerColumn;
       skip: number;
       limit: number;
@@ -172,10 +172,36 @@ export function makeActivities(
         params.skip,
         params.limit
       );
+      if (!jsonData || jsonData.length === 0) {
+        return 0;
+      }
 
       const validationResults = dataAnalyzer.processDataValidations(
         jsonData,
-        params.validatorColumns,
+        params.columnValidators,
+        params.stats
+      );
+
+      await database.updateDataWithValidationMessages(
+        params.importerId,
+        validationResults
+      );
+      return validationResults.length;
+    },
+    processDataValidationForRecord: async (params: {
+      importerId: string;
+      columnValidators: ColumnValidators;
+      stats: SourceFileStatsPerColumn;
+      rowId: string;
+    }): Promise<number> => {
+      const row = await database.getDataRecord(params.importerId, params.rowId);
+      if (!row) {
+        return 0;
+      }
+
+      const validationResults = dataAnalyzer.processDataValidations(
+        [row],
+        params.columnValidators,
         params.stats
       );
 
@@ -202,7 +228,7 @@ export function makeActivities(
         params.patches
       );
     },
-    generateStats: async (params: {
+    generateStatsPerColumn: async (params: {
       importerId: string;
       uniqueColumns: string[];
     }): Promise<{
@@ -210,11 +236,10 @@ export function makeActivities(
       totalCount: number;
     }> => {
       console.time("generate-stats");
-      const columnStats = await database.getStats(
+      const columnStats = await database.getStatsPerColumn(
         params.importerId,
         params.uniqueColumns
       );
-
       console.timeEnd("generate-stats");
 
       console.time("total-count");
@@ -222,6 +247,13 @@ export function makeActivities(
       console.timeEnd("total-count");
 
       return { columnStats, totalCount };
+    },
+    generateMeta: async (params: { importerId: string }): Promise<Meta> => {
+      console.time("generate-meta");
+      const meta = await database.getMeta(params.importerId);
+      console.timeEnd("generate-meta");
+
+      return meta;
     },
     invokeCallback: async (params: {
       importerId: string;
