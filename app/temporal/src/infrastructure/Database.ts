@@ -101,7 +101,7 @@ export class Database {
   }
 
   async dropDataCollection(importerId: string): Promise<void> {
-    await this.mongoClient.db(importerId).collection("data").drop();
+    await this.getDataCollection(importerId).drop();
   }
 
   async getSourceData(importerId: string): Promise<SourceDataSet> {
@@ -151,7 +151,7 @@ export class Database {
     importerId: string,
     data: DataSet
   ): Promise<InsertManyResult<DataSetRow>> {
-    return this.mongoClient.db(importerId).collection("data").insertMany(data);
+    return this.getDataCollection(importerId).insertMany(data);
   }
 
   async getFirstSourceRow(
@@ -171,7 +171,7 @@ export class Database {
       messages: ValidationMessage[];
     }[]
   ) {
-    const writes: AnyBulkWriteOperation<Document>[] = [];
+    const writes: AnyBulkWriteOperation<DataSetRow>[] = [];
     for (const validationResult of validationResults) {
       for (const message of validationResult.messages) {
         writes.push({
@@ -188,7 +188,7 @@ export class Database {
         });
       }
     }
-    await this.mongoClient.db(importerId).collection("data").bulkWrite(writes);
+    await this.getDataCollection(importerId).bulkWrite(writes);
   }
 
   async applyPatches(
@@ -229,6 +229,6 @@ export class Database {
   }
 
   private getDataCollection(importerId: string) {
-    return this.mongoClient.db(importerId).collection("data");
+    return this.mongoClient.db(importerId).collection<DataSetRow>("data");
   }
 }
