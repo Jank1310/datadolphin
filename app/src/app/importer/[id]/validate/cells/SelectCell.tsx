@@ -32,12 +32,16 @@ const SelectCellTrigger = React.forwardRef<
 SelectCellTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
 const SelectCell = ({
-  value,
+  value: initialValue,
   onChange,
   isRequired,
   availableValues,
 }: Props) => {
   const id = useId();
+  const [value, setValue] = React.useState<string>(initialValue);
+  React.useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
   return (
     <Select
       value={(value as string) ?? ""}
@@ -45,6 +49,7 @@ const SelectCell = ({
         if (value !== newValue) {
           onChange(newValue);
         }
+        setValue(newValue);
       }}
     >
       <SelectCellTrigger className="">{value}</SelectCellTrigger>
