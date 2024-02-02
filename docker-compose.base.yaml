@@ -6,14 +6,10 @@ services:
     restart: always
     ports:
       - 3000:3000
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
   worker:
     image: ghcr.io/jank1310/datadolphin:latest
     command: node /app/worker/worker.js
     restart: always
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
   # STORAGE
   minio:
     image: minio/minio:${MINIO_VERSION}

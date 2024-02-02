@@ -108,7 +108,7 @@ const ShowMappings = ({
       });
       push("validate");
     } catch (err) {
-      console.log(err);
+      console.error(err);
     } finally {
       setIsSavingMapping(false);
     }

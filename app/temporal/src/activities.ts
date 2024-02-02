@@ -259,7 +259,7 @@ export function makeActivities(
       importerId: string;
       callbackUrl: string;
     }): Promise<void> => {
-      const host = process.env.API_URL ?? "http://localhost:3000";
+      const host = process.env.PUBLIC_API_URL ?? "http://localhost:3000";
       const downloadUrl = `${host}/api/download/${params.importerId}`;
       // we dont await the call
       fetch(params.callbackUrl, {

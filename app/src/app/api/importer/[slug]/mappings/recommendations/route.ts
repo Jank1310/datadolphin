@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   const { slug: importerId } = params;
-  const client = getTemporalWorkflowClient();
+  const client = await getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
   const recommendations = await handle.query(
     "importer:data-mapping-recommendations"

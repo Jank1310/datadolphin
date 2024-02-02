@@ -34,7 +34,7 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
         await fetch("/api/upload", { method: "POST", body: formData });
         push("mapping");
       } catch (err) {
-        console.log(err);
+        console.error(err);
       } finally {
         setIsUploading(false);
       }

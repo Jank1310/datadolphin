@@ -14,7 +14,7 @@ export interface ImportWorkflowPostResponse {
 
 export async function POST(req: NextRequest) {
   const importerId = `imp-${randomUUID()}`;
-  const client = getTemporalWorkflowClient();
+  const client = await getTemporalWorkflowClient();
   const body = (await req.json()) as ImportWorkflowPostPayload;
   //TODO validate request
   await client.start("importer", {

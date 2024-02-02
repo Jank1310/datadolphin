@@ -1,8 +1,18 @@
-import { WorkflowClient } from "@temporalio/client";
-
+import { Connection, WorkflowClient } from "@temporalio/client";
+import env from "env-var";
 export const DEFAULT_TEMPORAL_QUEUE = "imports";
 
-export const getTemporalWorkflowClient = () => {
+let connection: Connection;
+
+export async function getTemporalWorkflowClient() {
   // TODO get options from env
-  return new WorkflowClient({});
-};
+  if (!connection) {
+    connection = await Connection.connect({
+      address: env.get("TEMPORAL_ADDRESS").default("localhost:7233").asString(),
+    });
+  }
+  return new WorkflowClient({
+    connection,
+    namespace: env.get("TEMPORAL_NAMESPACE").default("default").asString(),
+  });
+}
