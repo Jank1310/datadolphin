@@ -42,7 +42,9 @@ const SelectCell = ({
     <Select
       value={(value as string) ?? ""}
       onValueChange={(newValue) => {
-        onChange(newValue);
+        if (value !== newValue) {
+          onChange(newValue);
+        }
       }}
     >
       <SelectCellTrigger className="">{value}</SelectCellTrigger>
