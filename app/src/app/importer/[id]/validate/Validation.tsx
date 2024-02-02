@@ -33,36 +33,15 @@ const Validation = ({
   });
   const fetchRecords = useFetchRecords(initialImporterDto.importerId);
   const isMappingData = importer.status.isMappingData;
-  React.useEffect(() => {
-    if (isMappingData) {
-      setEnablePolling(true);
-    } else {
-      setEnablePolling(false);
-    }
-  }, [isMappingData]);
-  const handleUpdateData = React.useCallback(
-    async (rowId: string, columnId: string, value: string | number | null) => {
-      await fetch(`/api/importer/${initialImporterDto.importerId}/records`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          _id: rowId,
-          columnId,
-          value,
-        }),
-      });
-      // TODO handle result (reload etc.)
-    },
-    [initialImporterDto.importerId]
-  );
 
   const handleLoadPage = React.useCallback(
-    async (pageNumber: number) => {
+    async (pageNumber: number, force: boolean = false) => {
       setTimeout(async () => {
         // needed to get the latest states
-        if (currentlyLoading[pageNumber.toFixed()] || pageNumber in pageData) {
+        if (
+          !force &&
+          (currentlyLoading[pageNumber.toFixed()] || pageNumber in pageData)
+        ) {
           return;
         }
         setCurrentlyLoading({
@@ -84,6 +63,34 @@ const Validation = ({
       });
     },
     [currentlyLoading, fetchRecords, pageData]
+  );
+
+  React.useEffect(() => {
+    if (isMappingData) {
+      setEnablePolling(true);
+    } else {
+      if (enablePolling) {
+        handleLoadPage(0, true);
+        setEnablePolling(false);
+      }
+    }
+  }, [enablePolling, handleLoadPage, isMappingData]);
+  const handleUpdateData = React.useCallback(
+    async (rowId: string, columnId: string, value: string | number | null) => {
+      await fetch(`/api/importer/${initialImporterDto.importerId}/records`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          _id: rowId,
+          columnId,
+          value,
+        }),
+      });
+      // TODO handle result (reload etc.)
+    },
+    [initialImporterDto.importerId]
   );
 
   const dataStats = {
@@ -115,7 +122,6 @@ const Validation = ({
         <ValidationTable
           importerDto={importer}
           data={pageData}
-          validations={[]}
           totalRows={dataStats.total}
           onUpdateData={handleUpdateData}
           onLoadPage={handleLoadPage}

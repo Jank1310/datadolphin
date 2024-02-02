@@ -1,6 +1,5 @@
 "use client";
 import {
-  DataValidation,
   EnumerationColumnValidation,
   ImporterDto,
   SourceData,
@@ -41,7 +40,6 @@ type Props = {
   importerDto: ImporterDto;
   data: Record<number, SourceData[]>;
   totalRows: number;
-  validations: DataValidation[];
   onUpdateData: (
     rowId: string,
     columnId: string,
