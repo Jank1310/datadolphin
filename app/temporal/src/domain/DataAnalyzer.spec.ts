@@ -137,7 +137,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1b"),
+          rowId: "65b39818ab8b36794717db1b",
           column: "name",
           messages: [
             {
@@ -147,7 +147,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1c"),
+          rowId: "65b39818ab8b36794717db1c",
           column: "name",
           messages: [
             {
@@ -235,7 +235,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1a"),
+          rowId: "65b39818ab8b36794717db1a",
           column: "name",
           messages: [
             {
@@ -245,7 +245,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1b"),
+          rowId: "65b39818ab8b36794717db1b",
           column: "name",
           messages: [
             {
@@ -255,7 +255,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1d"),
+          rowId: "65b39818ab8b36794717db1d",
           column: "name",
           messages: [
             {
@@ -265,7 +265,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1e"),
+          rowId: "65b39818ab8b36794717db1e",
           column: "name",
           messages: [
             {
@@ -275,7 +275,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1f"),
+          rowId: "65b39818ab8b36794717db1f",
           column: "name",
           messages: [
             {
@@ -359,7 +359,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1c"),
+          rowId: "65b39818ab8b36794717db1c",
           column: "Postleitzahl",
           messages: [
             {
@@ -369,7 +369,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1d"),
+          rowId: "65b39818ab8b36794717db1d",
           column: "Postleitzahl",
           messages: [
             {
@@ -379,7 +379,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1e"),
+          rowId: "65b39818ab8b36794717db1e",
           column: "Postleitzahl",
           messages: [
             {
@@ -456,7 +456,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1d"),
+          rowId: "65b39818ab8b36794717db1d",
           column: "phone",
           messages: [
             {
@@ -466,7 +466,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1e"),
+          rowId: "65b39818ab8b36794717db1e",
           column: "phone",
           messages: [
             {
@@ -522,7 +522,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1c"),
+          rowId: "65b39818ab8b36794717db1c",
           column: "email",
           messages: [
             {
@@ -532,7 +532,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1d"),
+          rowId: "65b39818ab8b36794717db1d",
           column: "email",
           messages: [
             {
@@ -542,7 +542,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1e"),
+          rowId: "65b39818ab8b36794717db1e",
           column: "email",
           messages: [
             {
@@ -552,7 +552,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1f"),
+          rowId: "65b39818ab8b36794717db1f",
           column: "email",
           messages: [
             {
@@ -617,7 +617,7 @@ describe("DataAnalyzer", () => {
       );
       expect(result).toEqual([
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1a"),
+          rowId: "65b39818ab8b36794717db1a",
           column: "name",
           messages: [
             {
@@ -644,7 +644,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1b"),
+          rowId: "65b39818ab8b36794717db1b",
           column: "name",
           messages: [
             {
@@ -671,7 +671,7 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: new ObjectId("65b39818ab8b36794717db1b"),
+          rowId: "65b39818ab8b36794717db1b",
           column: "uniques",
           messages: [
             {
@@ -726,7 +726,7 @@ describe("DataAnalyzer", () => {
       expect(result).toEqual([
         {
           column: "department",
-          rowId: new ObjectId("65b39818ab8b36794717db1c"),
+          rowId: "65b39818ab8b36794717db1c",
           messages: [
             {
               message: "value is not a valid enum",
@@ -736,7 +736,7 @@ describe("DataAnalyzer", () => {
         },
         {
           column: "department",
-          rowId: new ObjectId("65b39818ab8b36794717db1d"),
+          rowId: "65b39818ab8b36794717db1d",
           messages: [
             {
               message: "value is not a valid enum",
