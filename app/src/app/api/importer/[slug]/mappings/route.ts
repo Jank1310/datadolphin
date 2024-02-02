@@ -6,7 +6,7 @@ export async function PUT(
   { params }: { params: { slug: string } }
 ) {
   const { slug: importerId } = params;
-  const client = getTemporalWorkflowClient();
+  const client = await getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
   const mappings = await req.json();
   await handle.executeUpdate("importer:update-mapping", {

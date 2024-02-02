@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     console.error(error);
     return new Response("Failed to upload file", { status: 500 });
   }
-  const client = getTemporalWorkflowClient();
+  const client = await getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
   await handle.executeUpdate("importer:add-file", {
     args: [

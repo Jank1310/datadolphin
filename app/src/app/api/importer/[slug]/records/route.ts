@@ -27,7 +27,7 @@ export async function PATCH(
   { params }: { params: { slug: string } }
 ) {
   const { slug: importerId } = params;
-  const client = getTemporalWorkflowClient();
+  const client = await getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
   const updateData = await req.json();
   handle.executeUpdate<void, [{ patches: DataSetPatch[] }]>(

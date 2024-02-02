@@ -1,4 +1,4 @@
-import { Worker } from "@temporalio/worker";
+import { NativeConnection, Worker } from "@temporalio/worker";
 import dotenv from "dotenv";
 import env from "env-var";
 import * as Minio from "minio";
@@ -9,8 +9,7 @@ import { Database } from "./infrastructure/Database";
 import { FileStore } from "./infrastructure/FileStore";
 
 dotenv.config({ debug: true });
-console.log(process.env);
-run().catch((err) => console.log(err));
+run().catch((err) => console.error(err));
 
 async function run() {
   const minioClient = new Minio.Client({
@@ -27,7 +26,12 @@ async function run() {
   const database = new Database(mongoClient);
   const dataAnalyzer = new DataAnalyzer();
   const activities = makeActivities(fileStore, database, dataAnalyzer);
+  const nativeConnection = await NativeConnection.connect({
+    address: env.get("TEMPORAL_ADDRESS").default("localhost:7233").asString(),
+  });
   const worker = await Worker.create({
+    connection: nativeConnection,
+    namespace: env.get("TEMPORAL_NAMESPACE").default("default").asString(),
     workflowsPath: require.resolve("./workflows"), // passed to Webpack for bundling
     activities, // directly imported in Node.js
     taskQueue: "imports", // TODO get from env
