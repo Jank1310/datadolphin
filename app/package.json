@@ -10,7 +10,7 @@
     "build:temporal": "tsc --build ./temporal/tsconfig.json",
     "build": "next build",
     "start": "next start",
-    "start:worker": "nodemon ./temporal/lib/worker",
+    "start:worker": "nodemon --watch temporal ./temporal/lib/worker",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch"
