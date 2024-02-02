@@ -7,7 +7,9 @@ export function useGetMappingRecommendations(
   fallbackData?: DataMappingRecommendation[] | null
 ) {
   const { data, error, isLoading } = useSWR(
-    importerId ? [`/api/importer/${importerId}/mapping/recommendations`] : null,
+    importerId
+      ? [`/api/importer/${importerId}/mappings/recommendations`]
+      : null,
     ([url]) => fetch(url).then((res) => res.json()),
     {
       refreshInterval: pollInterval,
