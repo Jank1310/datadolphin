@@ -1,5 +1,4 @@
 import Fuse from "fuse.js";
-import { ObjectId } from "mongodb";
 import { ColumnConfig } from "./ColumnConfig";
 import { ColumnValidation } from "./ColumnValidation";
 import { DataSet, DataSetRow } from "./DataSet";
@@ -22,6 +21,11 @@ export type ColumnValidators = Record<
   { column: string; config: ColumnValidation }[]
 >;
 
+export interface ValidationResult {
+  rowId: string;
+  column: string;
+  messages: ValidationMessage[];
+}
 export class DataAnalyzer {
   constructor() {}
 
@@ -71,12 +75,8 @@ export class DataAnalyzer {
     data: DataSet,
     validatorColumns: ColumnValidators,
     stats: SourceFileStatsPerColumn
-  ): { rowId: ObjectId; column: string; messages: ValidationMessage[] }[] {
-    const chunkMessages: {
-      rowId: ObjectId;
-      column: string;
-      messages: ValidationMessage[];
-    }[] = [];
+  ): ValidationResult[] {
+    const chunkMessages: ValidationResult[] = [];
 
     for (const row of data) {
       chunkMessages.push(
@@ -90,12 +90,8 @@ export class DataAnalyzer {
     row: DataSetRow,
     validatorColumns: ColumnValidators,
     stats: SourceFileStatsPerColumn
-  ): { rowId: ObjectId; column: string; messages: ValidationMessage[] }[] {
-    const chunkMessages: {
-      rowId: ObjectId;
-      column: string;
-      messages: ValidationMessage[];
-    }[] = [];
+  ): ValidationResult[] {
+    const chunkMessages: ValidationResult[] = [];
     const validatorKeys = Object.keys(validatorColumns) as ValidatorType[];
     for (const validatorKey of validatorKeys) {
       if (validatorColumns[validatorKey].length > 0) {
@@ -108,13 +104,14 @@ export class DataAnalyzer {
         for (const column of Object.keys(messages as any)) {
           const message = messages[column] as any;
           const messageForRowAndColumn = chunkMessages.find(
-            (item) => item.rowId === row._id && item.column === column
+            (item) =>
+              item.rowId === row._id.toString() && item.column === column
           );
           if (messageForRowAndColumn) {
             messageForRowAndColumn.messages.push(message);
           } else {
             chunkMessages.push({
-              rowId: row._id,
+              rowId: row._id.toString(),
               column,
               messages: [message],
             });

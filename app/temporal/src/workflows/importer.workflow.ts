@@ -11,6 +11,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import env from "env-var";
+import { keyBy, mapValues } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
@@ -19,6 +20,7 @@ import {
   DataMappingRecommendation,
 } from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
+import { ValidationMessage } from "../domain/ValidationMessage";
 export interface ImporterWorkflowParams {
   name: string;
   description?: string;
@@ -83,9 +85,13 @@ const mappingUpdate = defineUpdate<
     }
   ]
 >("importer:update-mapping");
-const recordUpdate = defineUpdate<void, [{ patches: DataSetPatch[] }]>(
-  "importer:update-record"
-);
+const recordUpdate = defineUpdate<
+  {
+    changedColumns: string[];
+    newMessages: Record<string, ValidationMessage[]>;
+  },
+  [{ patches: DataSetPatch[] }]
+>("importer:update-record");
 
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
@@ -151,7 +157,11 @@ export async function importer(params: ImporterWorkflowParams) {
         importerId: workflowInfo().workflowId,
         patches: updateParams.patches,
       });
+      let validationResults = [];
+      const changedColumns = new Set<string>();
+
       for (const patch of updateParams.patches) {
+        changedColumns.add(patch.column);
         const columnConfig = params.columnConfig.find(
           (item) => item.key === patch.column
         );
@@ -159,16 +169,28 @@ export async function importer(params: ImporterWorkflowParams) {
           continue;
         }
         const columnValidations = columnConfig.validations;
+
         if (columnValidations?.length) {
           if (columnValidations.find((item) => item.type === "unique")) {
             // unique validation
-            await performValidations([columnConfig]);
+            const results = await performValidations([columnConfig], true);
+            const resultForRowId = results.find(
+              (item) => item.rowId === patch.rowId
+            );
+            validationResults.push(resultForRowId);
           } else {
             // other validations
-            await performRecordValidation([columnConfig], patch.rowId);
+            validationResults.push(
+              ...(await performRecordValidation([columnConfig], patch.rowId))
+            );
           }
         }
       }
+      const newMessages = mapValues(
+        keyBy(validationResults, "column"),
+        "messages"
+      );
+      return { changedColumns: [...changedColumns], newMessages };
     },
     {
       validator: (params) => {
@@ -292,7 +314,10 @@ export async function importer(params: ImporterWorkflowParams) {
     await acts.dropDatabase({ importerId });
   }
 
-  async function performValidations(columnConfigs: ColumnConfig[]) {
+  async function performValidations(
+    columnConfigs: ColumnConfig[],
+    returnValidationResults = false
+  ) {
     isValidating = true;
 
     const columnValidators = {} as ColumnValidators;
@@ -324,12 +349,16 @@ export async function importer(params: ImporterWorkflowParams) {
           stats: columnStats,
           skip: index * limit,
           limit,
+          returnValidationResults,
         });
       })
     );
-    await Promise.all(parallelValidations);
+    const validationResults = await Promise.all(parallelValidations);
+    const flatValidationResults = validationResults.flat();
+
     meta = await acts.generateMeta({ importerId });
     isValidating = false;
+    return flatValidationResults;
   }
 
   async function performRecordValidation(
@@ -337,7 +366,6 @@ export async function importer(params: ImporterWorkflowParams) {
     rowId: string
   ) {
     isValidating = true;
-
     const columnValidators = {} as ColumnValidators;
     for (const column of columnConfigs) {
       for (const validator of column.validations!) {
@@ -354,7 +382,7 @@ export async function importer(params: ImporterWorkflowParams) {
       importerId,
       uniqueColumns: columnValidators.unique?.map((item) => item.column) ?? [],
     });
-    await acts.processDataValidationForRecord({
+    const validationResults = await acts.processDataValidationForRecord({
       importerId,
       columnValidators,
       stats: columnStats,
@@ -362,5 +390,6 @@ export async function importer(params: ImporterWorkflowParams) {
     });
     meta = await acts.generateMeta({ importerId });
     isValidating = false;
+    return validationResults;
   }
 }

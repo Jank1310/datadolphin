@@ -5,7 +5,11 @@ import {
   MongoClient,
   ObjectId,
 } from "mongodb";
-import { SourceFileStatsPerColumn } from "../domain/DataAnalyzer";
+
+import {
+  SourceFileStatsPerColumn,
+  ValidationResult,
+} from "../domain/DataAnalyzer";
 import {
   DataSet,
   DataSetPatch,
@@ -13,7 +17,6 @@ import {
   SourceDataSet,
   SourceDataSetRow,
 } from "../domain/DataSet";
-import { ValidationMessage } from "../domain/ValidationMessage";
 import { Meta } from "../workflows/importer.workflow";
 
 export class Database {
@@ -156,11 +159,7 @@ export class Database {
 
   async updateDataWithValidationMessages(
     importerId: string,
-    validationResults: {
-      rowId: ObjectId;
-      column: string;
-      messages: ValidationMessage[];
-    }[]
+    validationResults: ValidationResult[]
   ) {
     const writes: AnyBulkWriteOperation<DataSetRow>[] = [];
     for (const validationResult of validationResults) {
@@ -168,7 +167,7 @@ export class Database {
       writes.push({
         updateOne: {
           filter: {
-            _id: validationResult.rowId,
+            _id: new ObjectId(validationResult.rowId),
           },
           update: {
             $set: {
@@ -182,7 +181,7 @@ export class Database {
         writes.push({
           updateOne: {
             filter: {
-              _id: validationResult.rowId,
+              _id: new ObjectId(validationResult.rowId),
             },
             update: {
               $addToSet: {

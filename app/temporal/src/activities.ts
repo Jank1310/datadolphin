@@ -10,6 +10,7 @@ import {
   DataAnalyzer,
   DataMappingRecommendation,
   SourceFileStatsPerColumn,
+  ValidationResult,
 } from "./domain/DataAnalyzer";
 import {
   DataSet,
@@ -166,14 +167,15 @@ export function makeActivities(
       stats: SourceFileStatsPerColumn;
       skip: number;
       limit: number;
-    }): Promise<number> => {
+      returnValidationResults: boolean;
+    }): Promise<ValidationResult[]> => {
       const jsonData: DataSet = await database.getData(
         params.importerId,
         params.skip,
         params.limit
       );
       if (!jsonData || jsonData.length === 0) {
-        return 0;
+        return [];
       }
 
       const validationResults = dataAnalyzer.processDataValidations(
@@ -186,17 +188,21 @@ export function makeActivities(
         params.importerId,
         validationResults
       );
-      return validationResults.length;
+      if (params.returnValidationResults) {
+        return validationResults;
+      } else {
+        return [];
+      }
     },
     processDataValidationForRecord: async (params: {
       importerId: string;
       columnValidators: ColumnValidators;
       stats: SourceFileStatsPerColumn;
       rowId: string;
-    }): Promise<number> => {
+    }): Promise<ValidationResult[]> => {
       const row = await database.getDataRecord(params.importerId, params.rowId);
       if (!row) {
-        return 0;
+        return [];
       }
 
       const validationResults = dataAnalyzer.processDataValidations(
@@ -209,7 +215,7 @@ export function makeActivities(
         params.importerId,
         validationResults
       );
-      return validationResults.length;
+      return validationResults;
     },
     applyPatches: async (params: {
       importerId: string;
