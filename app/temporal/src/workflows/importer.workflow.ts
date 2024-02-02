@@ -67,7 +67,7 @@ const addFileUpdate = defineUpdate<
 const startImportSignal = defineSignal<[]>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const dataMappingRecommendationsQuery = defineQuery<
-  DataMappingRecommendation[]
+  DataMappingRecommendation[] | null
 >("importer:data-mapping-recommendations");
 const importerConfigQuery =
   defineQuery<ImporterWorkflowParams>("importer:config");
@@ -160,7 +160,7 @@ export async function importer(params: ImporterWorkflowParams) {
     return params;
   });
   setHandler(dataMappingRecommendationsQuery, () => {
-    return dataMappingRecommendations ?? [];
+    return dataMappingRecommendations ?? null;
   });
 
   setHandler(importStatusQuery, () => {

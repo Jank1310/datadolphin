@@ -4,7 +4,7 @@ import useSWR from "swr";
 export function useGetMappingRecommendations(
   importerId: string | null,
   pollInterval?: number,
-  fallbackData?: DataMappingRecommendation[] | null
+  fallbackData?: { recommendations: DataMappingRecommendation[] | null }
 ) {
   const { data, error, isLoading } = useSWR(
     importerId
@@ -17,7 +17,7 @@ export function useGetMappingRecommendations(
     }
   );
   return {
-    recommendations: data as DataMappingRecommendation[],
+    recommendations: data.recommendations as DataMappingRecommendation[] | null,
     error,
     isLoading,
   };
