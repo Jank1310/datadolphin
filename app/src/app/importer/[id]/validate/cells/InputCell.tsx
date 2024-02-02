@@ -42,7 +42,9 @@ export const InputCell = ({
     if (inputRef.current) {
       inputRef.current.blur();
     }
-    onChange(value);
+    if (value !== initialValue) {
+      onChange(value);
+    }
   };
 
   const onBlur = () => {
