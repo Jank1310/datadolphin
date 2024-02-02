@@ -53,7 +53,7 @@ const ShowMappings = ({
     useGetMappingRecommendations(
       initialImporterDto.importerId,
       enablePolling ? 500 : undefined,
-      initialDataMappingsRecommendations
+      { recommendations: initialDataMappingsRecommendations }
     );
 
   const isWaitingForMappings =

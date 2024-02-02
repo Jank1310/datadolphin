@@ -26,7 +26,8 @@ const MappingPage = async (props: Props) => {
       cache: "no-cache",
     }
   ).then(
-    async (res) => (await res.json()) as DataMappingRecommendation[] | null
+    async (res) =>
+      (await res.json()).recommendations as DataMappingRecommendation[] | null
   );
   const [initialImporterDto, initialDataMappings] = await Promise.all([
     initialImporterDtoPromise,

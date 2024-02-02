@@ -11,5 +11,5 @@ export async function GET(
   const recommendations = await handle.query(
     "importer:data-mapping-recommendations"
   );
-  return NextResponse.json(recommendations);
+  return NextResponse.json({ recommendations });
 }
