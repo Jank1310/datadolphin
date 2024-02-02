@@ -1,18 +1,22 @@
 version: "3.7"
 
+# Shared environment variables
+x-default-env: &defaultEnv
+  MINIO_HOST: minio
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+  MONGO_URL: ${MONGO_URL}
+  TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
+  TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+
 services:
   app:
     extends:
       file: docker-compose.base.yaml
       service: app
-    environment: &defaultEnv
+    environment:
+      <<: *defaultEnv
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
-      MINIO_HOST: minio
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MONGO_URL: ${MONGO_URL}
-      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
-      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
   worker-1:
     extends:
       file: docker-compose.base.yaml
