@@ -21,10 +21,16 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: worker
+    environment:
+      <<: *defaultEnv
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
   worker-2:
     extends:
       file: docker-compose.base.yaml
       service: worker
+    environment:
+      <<: *defaultEnv
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
   worker-3:
     extends:
       file: docker-compose.base.yaml
@@ -85,6 +91,22 @@ services:
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     networks:
       - temporal-network
+  # PROXY
+  caddy:
+    image: caddy
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - proxy-network
+    depends_on:
+      - app
 networks:
   temporal-network:
     driver: bridge
@@ -92,7 +114,12 @@ networks:
   ferretdb-network:
     driver: bridge
     name: ferretdb-network
+  caddy-network:
+    driver: bridge
+    name: caddy-network
 volumes:
   miniostorage:
   temporal-postgresql:
   mongodb:
+  caddy_data:
+  caddy_config:
