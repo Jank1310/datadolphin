@@ -1,0 +1,8 @@
+{
+    email   mail@hello.com
+}
+
+# INSERT YOU DOMAIN NAME
+foo.bar.com {
+    reverse_proxy app:3000
+}
