@@ -167,8 +167,7 @@ export function makeActivities(
       stats: SourceFileStatsPerColumn;
       skip: number;
       limit: number;
-      returnValidationResults: boolean;
-    }): Promise<ValidationResult[]> => {
+    }): Promise<string[]> => {
       const jsonData: DataSet = await database.getData(
         params.importerId,
         params.skip,
@@ -188,11 +187,11 @@ export function makeActivities(
         params.importerId,
         validationResults
       );
-      if (params.returnValidationResults) {
-        return validationResults;
-      } else {
-        return [];
-      }
+
+      const affectedColumns = [
+        ...new Set(validationResults.map((result) => result.column)),
+      ];
+      return affectedColumns;
     },
     processDataValidationForRecord: async (params: {
       importerId: string;
