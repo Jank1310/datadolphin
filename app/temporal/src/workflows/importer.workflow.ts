@@ -107,7 +107,6 @@ const validationParallelLimit = env
 export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
-  const compensations: Function[] = [];
 
   let sourceFile: {
     bucket: string;
