@@ -11,7 +11,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import env from "env-var";
-import { keyBy, mapValues } from "lodash";
+import { keyBy, mapValues, times } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
@@ -49,6 +49,7 @@ export interface ImporterStatus {
   isImporting: boolean;
   totalRows: number;
   dataMapping: Mapping[] | null;
+  meta: Meta | null;
 }
 
 export interface Mapping {
@@ -57,7 +58,7 @@ export interface Mapping {
 }
 
 export interface Meta {
-  messageCount: Record<string, number>;
+  messageCount: Record<string /* columnId */, number>;
 }
 
 const addFileUpdate = defineUpdate<
@@ -107,7 +108,6 @@ const validationParallelLimit = env
 export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
-  const compensations: Function[] = [];
 
   let sourceFile: {
     bucket: string;
@@ -284,7 +284,7 @@ export async function importer(params: ImporterWorkflowParams) {
     // TODO add activity to get current number messages and prevent import if existing messages
     // @see https://github.com/Jank1310/datadolphin/issues/40
 
-    // we dont have any more messages
+    // we don't have any more messages
     await acts.invokeCallback({
       importerId,
       callbackUrl: params.callbackUrl,
@@ -339,15 +339,14 @@ export async function importer(params: ImporterWorkflowParams) {
     //! Optimize import limit
     const limitFct = pLimit(validationParallelLimit);
     const limit = 5000;
-    const parallelValidations = Array.from(
-      Array(Math.ceil(totalCount / limit)).keys()
-    ).map((_key: number, index: number) =>
+    const validationRecordChunks = Math.ceil(totalCount / limit);
+    const parallelValidations = times(validationRecordChunks, (chunkIndex) =>
       limitFct(() => {
         return acts.processDataValidations({
           importerId,
           columnValidators,
           stats: columnStats,
-          skip: index * limit,
+          skip: chunkIndex * limit,
           limit,
           returnValidationResults,
         });
