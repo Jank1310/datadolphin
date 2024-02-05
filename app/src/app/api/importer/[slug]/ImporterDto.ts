@@ -32,8 +32,12 @@ export interface ImporterStatus {
   isImporting: boolean;
   totalRows: number;
   dataMapping: DataMapping[] | null;
+  meta: Meta | null;
 }
 
+export interface Meta {
+  messageCount: Record<string /* columnId */, number>;
+}
 export interface DataMappingRecommendation {
   targetColumn: string | null;
   sourceColumn: string;
