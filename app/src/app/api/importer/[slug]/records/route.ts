@@ -30,25 +30,26 @@ export async function PATCH(
   const client = await getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
   const updateData = await req.json();
-  handle.executeUpdate<void, [{ patches: DataSetPatch[] }]>(
-    "importer:update-record",
+  const updateResult = await handle.executeUpdate<
     {
-      args: [
-        {
-          patches: [
-            {
-              column: updateData.columnId,
-              rowId: updateData._id,
-              newValue: updateData.value,
-            },
-          ],
-        },
-      ],
-    }
-  );
+      changedColumns: string[];
+      newMessages: Record<string, any[]>;
+    },
+    [{ patches: DataSetPatch[] }]
+  >("importer:update-record", {
+    args: [
+      {
+        patches: [
+          {
+            column: updateData.columnId,
+            rowId: updateData._id,
+            newValue: updateData.value,
+          },
+        ],
+      },
+    ],
+  });
   // CALL update for patches
   // TODO return new messages for cell and return if it whole column changed (client can reload pages and stats)
-  return NextResponse.json({
-    success: true,
-  });
+  return NextResponse.json(updateResult);
 }

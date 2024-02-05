@@ -1,8 +1,7 @@
 import Fuse from "fuse.js";
-import { ObjectId } from "mongodb";
 import { ColumnConfig } from "./ColumnConfig";
 import { ColumnValidation } from "./ColumnValidation";
-import { DataSet } from "./DataSet";
+import { DataSet, DataSetRow } from "./DataSet";
 import { ValidationMessage } from "./ValidationMessage";
 import { ValidatorType, validators } from "./validators";
 
@@ -22,6 +21,11 @@ export type ColumnValidators = Record<
   { column: string; config: ColumnValidation }[]
 >;
 
+export interface ValidationResult {
+  rowId: string;
+  column: string;
+  messages: ValidationMessage[];
+}
 export class DataAnalyzer {
   constructor() {}
 
@@ -71,71 +75,51 @@ export class DataAnalyzer {
     data: DataSet,
     validatorColumns: ColumnValidators,
     stats: SourceFileStatsPerColumn
-  ): { rowId: ObjectId; column: string; messages: ValidationMessage[] }[] {
-    const chunkMessages: {
-      rowId: ObjectId;
-      column: string;
-      messages: ValidationMessage[];
-    }[] = [];
-    const validatorKeys = Object.keys(validatorColumns) as ValidatorType[];
-    for (const row of data) {
-      for (const validatorKey of validatorKeys) {
-        if (validatorColumns[validatorKey].length > 0) {
-          const messages = validators[validatorKey].validate(
-            row,
-            validatorColumns[validatorKey],
-            stats
-          );
+  ): ValidationResult[] {
+    const chunkMessages: ValidationResult[] = [];
 
-          for (const column of Object.keys(messages as any)) {
-            const message = messages[column] as any;
-            const messageForRowAndColumn = chunkMessages.find(
-              (item) => item.rowId === row._id && item.column === column
-            );
-            if (messageForRowAndColumn) {
-              messageForRowAndColumn.messages.push(message);
-            } else {
-              chunkMessages.push({
-                rowId: row._id,
-                column,
-                messages: [message],
-              });
-            }
+    for (const row of data) {
+      chunkMessages.push(
+        ...this.processDataValidationsForRecord(row, validatorColumns, stats)
+      );
+    }
+    return chunkMessages;
+  }
+
+  private processDataValidationsForRecord(
+    row: DataSetRow,
+    validatorColumns: ColumnValidators,
+    stats: SourceFileStatsPerColumn
+  ): ValidationResult[] {
+    const chunkMessages: ValidationResult[] = [];
+    const validatorKeys = Object.keys(validatorColumns) as ValidatorType[];
+    for (const validatorKey of validatorKeys) {
+      if (validatorColumns[validatorKey].length > 0) {
+        const messages = validators[validatorKey].validate(
+          row,
+          validatorColumns[validatorKey],
+          stats
+        );
+
+        for (const column of Object.keys(messages as any)) {
+          const message = messages[column] as any;
+          const messageForRowAndColumn = chunkMessages.find(
+            (item) =>
+              item.rowId === row._id.toString() && item.column === column
+          );
+          if (messageForRowAndColumn) {
+            messageForRowAndColumn.messages.push(message);
+          } else {
+            chunkMessages.push({
+              rowId: row._id.toString(),
+              column,
+              messages: [message],
+            });
           }
         }
       }
     }
     return chunkMessages;
-  }
-
-  public getStats(
-    data: DataSet,
-    columnsToVerify: string[]
-  ): SourceFileStatsPerColumn {
-    // nonunique
-    const stats = {} as SourceFileStatsPerColumn;
-    for (const column of columnsToVerify) {
-      const duplicates = new Map();
-      data.forEach((row) => {
-        if (!row.data[column]) {
-          throw new Error(
-            `Column ${column} not found in data rowId: ${row._id.toString()}`
-          );
-        }
-        duplicates.set(
-          row.data[column].value,
-          (duplicates.get(row.data[column].value) ?? 0) + 1
-        );
-      });
-      duplicates.forEach((value, key) => {
-        if (value === 1) {
-          duplicates.delete(key);
-        }
-      });
-
-      stats[column] = { nonunique: Object.fromEntries(duplicates) };
-    }
-    return stats;
   }
 
   private findDirectMappingMatches(

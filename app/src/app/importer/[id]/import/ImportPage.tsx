@@ -36,7 +36,8 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
       } catch (err) {
         console.error(err);
       } finally {
-        setIsUploading(false);
+        // is reset before the page is navigated away from
+        // setIsUploading(false);
       }
     }
   };
