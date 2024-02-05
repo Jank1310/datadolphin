@@ -1,0 +1,15 @@
+{
+    "sidebar": {
+        "step": {
+            "file": {
+                "title": "Select file"
+            },
+            "mapping": {
+                "title": "Mapping"
+            },
+            "validation": {
+                "title": "Validation"
+            }
+        }
+    }
+}

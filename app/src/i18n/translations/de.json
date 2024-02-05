@@ -1,0 +1,15 @@
+{
+    "sidebar": {
+        "step": {
+            "file": {
+                "title": "Datei auswählen"
+            },
+            "mapping": {
+                "title": "Zuweisungen"
+            },
+            "validation": {
+                "title": "Validierung"
+            }
+        }
+    }
+}

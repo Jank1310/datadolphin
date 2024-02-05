@@ -3,6 +3,7 @@ import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { CheckCircle2Icon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   importerDto: ImporterDto;
@@ -11,6 +12,7 @@ type Props = {
 const SidebarMenu = ({ importerDto }: Props) => {
   const pathname = usePathname();
   const currentStep = pathname.split("/").pop();
+  const { t } = useTranslation();
   return (
     <nav className="h-full bg-blue-500 w-3/12 text-white">
       <div className="p-4">
@@ -26,20 +28,20 @@ const SidebarMenu = ({ importerDto }: Props) => {
       <div className="mt-8">
         <ol role="list" className="px-4 space-y-2">
           <MenuStep
-            text="Select file"
+            text={t("sidebar.step.file.title")}
             isCurrent={currentStep === "import"}
             href={null}
             isDone={importerDto.status.isWaitingForFile === false}
           />
           {/* TODO add mapping state to importer status */}
           <MenuStep
-            text="Mapping"
+            text={t("sidebar.step.mapping.title")}
             isCurrent={currentStep === "mapping"}
             href="mapping"
             isDone={false}
           />
           <MenuStep
-            text="Validation"
+            text={t("sidebar.step.validation.title")}
             isCurrent={currentStep === "validation"}
             href={null}
             isDone={importerDto.status.isWaitingForImport === false}
