@@ -11,7 +11,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import env from "env-var";
-import { keyBy, mapValues } from "lodash";
+import { keyBy, mapValues, times } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
@@ -338,15 +338,14 @@ export async function importer(params: ImporterWorkflowParams) {
     //! Optimize import limit
     const limitFct = pLimit(validationParallelLimit);
     const limit = 5000;
-    const parallelValidations = Array.from(
-      Array(Math.ceil(totalCount / limit)).keys()
-    ).map((_key: number, index: number) =>
+    const validationRecordChunks = Math.ceil(totalCount / limit);
+    const parallelValidations = times(validationRecordChunks, (chunkIndex) =>
       limitFct(() => {
         return acts.processDataValidations({
           importerId,
           columnValidators,
           stats: columnStats,
-          skip: index * limit,
+          skip: chunkIndex * limit,
           limit,
           returnValidationResults,
         });
