@@ -43,6 +43,7 @@ type Props = {
   data: Record<number, SourceData[]>;
   totalRows: number;
   onUpdateData: (
+    rowIndex: number,
     rowId: string,
     columnId: string,
     value: string | number | null,
@@ -105,15 +106,15 @@ const ValidationTable = (props: Props) => {
             (validation) => validation.type === "required"
           );
           let displayValue: React.ReactNode = value;
+          const handleChangeData = (newValue: string) => {
+            props.table.options.meta?.updateData(
+              props.row.index,
+              mapperColumnId,
+              newValue,
+              value
+            );
+          };
           if (enumValidators && enumValidators.length > 0) {
-            const handleChangeMapping = (newValue: string) => {
-              props.table.options.meta?.updateData(
-                props.row.index,
-                mapperColumnId,
-                newValue,
-                value
-              );
-            };
             const availableValues = enumValidators.flatMap(
               (validator) => validator.values
             );
@@ -121,7 +122,7 @@ const ValidationTable = (props: Props) => {
               <SelectCell
                 value={(value as string) ?? ""}
                 availableValues={availableValues}
-                onChange={handleChangeMapping}
+                onChange={handleChangeData}
                 isRequired={isValueRequired}
                 isReadOnly={isValidating}
               />
@@ -132,14 +133,7 @@ const ValidationTable = (props: Props) => {
                 value={(value as string) ?? ""}
                 isRequired={isValueRequired}
                 isReadOnly={isValidating}
-                onChange={(newValue) =>
-                  props.table.options.meta?.updateData(
-                    props.row.index,
-                    mapperColumnId,
-                    newValue,
-                    value
-                  )
-                }
+                onChange={handleChangeData}
               />
             );
           }
@@ -208,7 +202,7 @@ const ValidationTable = (props: Props) => {
     meta: {
       updateData: (rowIndex, columnId, value, previousValue) => {
         const rowId = allData[rowIndex]._id;
-        props.onUpdateData(rowId, columnId, value, previousValue);
+        props.onUpdateData(rowIndex, rowId, columnId, value, previousValue);
       },
     },
   });

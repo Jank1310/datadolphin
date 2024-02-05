@@ -1,6 +1,7 @@
 "use client";
 
 import { ImporterDto, SourceData } from "@/app/api/importer/[slug]/ImporterDto";
+import { RecordUpdateResult } from "@/app/api/importer/[slug]/records/RecordUpdateResult";
 import { useFetchRecords } from "@/components/hooks/useFetchRecords";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
@@ -80,8 +81,41 @@ const Validation = ({
       }
     }
   }, [enablePolling, handleLoadPage, isMappingData]);
+  const handleRecordUpdate = React.useCallback(
+    (
+      rowIndex: number,
+      rowId: string,
+      _columnId: string,
+      result: RecordUpdateResult
+    ) => {
+      // update messages
+      const rowPage = Math.floor(rowIndex / 100);
+      setPageData(
+        produce((draft) => {
+          const page = draft[rowPage];
+          const row = page.find((r) => r._id === rowId);
+          if (!row) {
+            throw new Error("row not found: " + rowId);
+          }
+          console.log("found row", row, "upadting", result);
+          for (const newMessagesColumnId in result.newMessagesByColumn) {
+            console.log("set messages for", newMessagesColumnId);
+            row.data[newMessagesColumnId].messages =
+              result.newMessagesByColumn[newMessagesColumnId];
+          }
+        })
+      );
+      // reload importer to get latest stats
+    },
+    []
+  );
   const handleUpdateData = React.useCallback(
-    async (rowId: string, columnId: string, value: string | number | null) => {
+    async (
+      rowIndex: number,
+      rowId: string,
+      columnId: string,
+      value: string | number | null
+    ) => {
       setCurrentValidations(
         produce((draft) => {
           if (!draft[rowId]) {
@@ -91,17 +125,24 @@ const Validation = ({
         })
       );
       try {
-        await fetch(`/api/importer/${initialImporterDto.importerId}/records`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            _id: rowId,
-            columnId,
-            value,
-          }),
-        });
+        const res = await fetch(
+          `/api/importer/${initialImporterDto.importerId}/records`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              _id: rowId,
+              columnId,
+              value,
+            }),
+          }
+        );
+        if (isMounted()) {
+          const result = (await res.json()) as RecordUpdateResult;
+          handleRecordUpdate(rowIndex, rowId, columnId, result);
+        }
       } finally {
         if (isMounted()) {
           setCurrentValidations(
@@ -116,7 +157,7 @@ const Validation = ({
       }
       // TODO handle result (reload etc.)
     },
-    [initialImporterDto.importerId, isMounted]
+    [handleRecordUpdate, initialImporterDto.importerId, isMounted]
   );
 
   const dataStats = {

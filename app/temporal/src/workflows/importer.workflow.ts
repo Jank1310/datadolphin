@@ -88,8 +88,11 @@ const mappingUpdate = defineUpdate<
 >("importer:update-mapping");
 const recordUpdate = defineUpdate<
   {
+    /**
+     * means that the whole column might have changes
+     */
     changedColumns: string[];
-    newMessages: Record<string, ValidationMessage[]>;
+    newMessagesByColumn: Record<string /* columnId */, ValidationMessage[]>;
   },
   [{ patches: DataSetPatch[] }]
 >("importer:update-record");
@@ -190,7 +193,10 @@ export async function importer(params: ImporterWorkflowParams) {
         keyBy(validationResults, "column"),
         "messages"
       );
-      return { changedColumns: [...changedColumns], newMessages };
+      return {
+        changedColumns: [...changedColumns],
+        newMessagesByColumn: newMessages,
+      };
     },
     {
       validator: (params) => {
