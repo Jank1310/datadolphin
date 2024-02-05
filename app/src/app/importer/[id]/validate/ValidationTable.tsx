@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Row,
@@ -31,7 +32,7 @@ import {
 } from "@tanstack/react-table";
 import { produce } from "immer";
 import { isObject, isString } from "lodash";
-import { AlertCircle, Badge } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import React from "react";
 import { InputCell } from "./cells/InputCell";
 import SelectCell from "./cells/SelectCell";
@@ -67,6 +68,7 @@ const ValidationTable = (props: Props) => {
     return props.importerDto.config.columnConfig.map((config) =>
       columnHelper.accessor(`data.${config.key}.value`, {
         header: config.label,
+        id: config.key,
         size: 300,
         cell: (props) => {
           const mapperColumnId = config.key;
@@ -236,7 +238,10 @@ const ValidationTable = (props: Props) => {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="flex w-full">
                   {headerGroup.headers.map((header) => {
-                    const numberOfValidations = 0;
+                    const numberOfValidations =
+                      props.importerDto.status.meta?.messageCount[
+                        header.column.id
+                      ] ?? 0;
                     return (
                       <TableHead
                         className="border-r"
