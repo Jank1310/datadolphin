@@ -49,6 +49,7 @@ export interface ImporterStatus {
   isImporting: boolean;
   totalRows: number;
   dataMapping: Mapping[] | null;
+  meta: Meta | null;
 }
 
 export interface Mapping {
@@ -57,7 +58,7 @@ export interface Mapping {
 }
 
 export interface Meta {
-  messageCount: Record<string, number>;
+  messageCount: Record<string /* columnId */, number>;
 }
 
 const addFileUpdate = defineUpdate<
@@ -283,7 +284,7 @@ export async function importer(params: ImporterWorkflowParams) {
     // TODO add activity to get current number messages and prevent import if existing messages
     // @see https://github.com/Jank1310/datadolphin/issues/40
 
-    // we dont have any more messages
+    // we don't have any more messages
     await acts.invokeCallback({
       importerId,
       callbackUrl: params.callbackUrl,
