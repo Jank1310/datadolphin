@@ -22,6 +22,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   Row,
   RowData,
@@ -48,6 +49,14 @@ type Props = {
     previousValue: string | number | null
   ) => void;
   onLoadPage: (page: number) => void;
+  currentValidations: Record<
+    string /* rowId */,
+    Record<string /* columnId */, boolean>
+  >;
+};
+
+type ExtendedSourceData = SourceData & {
+  isValidatingByColumn?: Record<string /* columnId */, boolean>;
 };
 
 declare module "@tanstack/react-table" {
@@ -64,7 +73,7 @@ declare module "@tanstack/react-table" {
 const ValidationTable = (props: Props) => {
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
   const columns = React.useMemo(() => {
-    const columnHelper = createColumnHelper<SourceData | "loading">();
+    const columnHelper = createColumnHelper<ExtendedSourceData | "loading">();
     return props.importerDto.config.columnConfig.map((config) =>
       columnHelper.accessor(`data.${config.key}.value`, {
         header: config.label,
@@ -85,6 +94,10 @@ const ValidationTable = (props: Props) => {
             ? originalRecord.data?.[mapperColumnId]?.messages ?? []
             : [];
           const columnValidations = config.validations ?? [];
+          const isValidating = isObject(originalRecord)
+            ? originalRecord.isValidatingByColumn?.[mapperColumnId] === true ??
+              false
+            : false;
           const enumValidators = columnValidations.filter(
             (validation) => validation.type === "enum"
           ) as EnumerationColumnValidation[];
@@ -110,6 +123,7 @@ const ValidationTable = (props: Props) => {
                 availableValues={availableValues}
                 onChange={handleChangeMapping}
                 isRequired={isValueRequired}
+                isReadOnly={isValidating}
               />
             );
           } else if (config.type === "text") {
@@ -117,6 +131,7 @@ const ValidationTable = (props: Props) => {
               <InputCell
                 value={(value as string) ?? ""}
                 isRequired={isValueRequired}
+                isReadOnly={isValidating}
                 onChange={(newValue) =>
                   props.table.options.meta?.updateData(
                     props.row.index,
@@ -130,7 +145,11 @@ const ValidationTable = (props: Props) => {
           }
 
           return (
-            <div className="flex items-center p-2">
+            <div
+              className={cn("flex items-center p-2", {
+                "bg-slate-200 animate-pulse": isValidating,
+              })}
+            >
               {displayValue}
               {/* TODO show tooltip */}
               {allMessagesForCell.length > 0 && (
@@ -153,13 +172,13 @@ const ValidationTable = (props: Props) => {
       })
     );
   }, [props.importerDto.config.columnConfig]);
-  const allEmptyData = React.useMemo(() => {
+  const allEmptyData: ExtendedSourceData[] = React.useMemo(() => {
     const emptyRowEntry = props.importerDto.config.columnConfig.reduce(
       (acc, config) => {
         acc.data[config.key] = { value: null, messages: [] };
         return acc;
       },
-      { data: {} } as SourceData
+      { data: {} } as ExtendedSourceData
     );
     return new Array(props.totalRows).fill(emptyRowEntry);
   }, [props.importerDto.config.columnConfig, props.totalRows]);
@@ -173,11 +192,15 @@ const ValidationTable = (props: Props) => {
         const start = pageNumber * 100;
         const pageData = props.data[pageNumber];
         for (let i = 0; i < pageData.length; i++) {
-          draft[start + i] = pageData[i];
+          const currentValidationsForRow =
+            props.currentValidations[pageData[i]._id];
+          draft[start + i] = { ...pageData[i] };
+          draft[start + i].isValidatingByColumn =
+            currentValidationsForRow ?? {};
         }
       }
     });
-  }, [allEmptyData, props.data]);
+  }, [allEmptyData, props.currentValidations, props.data]);
   const table = useReactTable({
     data: allData,
     columns,

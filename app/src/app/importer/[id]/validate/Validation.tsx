@@ -5,9 +5,10 @@ import { useFetchRecords } from "@/components/hooks/useFetchRecords";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { enableMapSet } from "immer";
+import { enableMapSet, produce } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import React from "react";
+import { useIsMounted } from "usehooks-ts";
 import ValidationTable from "./ValidationTable";
 enableMapSet();
 type Props = {
@@ -20,6 +21,10 @@ const Validation = ({
   initialRecords: initialData,
 }: Props) => {
   const [enablePolling, setEnablePolling] = React.useState(false);
+  const [currentValidations, setCurrentValidations] = React.useState<
+    Record<string /* rowId */, Record<string /* columnId */, boolean>>
+  >({});
+  const isMounted = useIsMounted();
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
     enablePolling ? 500 : undefined,
@@ -77,20 +82,41 @@ const Validation = ({
   }, [enablePolling, handleLoadPage, isMappingData]);
   const handleUpdateData = React.useCallback(
     async (rowId: string, columnId: string, value: string | number | null) => {
-      await fetch(`/api/importer/${initialImporterDto.importerId}/records`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          _id: rowId,
-          columnId,
-          value,
-        }),
-      });
+      setCurrentValidations(
+        produce((draft) => {
+          if (!draft[rowId]) {
+            draft[rowId] = {};
+          }
+          draft[rowId][columnId] = true;
+        })
+      );
+      try {
+        await fetch(`/api/importer/${initialImporterDto.importerId}/records`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            _id: rowId,
+            columnId,
+            value,
+          }),
+        });
+      } finally {
+        if (isMounted()) {
+          setCurrentValidations(
+            produce((draft) => {
+              if (!draft[rowId]) {
+                draft[rowId] = {};
+              }
+              draft[rowId][columnId] = false;
+            })
+          );
+        }
+      }
       // TODO handle result (reload etc.)
     },
-    [initialImporterDto.importerId]
+    [initialImporterDto.importerId, isMounted]
   );
 
   const dataStats = {
@@ -125,6 +151,7 @@ const Validation = ({
           totalRows={dataStats.total}
           onUpdateData={handleUpdateData}
           onLoadPage={handleLoadPage}
+          currentValidations={currentValidations}
         />
       </div>
     </div>
