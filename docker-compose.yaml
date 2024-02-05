@@ -21,10 +21,16 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: worker
+    environment:
+      <<: *defaultEnv
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
   worker-2:
     extends:
       file: docker-compose.base.yaml
       service: worker
+    environment:
+      <<: *defaultEnv
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
   worker-3:
     extends:
       file: docker-compose.base.yaml
