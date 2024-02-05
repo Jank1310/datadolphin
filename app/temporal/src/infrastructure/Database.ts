@@ -60,22 +60,25 @@ export class Database {
     }
     const stats = (
       await this.getDataCollection(importerId)
-        .aggregate<SourceFileStatsPerColumn>([
-          {
-            $facet: $facet,
-          },
-          {
-            $replaceRoot: {
-              newRoot: $replaceRoot,
+        .aggregate<SourceFileStatsPerColumn>(
+          [
+            {
+              $facet: $facet,
             },
-          },
-        ])
+            {
+              $replaceRoot: {
+                newRoot: $replaceRoot,
+              },
+            },
+          ],
+          { allowDiskUse: true }
+        )
         .toArray()
     )[0];
     return stats;
   }
 
-  async getTotalCount(importerId: string): Promise<number> {
+  async getTotalRecordsCount(importerId: string): Promise<number> {
     return this.getDataCollection(importerId).countDocuments();
   }
 

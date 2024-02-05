@@ -249,7 +249,7 @@ export function makeActivities(
       console.timeEnd("generate-stats");
 
       console.time("total-count");
-      const totalCount = await database.getTotalCount(params.importerId);
+      const totalCount = await database.getTotalRecordsCount(params.importerId);
       console.timeEnd("total-count");
 
       return { columnStats, totalCount };
