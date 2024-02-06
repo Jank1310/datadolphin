@@ -78,8 +78,19 @@ const ValidationTable = (props: Props) => {
   const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
   const tableBodyRef = React.useRef<HTMLTableSectionElement | null>(null);
   const columns = React.useMemo(() => {
+    const dataMappingWithConfig = (props.importerDto.status.dataMapping ?? [])
+      .filter((mapping) => mapping.targetColumn !== null)
+      .map((mapping) => {
+        const config = props.importerDto.config.columnConfig.find(
+          (c) => c.key === mapping.targetColumn
+        );
+        if (!config) {
+          throw new Error("Config not found for mapping");
+        }
+        return { ...mapping, config };
+      });
     const columnHelper = createColumnHelper<ExtendedSourceData | "loading">();
-    return props.importerDto.config.columnConfig.map((config) =>
+    return dataMappingWithConfig.map(({ targetColumn, config }) =>
       columnHelper.accessor(`data.${config.key}.value`, {
         header: config.label,
         id: config.key,
@@ -171,7 +182,10 @@ const ValidationTable = (props: Props) => {
         },
       })
     );
-  }, [props.importerDto.config.columnConfig]);
+  }, [
+    props.importerDto.config.columnConfig,
+    props.importerDto.status.dataMapping,
+  ]);
   const allEmptyData: ExtendedSourceData[] = React.useMemo(() => {
     const emptyRowEntry = props.importerDto.config.columnConfig.reduce(
       (acc, config) => {
