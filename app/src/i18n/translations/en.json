@@ -28,5 +28,11 @@
         "columnsInYourFile": "Columns in your file",
         "targetColumns": "Target columns",
         "noSelectionItem": "None"
+    },
+    "validation": {
+        "processingData": "Processing data...",
+        "title": "Validate your data",
+        "btnConfirmData": "Confirm data",
+        "numberOfErrors": "{{count}} errors"
     }
 }

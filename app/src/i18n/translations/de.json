@@ -28,5 +28,11 @@
         "columnsInYourFile": "Spalten in Ihrer Datei",
         "targetColumns": "Ziel-Spalten",
         "noSelectionItem": "Keine"
+    },
+    "validation": {
+        "processingData": "Daten werden verarbeitet...",
+        "title": "Daten validieren",
+        "btnConfirmData": "Daten bestätigen",
+        "numberOfErrors": "{{count}} Fehler"
     }
 }

@@ -35,6 +35,7 @@ import { produce } from "immer";
 import { isObject, isString } from "lodash";
 import { AlertCircle } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { InputCell } from "./cells/InputCell";
 import SelectCell from "./cells/SelectCell";
 
@@ -72,6 +73,7 @@ declare module "@tanstack/react-table" {
 }
 
 const ValidationTable = (props: Props) => {
+  const { t } = useTranslation();
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
   const columns = React.useMemo(() => {
     const columnHelper = createColumnHelper<ExtendedSourceData | "loading">();
@@ -255,7 +257,7 @@ const ValidationTable = (props: Props) => {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="flex w-full">
                   {headerGroup.headers.map((header) => {
-                    const numberOfValidations =
+                    const numberOfMessages =
                       props.importerDto.status.meta?.messageCount[
                         header.column.id
                       ] ?? 0;
@@ -271,9 +273,11 @@ const ValidationTable = (props: Props) => {
                               header.column.columnDef.header,
                               header.getContext()
                             )}
-                        {numberOfValidations > 0 && (
+                        {numberOfMessages > 0 && (
                           <Badge className="ml-4 bg-red-500">
-                            {numberOfValidations} errors
+                            {t("validation.numberOfErrors", {
+                              count: numberOfMessages,
+                            })}
                           </Badge>
                         )}
                       </TableHead>
@@ -293,9 +297,7 @@ const ValidationTable = (props: Props) => {
                         transform: `translateY(${virtualRow.start}px)`,
                       }}
                       key={`loading-${virtualRow.index}`}
-                    >
-                      Empty
-                    </TableRow>
+                    ></TableRow>
                   );
                 }
                 const row = rows[virtualRow.index] as Row<any>;
