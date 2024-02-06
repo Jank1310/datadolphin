@@ -20,5 +20,13 @@
             "btnBrowseFile": "Datei auswählen",
             "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
         }
+    },
+    "mappings": {
+        "title": "Änderung der Spaltenzuordnung bestätigen",
+        "waitingForMappings": "Warte auf Spaltenzuordnungen...",
+        "btnConfirmMappings": "Zuordnungen bestätigen",
+        "columnsInYourFile": "Spalten in Ihrer Datei",
+        "targetColumns": "Ziel-Spalten",
+        "noSelectionItem": "Keine"
     }
 }
