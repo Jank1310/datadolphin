@@ -11,5 +11,14 @@
                 "title": "Validierung"
             }
         }
+    },
+    "import": {
+        "uploading": "Datei wird hochgeladen...",
+        "uploader": {
+            "btnUpload": "Datei hochladen",
+            "dragAndDrop": "Datei hierher ziehen",
+            "btnBrowseFile": "Datei auswählen",
+            "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
+        }
     }
 }

@@ -3,6 +3,7 @@ import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import FileUpload from "./FileUpload";
 
 type Props = {
@@ -16,6 +17,7 @@ const allowedMimeTypes = [
 ];
 
 const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
+  const { t } = useTranslation();
   const { push, replace } = useRouter();
   const [isUploading, setIsUploading] = React.useState(false);
   const { importer } = useGetImporter(
@@ -51,7 +53,7 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
   return (
     <div className="flex h-full items-center justify-center">
       {isUploading ? (
-        <div>Uploading...</div>
+        <div>{t("import.uploading")}</div>
       ) : (
         <FileUpload
           importerId={importer.importerId}
