@@ -1,7 +1,7 @@
 import { Context } from "@temporalio/activity";
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
-import { pull } from "lodash";
+import { pull, uniq } from "lodash";
 import { ObjectId } from "mongodb";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
@@ -188,9 +188,9 @@ export function makeActivities(
         validationResults
       );
 
-      const affectedColumns = [
-        ...new Set(validationResults.map((result) => result.column)),
-      ];
+      const affectedColumns = uniq(
+        validationResults.map((result) => result.column)
+      );
       return affectedColumns;
     },
     processDataValidationForRecord: async (params: {
