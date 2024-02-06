@@ -160,7 +160,6 @@ const ValidationTable = (props: Props) => {
               })}
             >
               {displayValue}
-              {/* TODO show tooltip */}
               {allMessagesForCell.length > 0 && (
                 <Tooltip delayDuration={0}>
                   <TooltipTrigger>
@@ -170,7 +169,7 @@ const ValidationTable = (props: Props) => {
                     <TooltipContent collisionBoundary={tableBodyRef.current}>
                       {allMessagesForCell.map((message, index) => (
                         <div key={index}>
-                          {message.message} [{message.type}]
+                          {t(`validation.messages.${message.type}`)}
                         </div>
                       ))}
                     </TooltipContent>
