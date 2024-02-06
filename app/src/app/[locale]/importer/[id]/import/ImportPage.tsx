@@ -1,6 +1,7 @@
 "use client";
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -53,7 +54,10 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
   return (
     <div className="flex h-full items-center justify-center">
       {isUploading ? (
-        <div>{t("import.uploading")}</div>
+        <div className="flex flex-col items-center">
+          <span className="text-slate-500">{t("import.uploading")}</span>
+          <LoadingSpinner className="text-slate-500 mt-2" />
+        </div>
       ) : (
         <FileUpload
           importerId={importer.importerId}
