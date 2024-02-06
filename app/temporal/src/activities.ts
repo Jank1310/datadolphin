@@ -155,9 +155,12 @@ export function makeActivities(
         return [];
       }
       // all rows should have all available headers (see source file processing)
+      const allEmptyColumns = Object.keys(firstRecord).filter((key) =>
+        key.startsWith("__EMPTY")
+      );
       const sourceColumns = pullAll(
         Object.keys(firstRecord as SourceDataSetRow),
-        ["__sourceRowId", "_id"]
+        ["__sourceRowId", "_id", ...allEmptyColumns]
       );
       return dataAnalyzer.generateMappingRecommendations(
         sourceColumns,
