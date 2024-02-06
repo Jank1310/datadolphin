@@ -85,10 +85,10 @@ export interface DataSetPatch {
 export interface DataValidation {
   rowId: number;
   column: string;
-  errors: ValidationMessage[];
+  errors: ValidationMessages[];
 }
 
-export interface ValidationMessage {
+export interface ValidationMessages {
   type: "required" | "unique" | "regex" | "phone" | "email";
   message: string;
 }
@@ -103,5 +103,5 @@ export type SourceData = {
 
 export interface CellValue {
   value: string | number | null;
-  messages: ValidationMessage[];
+  messages: ValidationMessages[];
 }
