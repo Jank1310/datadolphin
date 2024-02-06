@@ -161,10 +161,9 @@ export async function importer(params: ImporterWorkflowParams) {
         patches: updateParams.patches,
       });
       let validationResults = [];
-      const changedColumns = new Set<string>();
+      let changedColumns: string[] = [];
 
       for (const patch of updateParams.patches) {
-        changedColumns.add(patch.column);
         const columnConfig = params.columnConfig.find(
           (item) => item.key === patch.column
         );
@@ -176,11 +175,7 @@ export async function importer(params: ImporterWorkflowParams) {
         if (columnValidations?.length) {
           if (columnValidations.find((item) => item.type === "unique")) {
             // unique validation
-            const results = await performValidations([columnConfig], true);
-            const resultForRowId = results.find(
-              (item) => item.rowId === patch.rowId
-            );
-            validationResults.push(resultForRowId);
+            changedColumns = await performValidations([columnConfig]);
           } else {
             // other validations
             validationResults.push(
@@ -194,7 +189,7 @@ export async function importer(params: ImporterWorkflowParams) {
         "messages"
       );
       return {
-        changedColumns: [...changedColumns],
+        changedColumns,
         newMessagesByColumn: newMessages,
       };
     },
@@ -320,10 +315,7 @@ export async function importer(params: ImporterWorkflowParams) {
     await acts.dropDatabase({ importerId });
   }
 
-  async function performValidations(
-    columnConfigs: ColumnConfig[],
-    returnValidationResults = false
-  ) {
+  async function performValidations(columnConfigs: ColumnConfig[]) {
     isValidating = true;
 
     const columnValidators = {} as ColumnValidators;
@@ -354,16 +346,14 @@ export async function importer(params: ImporterWorkflowParams) {
           stats: columnStats,
           skip: chunkIndex * limit,
           limit,
-          returnValidationResults,
         });
       })
     );
-    const validationResults = await Promise.all(parallelValidations);
-    const flatValidationResults = validationResults.flat();
+    const affectedColumns = await Promise.all(parallelValidations);
 
     meta = await acts.generateMeta({ importerId });
     isValidating = false;
-    return flatValidationResults;
+    return affectedColumns.flat();
   }
 
   async function performRecordValidation(
