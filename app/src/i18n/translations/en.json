@@ -9,6 +9,9 @@
             },
             "validation": {
                 "title": "Validation"
+            },
+            "importing": {
+                "title": "Importing"
             }
         }
     },
@@ -37,5 +40,10 @@
         "toast": {
             "errorStartingImport": "Starting import failed"
         }
+    },
+    "importing": {
+        "title": "Import is in progress",
+        "youCanCloseNow": "You can close this window now.",
+        "backToTargetApp": "Back to target app"
     }
 }

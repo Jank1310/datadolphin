@@ -21,6 +21,10 @@ export interface ImporterConfig {
   description?: string;
   meta: Record<string, string>;
   logo: string;
+  /**
+   * if set a button will be shown to redirect to this url
+   */
+  redirectUrl?: string;
 }
 
 export interface ImporterStatus {
