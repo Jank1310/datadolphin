@@ -36,6 +36,9 @@ const MappingPage = async (props: Props) => {
   if (initialImporterDto.status.isWaitingForFile) {
     return redirect("import");
   }
+  if (initialImporterDto.status.dataMapping !== null) {
+    return redirect("validate");
+  }
   return (
     <div className="h-full">
       <ShowMappings

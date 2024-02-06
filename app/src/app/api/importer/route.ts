@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         description: body.description,
         meta: body.meta ?? {},
         logo: body.logo,
+        redirectUrl: body.redirectUrl,
       } as ImporterConfig,
     ],
   });

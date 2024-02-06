@@ -33,18 +33,23 @@ const SidebarMenu = ({ importerDto }: Props) => {
             href={null}
             isDone={importerDto.status.isWaitingForFile === false}
           />
-          {/* TODO add mapping state to importer status */}
           <MenuStep
             text={t("sidebar.step.mapping.title")}
             isCurrent={currentStep === "mapping"}
-            href="mapping"
-            isDone={false}
+            href={null}
+            isDone={importerDto.status.dataMapping !== null}
           />
           <MenuStep
             text={t("sidebar.step.validation.title")}
             isCurrent={currentStep === "validation"}
             href={null}
             isDone={importerDto.status.isWaitingForImport === false}
+          />
+          <MenuStep
+            text={t("sidebar.step.importing.title")}
+            isCurrent={currentStep === "importing"}
+            href={null}
+            isDone={importerDto.status.isImporting === true}
           />
         </ol>
       </div>
