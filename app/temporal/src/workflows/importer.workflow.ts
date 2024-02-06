@@ -3,7 +3,6 @@ import {
   CancellationScope,
   condition,
   defineQuery,
-  defineSignal,
   defineUpdate,
   isCancellation,
   proxyActivities,
@@ -11,7 +10,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import env from "env-var";
-import { keyBy, mapValues, times } from "lodash";
+import { keyBy, mapValues, sum, times } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
@@ -71,7 +70,7 @@ const addFileUpdate = defineUpdate<
     }
   ]
 >("importer:add-file");
-const startImportSignal = defineSignal<[]>("importer:start-import");
+const startImportSignal = defineUpdate<void, []>("importer:start-import");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const dataMappingRecommendationsQuery = defineQuery<
   DataMappingRecommendation[] | null
@@ -203,9 +202,23 @@ export async function importer(params: ImporterWorkflowParams) {
       },
     }
   );
-  setHandler(startImportSignal, () => {
-    importStartRequested = true;
-  });
+  setHandler(
+    startImportSignal,
+    () => {
+      importStartRequested = true;
+    },
+    {
+      validator: () => {
+        const totalMessageCount = sum(Object.values(meta?.messageCount ?? {}));
+        if (totalMessageCount > 0) {
+          throw new ApplicationFailure(
+            "Import not allowed due to existing messages"
+          );
+        }
+        return true;
+      },
+    }
+  );
   setHandler(importerConfigQuery, () => {
     return params;
   });

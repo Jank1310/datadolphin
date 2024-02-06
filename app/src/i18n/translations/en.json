@@ -9,6 +9,9 @@
             },
             "validation": {
                 "title": "Validation"
+            },
+            "importing": {
+                "title": "Importing"
             }
         }
     },
@@ -33,6 +36,14 @@
         "processingData": "Processing data...",
         "title": "Validate your data",
         "btnConfirmData": "Confirm data",
-        "numberOfErrors": "{{count}} errors"
+        "numberOfErrors": "{{count}} errors",
+        "toast": {
+            "errorStartingImport": "Starting import failed"
+        }
+    },
+    "importing": {
+        "title": "Import is in progress",
+        "youCanCloseNow": "You can close this window now.",
+        "backToTargetApp": "Back to target app"
     }
 }

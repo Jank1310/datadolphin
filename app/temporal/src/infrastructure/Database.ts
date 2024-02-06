@@ -95,9 +95,15 @@ export class Database {
   async insertSourceData(
     importerId: string,
     sourceData: SourceDataSet
-  ): Promise<InsertManyResult<SourceDataSetRow>> {
+  ): Promise<number> {
     await this.getSourceDataCollection(importerId).drop();
-    return this.getSourceDataCollection(importerId).insertMany(sourceData);
+    if (sourceData.length === 0) {
+      return 0;
+    }
+    const result = await this.getSourceDataCollection(importerId).insertMany(
+      sourceData
+    );
+    return result.insertedCount;
   }
 
   async dropDataCollection(importerId: string): Promise<void> {

@@ -23,6 +23,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { TooltipPortal } from "@radix-ui/react-tooltip";
 import {
   Row,
   RowData,
@@ -74,10 +75,22 @@ declare module "@tanstack/react-table" {
 
 const ValidationTable = (props: Props) => {
   const { t } = useTranslation();
-  const tableContainerRef = React.useRef<HTMLDivElement>(null);
+  const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const tableBodyRef = React.useRef<HTMLTableSectionElement | null>(null);
   const columns = React.useMemo(() => {
+    const dataMappingWithConfig = (props.importerDto.status.dataMapping ?? [])
+      .filter((mapping) => mapping.targetColumn !== null)
+      .map((mapping) => {
+        const config = props.importerDto.config.columnConfig.find(
+          (c) => c.key === mapping.targetColumn
+        );
+        if (!config) {
+          throw new Error("Config not found for mapping");
+        }
+        return { ...mapping, config };
+      });
     const columnHelper = createColumnHelper<ExtendedSourceData | "loading">();
-    return props.importerDto.config.columnConfig.map((config) =>
+    return dataMappingWithConfig.map(({ targetColumn, config }) =>
       columnHelper.accessor(`data.${config.key}.value`, {
         header: config.label,
         id: config.key,
@@ -153,13 +166,15 @@ const ValidationTable = (props: Props) => {
                   <TooltipTrigger>
                     <AlertCircle className="ml-2 text-red-500 size-5" />
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {allMessagesForCell.map((message, index) => (
-                      <div key={index}>
-                        {message.message} [{message.type}]
-                      </div>
-                    ))}
-                  </TooltipContent>
+                  <TooltipPortal>
+                    <TooltipContent collisionBoundary={tableBodyRef.current}>
+                      {allMessagesForCell.map((message, index) => (
+                        <div key={index}>
+                          {message.message} [{message.type}]
+                        </div>
+                      ))}
+                    </TooltipContent>
+                  </TooltipPortal>
                 </Tooltip>
               )}
             </div>
@@ -167,7 +182,10 @@ const ValidationTable = (props: Props) => {
         },
       })
     );
-  }, [props.importerDto.config.columnConfig]);
+  }, [
+    props.importerDto.config.columnConfig,
+    props.importerDto.status.dataMapping,
+  ]);
   const allEmptyData: ExtendedSourceData[] = React.useMemo(() => {
     const emptyRowEntry = props.importerDto.config.columnConfig.reduce(
       (acc, config) => {
@@ -286,7 +304,10 @@ const ValidationTable = (props: Props) => {
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+            <TableBody
+              ref={tableBodyRef}
+              style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+            >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const hasLoadedRow = rows[virtualRow.index] !== undefined;
                 if (!hasLoadedRow) {

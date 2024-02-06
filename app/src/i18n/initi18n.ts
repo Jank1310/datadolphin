@@ -1,5 +1,5 @@
-import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
+import i18n, { createInstance } from "i18next";
+import { initReactI18next } from "react-i18next/initReactI18next";
 import de from "./translations/de.json";
 import en from "./translations/en.json";
 
@@ -14,9 +14,10 @@ const resources = {
 
 export default async function initTranslations(
   locale: string,
-  i18nInstance: typeof i18n
+  i18nInstance?: typeof i18n
 ) {
-  i18nInstance.use(initReactI18next).init({
+  const localI18nInstance = i18nInstance ?? createInstance();
+  localI18nInstance.use(initReactI18next).init({
     resources,
     fallbackLng: "en",
     lng: locale,
@@ -25,6 +26,10 @@ export default async function initTranslations(
       escapeValue: false, // react already safes from xss
     },
   });
+  return {
+    i18n: localI18nInstance,
+    t: localI18nInstance.t,
+  };
 }
 
 export const i18nConfig = {

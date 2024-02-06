@@ -1,7 +1,7 @@
 import { Context } from "@temporalio/activity";
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
-import { pull, uniq } from "lodash";
+import { pull, uniq, pullAll } from "lodash";
 import { ObjectId } from "mongodb";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
@@ -101,15 +101,15 @@ export function makeActivities(
       );
       console.log("insert rows", jsonWithRowIds.length);
       console.time("insert");
-      const result = await database.insertSourceData(
+      const insertedCount = await database.insertSourceData(
         params.importerId,
         jsonWithRowIds
       );
       console.timeEnd("insert");
-      if (result.insertedCount !== jsonWithRowIds.length) {
+      if (insertedCount !== jsonWithRowIds.length) {
         throw ApplicationFailure.nonRetryable("Failed to insert all rows");
       }
-      return result.insertedCount;
+      return insertedCount;
     },
     applyMappings: async (params: {
       importerId: string;
@@ -151,10 +151,16 @@ export function makeActivities(
       columnConfig: ColumnConfig[];
     }): Promise<DataMappingRecommendation[]> => {
       const firstRecord = await database.getFirstSourceRow(params.importerId);
+      if (!firstRecord) {
+        return [];
+      }
       // all rows should have all available headers (see source file processing)
-      const sourceColumns = pull(
+      const allEmptyColumns = Object.keys(firstRecord).filter((key) =>
+        key.startsWith("__EMPTY")
+      );
+      const sourceColumns = pullAll(
         Object.keys(firstRecord as SourceDataSetRow),
-        "__sourceRowId"
+        ["__sourceRowId", "_id", ...allEmptyColumns]
       );
       return dataAnalyzer.generateMappingRecommendations(
         sourceColumns,
@@ -266,8 +272,7 @@ export function makeActivities(
     }): Promise<void> => {
       const host = process.env.PUBLIC_API_URL ?? "http://localhost:3000";
       const downloadUrl = `${host}/api/download/${params.importerId}`;
-      // we dont await the call
-      fetch(params.callbackUrl, {
+      await fetch(params.callbackUrl, {
         method: "POST",
         body: downloadUrl,
       });
