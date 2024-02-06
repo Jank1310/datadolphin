@@ -105,6 +105,7 @@ const ShowMappings = ({
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
         },
         body: JSON.stringify(currentMappings),
       });

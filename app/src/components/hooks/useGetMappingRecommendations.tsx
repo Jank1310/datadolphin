@@ -10,7 +10,12 @@ export function useGetMappingRecommendations(
     importerId
       ? [`/api/importer/${importerId}/mappings/recommendations`]
       : null,
-    ([url]) => fetch(url).then((res) => res.json()),
+    ([url]) =>
+      fetch(url, {
+        headers: {
+          Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+        },
+      }).then((res) => res.json()),
     {
       refreshInterval: pollInterval,
       fallbackData,

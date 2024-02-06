@@ -8,7 +8,12 @@ export function useGetImporter(
 ) {
   const { data, error, isLoading } = useSWR(
     importerId ? [`/api/importer/${importerId}`] : null,
-    ([url]) => fetch(url).then((res) => res.json()),
+    ([url]) =>
+      fetch(url, {
+        headers: {
+          Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+        },
+      }).then((res) => res.json()),
     {
       refreshInterval: pollInterval,
       fallbackData,

@@ -9,6 +9,9 @@ export default async function page(props: { params: { id: string } }) {
   const initialImporterDtoPromise = fetch(
     `${getHost()}/api/importer/${importerId}`,
     {
+      headers: {
+        Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+      },
       cache: "no-cache",
     }
   ).then((res) => res.json() as Promise<ImporterDto>);

@@ -34,7 +34,13 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("importerId", importer.importerId);
-        await fetch("/api/upload", { method: "POST", body: formData });
+        await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+          },
+          body: formData,
+        });
         push("mapping");
       } catch (err) {
         console.error(err);

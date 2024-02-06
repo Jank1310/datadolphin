@@ -17,12 +17,18 @@ const MappingPage = async (props: Props) => {
   const initialImporterDtoPromise = fetch(
     `${getHost()}/api/importer/${importerId}`,
     {
+      headers: {
+        Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+      },
       cache: "no-cache",
     }
   ).then(async (res) => (await res.json()) as ImporterDto);
   const initialDataMappingsPromise = fetch(
     `${getHost()}/api/importer/${importerId}/mappings/recommendations`,
     {
+      headers: {
+        Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+      },
       cache: "no-cache",
     }
   ).then(

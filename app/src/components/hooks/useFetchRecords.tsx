@@ -23,6 +23,7 @@ export async function fetchRecords(
     cache: "no-cache",
     headers: {
       "Content-Type": "application/json",
+      Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
     },
   }).then((res) => res.json() as Promise<{ records: SourceData[] }>);
   return (await result).records;
