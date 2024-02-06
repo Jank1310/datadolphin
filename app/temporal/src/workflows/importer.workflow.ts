@@ -160,8 +160,9 @@ export async function importer(params: ImporterWorkflowParams) {
         importerId: workflowInfo().workflowId,
         patches: updateParams.patches,
       });
-      let validationResults = [];
+
       let changedColumns: string[] = [];
+      const newMessages: Record<string, ValidationMessage[]> = {};
 
       for (const patch of updateParams.patches) {
         const columnConfig = params.columnConfig.find(
@@ -178,16 +179,19 @@ export async function importer(params: ImporterWorkflowParams) {
             changedColumns = await performValidations([columnConfig]);
           } else {
             // other validations
-            validationResults.push(
-              ...(await performRecordValidation([columnConfig], patch.rowId))
+            const validationResults = await performRecordValidation(
+              [columnConfig],
+              patch.rowId
             );
+            const validationResultsGroupedByColumn = mapValues(
+              keyBy(validationResults, "column"),
+              "messages"
+            );
+            newMessages[patch.column] =
+              validationResultsGroupedByColumn[patch.column] || [];
           }
         }
       }
-      const newMessages = mapValues(
-        keyBy(validationResults, "column"),
-        "messages"
-      );
       return {
         changedColumns,
         newMessagesByColumn: newMessages,
