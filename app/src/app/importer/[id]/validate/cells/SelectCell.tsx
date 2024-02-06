@@ -9,6 +9,7 @@ type Props = {
   onChange: (value: string) => void;
   isRequired: boolean;
   availableValues: string[];
+  isReadOnly: boolean;
 };
 
 const SelectCellTrigger = React.forwardRef<
@@ -36,6 +37,7 @@ const SelectCell = ({
   onChange,
   isRequired,
   availableValues,
+  isReadOnly,
 }: Props) => {
   const id = useId();
   const [value, setValue] = React.useState<string>(initialValue);
@@ -44,10 +46,12 @@ const SelectCell = ({
   }, [initialValue]);
   return (
     <Select
+      disabled={isReadOnly}
       value={(value as string) ?? ""}
       onValueChange={(newValue) => {
         if (value !== newValue) {
-          onChange(newValue);
+          // use settimeout to get a snappier experience
+          setTimeout(() => onChange(newValue));
         }
         setValue(newValue);
       }}

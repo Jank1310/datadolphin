@@ -22,12 +22,14 @@ export interface InputCellProps {
   value: string;
   onChange: (value: string) => void;
   isRequired: boolean;
+  isReadOnly: boolean;
 }
 
 export const InputCell = ({
   value: initialValue,
   onChange,
   isRequired,
+  isReadOnly,
 }: InputCellProps) => {
   const [value, setValue] = React.useState<string>(initialValue);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -43,7 +45,8 @@ export const InputCell = ({
       inputRef.current.blur();
     }
     if (value !== initialValue) {
-      onChange(value);
+      // use settimeout to get a snappier experience
+      setTimeout(() => onChange(value));
     }
   };
 
@@ -67,6 +70,8 @@ export const InputCell = ({
         setValue(e.target.value);
       }}
       onKeyUp={onKeyUp}
+      disabled={isReadOnly}
+      className="bg-transparent"
     />
   );
 };
