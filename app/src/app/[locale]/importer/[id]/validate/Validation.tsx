@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { enableMapSet, produce } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useIsMounted } from "usehooks-ts";
 import ValidationTable from "./ValidationTable";
 enableMapSet();
@@ -21,6 +22,7 @@ const Validation = ({
   initialImporterDto,
   initialRecords: initialData,
 }: Props) => {
+  const { t } = useTranslation();
   const [enablePolling, setEnablePolling] = React.useState(false);
   const [currentValidations, setCurrentValidations] = React.useState<
     Record<string /* rowId */, Record<string /* columnId */, boolean>>
@@ -97,9 +99,7 @@ const Validation = ({
           if (!row) {
             throw new Error("row not found: " + rowId);
           }
-          console.log("found row", row, "upadting", result);
           for (const newMessagesColumnId in result.newMessagesByColumn) {
-            console.log("set messages for", newMessagesColumnId);
             row.data[newMessagesColumnId].messages =
               result.newMessagesByColumn[newMessagesColumnId];
           }
@@ -168,7 +168,9 @@ const Validation = ({
     return (
       <div className="w-full h-full flex justify-center items-center">
         <div className="flex flex-col items-center">
-          <span className="text-slate-500">Processing data...</span>
+          <span className="text-slate-500">
+            {t("validation.processingData")}
+          </span>
           <LoadingSpinner className="text-slate-500 mt-2" />
         </div>
       </div>
@@ -178,10 +180,11 @@ const Validation = ({
   return (
     <div>
       <div className="h-14 flex justify-between items-center px-4">
-        <h1 className="text-3xl font-bold">Validate your data</h1>
+        <h1 className="text-3xl font-bold">{t("validation.title")}</h1>
         <div className="">
           <Button>
-            Start import <ChevronRightCircleIcon className="ml-2" />
+            {t("validation.btnConfirmData")}
+            <ChevronRightCircleIcon className="ml-2" />
           </Button>
         </div>
       </div>

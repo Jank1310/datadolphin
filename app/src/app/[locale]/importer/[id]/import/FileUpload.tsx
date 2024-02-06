@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { UploadCloudIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   importerId: string;
@@ -13,6 +14,7 @@ type Props = {
 };
 
 const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
+  const { t } = useTranslation();
   const [dragActive, setDragActive] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -88,7 +90,7 @@ const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
           <div className="py-6">
             <UploadCloudIcon className="inline-block w-12 h-12 text-gray-600" />
             <h4 className="text-base font-semibold text-gray-600">
-              Drag and drop files here
+              {t("import.uploader.dragAndDrop")}
             </h4>
           </div>
           <hr className="w-full border-gray-400 my-2" />
@@ -112,9 +114,11 @@ const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
             />
             {!file && (
               <>
-                <Button onClick={openFileExplorer}>Browse File</Button>
+                <Button onClick={openFileExplorer}>
+                  {t("import.uploader.btnBrowseFile")}
+                </Button>
                 <p className="text-xs text-gray-400 mt-4">
-                  Excel (XLSX) and CSV are supported
+                  {t("import.uploader.supportedFormats")}
                 </p>
               </>
             )}
@@ -130,7 +134,7 @@ const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
               }
             }}
           >
-            Upload
+            {t("import.uploader.btnUpload")}
             <UploadCloudIcon className="ml-2" />
           </Button>
         </div>

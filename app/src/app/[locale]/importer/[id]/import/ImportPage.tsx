@@ -1,8 +1,10 @@
 "use client";
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import FileUpload from "./FileUpload";
 
 type Props = {
@@ -16,6 +18,7 @@ const allowedMimeTypes = [
 ];
 
 const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
+  const { t } = useTranslation();
   const { push, replace } = useRouter();
   const [isUploading, setIsUploading] = React.useState(false);
   const { importer } = useGetImporter(
@@ -51,7 +54,10 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
   return (
     <div className="flex h-full items-center justify-center">
       {isUploading ? (
-        <div>Uploading...</div>
+        <div className="flex flex-col items-center">
+          <span className="text-slate-500">{t("import.uploading")}</span>
+          <LoadingSpinner className="text-slate-500 mt-2" />
+        </div>
       ) : (
         <FileUpload
           importerId={importer.importerId}

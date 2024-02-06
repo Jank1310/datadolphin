@@ -27,6 +27,7 @@ import { ChevronRightCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   initialImporterDto: ImporterDto;
@@ -43,6 +44,7 @@ const ShowMappings = ({
   initialDataMappingsRecommendations,
 }: Props) => {
   const { push } = useRouter();
+  const { t } = useTranslation();
   const [enablePolling, setEnablePolling] = React.useState(false);
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
@@ -118,7 +120,9 @@ const ShowMappings = ({
     return (
       <div className="w-full h-full flex justify-center items-center">
         <div className="flex flex-col items-center">
-          <span className="text-slate-500"> Waiting for mappings...</span>
+          <span className="text-slate-500">
+            {t("mappings.waitingForMappings")}
+          </span>
           <LoadingSpinner className="text-slate-500 mt-2" />
         </div>
       </div>
@@ -128,10 +132,11 @@ const ShowMappings = ({
   return (
     <div>
       <div className="h-14 flex justify-between items-center px-4">
-        <h1 className="text-3xl font-bold">Change or confirm column matches</h1>
+        <h1 className="text-3xl font-bold">{t("mappings.title")}</h1>
         <div className="">
           <Button disabled={isSavingMapping} onClick={handleSaveMapping}>
-            Confirm mapping <ChevronRightCircleIcon className="ml-2" />
+            {t("mappings.btnConfirmMappings")}{" "}
+            <ChevronRightCircleIcon className="ml-2" />
           </Button>
         </div>
       </div>
@@ -140,8 +145,12 @@ const ShowMappings = ({
           <Table className="">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/2">Columns in your file</TableHead>
-                <TableHead className="w-1/2">Import fields</TableHead>
+                <TableHead className="w-1/2">
+                  {t("mappings.columnsInYourFile")}
+                </TableHead>
+                <TableHead className="w-1/2">
+                  {t("mappings.targetColumns")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -169,7 +178,9 @@ const ShowMappings = ({
                           <SelectValue placeholder="Select field" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={"none"}>None</SelectItem>
+                          <SelectItem value={"none"}>
+                            {t("mappings.noSelectionItem")}
+                          </SelectItem>
 
                           {importer.config.columnConfig.map((targetColumn) => (
                             <SelectItem
