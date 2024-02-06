@@ -1,5 +1,5 @@
 import i18n, { createInstance } from "i18next";
-import { initReactI18next } from "react-i18next";
+import { initReactI18next } from "react-i18next/initReactI18next";
 import de from "./translations/de.json";
 import en from "./translations/en.json";
 

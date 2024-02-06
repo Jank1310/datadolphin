@@ -6,8 +6,11 @@ import { useFetchRecords } from "@/components/hooks/useFetchRecords";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { useToast } from "@/components/ui/use-toast";
 import { enableMapSet, produce } from "immer";
+import { sum } from "lodash";
 import { ChevronRightCircleIcon } from "lucide-react";
+import { redirect } from "next/navigation";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useIsMounted } from "usehooks-ts";
@@ -23,7 +26,9 @@ const Validation = ({
   initialRecords: initialData,
 }: Props) => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [enablePolling, setEnablePolling] = React.useState(false);
+  const [isStartingImport, setIsStartingImport] = React.useState(false);
   const [currentValidations, setCurrentValidations] = React.useState<
     Record<string /* rowId */, Record<string /* columnId */, boolean>>
   >({});
@@ -109,6 +114,16 @@ const Validation = ({
     },
     []
   );
+
+  const totalErrors = React.useMemo(
+    () => sum(Object.values(importer.status.meta?.messageCount ?? {})),
+    [importer.status.meta?.messageCount]
+  );
+  const dataStats = {
+    total: initialImporterDto.status.totalRows,
+    totalErrors,
+  };
+
   const handleUpdateData = React.useCallback(
     async (
       rowIndex: number,
@@ -160,9 +175,31 @@ const Validation = ({
     [handleRecordUpdate, initialImporterDto.importerId, isMounted]
   );
 
-  const dataStats = {
-    total: initialImporterDto.status.totalRows,
-  };
+  const handleStartImport = React.useCallback(async () => {
+    if (totalErrors > 0) {
+      return;
+    }
+    setIsStartingImport(true);
+    try {
+      await fetch(
+        `/api/importer/${initialImporterDto.importerId}/start-import`,
+        {
+          method: "POST",
+        }
+      );
+      redirect("importing");
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: t("validation.toast.errorStartingImport"),
+        variant: "destructive",
+      });
+    } finally {
+      if (isMounted()) {
+        setIsStartingImport(false);
+      }
+    }
+  }, [initialImporterDto.importerId, isMounted, t, toast, totalErrors]);
 
   if (isMappingData) {
     return (
@@ -177,14 +214,23 @@ const Validation = ({
     );
   }
 
+  const hasErrors = dataStats.totalErrors > 0;
+
   return (
     <div>
       <div className="h-14 flex justify-between items-center px-4">
         <h1 className="text-3xl font-bold">{t("validation.title")}</h1>
-        <div className="">
-          <Button>
+        <div>
+          <Button
+            disabled={hasErrors || isStartingImport}
+            onClick={handleStartImport}
+          >
             {t("validation.btnConfirmData")}
-            <ChevronRightCircleIcon className="ml-2" />
+            {isStartingImport ? (
+              <LoadingSpinner className="ml-2" />
+            ) : (
+              <ChevronRightCircleIcon className="ml-2" />
+            )}
           </Button>
         </div>
       </div>

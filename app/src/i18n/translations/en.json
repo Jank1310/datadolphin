@@ -33,6 +33,9 @@
         "processingData": "Processing data...",
         "title": "Validate your data",
         "btnConfirmData": "Confirm data",
-        "numberOfErrors": "{{count}} errors"
+        "numberOfErrors": "{{count}} errors",
+        "toast": {
+            "errorStartingImport": "Starting import failed"
+        }
     }
 }

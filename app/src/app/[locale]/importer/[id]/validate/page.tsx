@@ -21,6 +21,9 @@ export default async function page(props: { params: { id: string } }) {
   if (initialImporterDto.status.dataMapping === null) {
     return redirect("mapping");
   }
+  if (initialImporterDto.status.isImporting) {
+    return redirect("importing");
+  }
 
   return (
     <div className="h-full">
