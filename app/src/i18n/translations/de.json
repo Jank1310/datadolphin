@@ -57,5 +57,9 @@
         "title": "Der Import wird durchgeführt",
         "youCanCloseNow": "Das Fenster kann jetzt geschlossen werden",
         "backToTargetApp": "Zurück zur Zielanwendung"
+    },
+    "closed": {
+        "title": "Der Import wurde geschlossen",
+        "message": "Sie können dieses Fenster jetzt schließen."
     }
 }

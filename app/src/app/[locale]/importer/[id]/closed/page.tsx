@@ -30,8 +30,8 @@ const ImporterClosedPage = async (props: Props) => {
     <div className="w-full h-full flex items-center justify-center">
       <div className="flex flex-col items-center">
         <CheckCircleIcon className="text-green-500 h-8 w-8" />
-        <h1 className="text-lg mb-2">{t("importing.title")}</h1>
-        <p className="mb-6">{t("importing.youCanCloseNow")}</p>
+        <h1 className="text-lg mb-2">{t("closed.title")}</h1>
+        <p className="mb-6">{t("closed.message")}</p>
       </div>
     </div>
   );

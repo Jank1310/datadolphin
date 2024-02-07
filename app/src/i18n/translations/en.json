@@ -57,5 +57,9 @@
         "title": "Import is in progress",
         "youCanCloseNow": "You can close this window now.",
         "backToTargetApp": "Back to target app"
+    },
+    "closed": {
+        "title": "Import has been closed",
+        "message": "The import has been closed. You can close this window now."
     }
 }

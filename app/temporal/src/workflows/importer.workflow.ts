@@ -308,10 +308,12 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: import start not requested"
       );
     }
-    await acts.invokeCallback({
-      importerId,
-      callbackUrl: params.callbackUrl,
-    });
+    // TODO uncomment
+    // await acts.invokeCallback({
+    //   importerId,
+    //   callbackUrl: params.callbackUrl,
+    // });
+    state = "closed";
 
     // final state after informing the callback and waiting for manual close
     await condition(

@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { enableMapSet, produce } from "immer";
 import { sum } from "lodash";
 import { ChevronRightCircleIcon } from "lucide-react";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useIsMounted } from "usehooks-ts";
@@ -26,6 +26,7 @@ const Validation = ({
   initialRecords: initialData,
 }: Props) => {
   const { t } = useTranslation();
+  const { push } = useRouter();
   const { toast } = useToast();
   const [enablePolling, setEnablePolling] = React.useState(false);
   const [isStartingImport, setIsStartingImport] = React.useState(false);
@@ -197,19 +198,19 @@ const Validation = ({
           method: "POST",
         }
       );
-      redirect("importing");
+      push("importing");
     } catch (err) {
       console.error(err);
       toast({
         title: t("validation.toast.errorStartingImport"),
         variant: "destructive",
       });
-    } finally {
       if (isMounted()) {
+        // only set on error to prevent flickering
         setIsStartingImport(false);
       }
     }
-  }, [initialImporterDto.importerId, isMounted, t, toast, totalErrors]);
+  }, [initialImporterDto.importerId, isMounted, push, t, toast, totalErrors]);
 
   const hasErrors = dataStats.totalErrors > 0;
 
