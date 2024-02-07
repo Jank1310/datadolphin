@@ -84,10 +84,11 @@ const Validation = ({
     } else {
       if (enablePolling) {
         handleLoadPage(0, true);
+        mutateImporter(); // needed to update stats
         setEnablePolling(false);
       }
     }
-  }, [enablePolling, handleLoadPage, isMappingData]);
+  }, [enablePolling, handleLoadPage, isMappingData, mutateImporter]);
   const handleRecordUpdate = React.useCallback(
     (
       rowIndex: number,
