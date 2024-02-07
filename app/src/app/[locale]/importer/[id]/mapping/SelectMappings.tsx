@@ -115,10 +115,11 @@ const SelectMappings = ({
   };
 
   const pageForState = getPageForState(importer);
-  if (pageForState !== "mapping") {
-    push(pageForState);
-    return null;
-  }
+  React.useEffect(() => {
+    if (pageForState !== "mapping") {
+      push(pageForState);
+    }
+  }, [pageForState, push]);
 
   if (isWaitingForMappings) {
     return (

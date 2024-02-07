@@ -54,10 +54,11 @@ const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
   };
 
   const pageForState = getPageForState(importer);
-  if (pageForState !== "select-file") {
-    replace(pageForState);
-    return null;
-  }
+  React.useEffect(() => {
+    if (pageForState !== "select-file") {
+      push(pageForState);
+    }
+  }, [pageForState, push]);
 
   const isProcessingSourceFile = importer.status.isProcessingSourceFile;
 
