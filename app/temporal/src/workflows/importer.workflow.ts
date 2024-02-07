@@ -308,14 +308,11 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: import start not requested"
       );
     }
-    // TODO uncomment
-    // await acts.invokeCallback({
-    //   importerId,
-    //   callbackUrl: params.callbackUrl,
-    // });
-    state = "closed";
+    await acts.invokeCallback({
+      importerId,
+      callbackUrl: params.callbackUrl,
+    });
 
-    // final state after informing the callback and waiting for manual close
     await condition(
       () => state === "closed",
       "14 days" // internal max lifetime
