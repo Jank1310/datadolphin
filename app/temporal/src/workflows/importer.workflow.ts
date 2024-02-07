@@ -130,7 +130,7 @@ export async function importer(params: ImporterWorkflowParams) {
   let isValidating = false;
   let isProcessingSourceFile = false;
   let isMappingData = false;
-
+  let isUpdatingRecord = false;
   /** DEFINE WORKFLOW HANDLERS */
   setHandler(
     addFileUpdate,
@@ -161,47 +161,57 @@ export async function importer(params: ImporterWorkflowParams) {
   setHandler(
     recordUpdate,
     async (updateParams) => {
-      await acts.applyPatches({
-        importerId: workflowInfo().workflowId,
-        patches: updateParams.patches,
-      });
+      if (isUpdatingRecord) {
+        await condition(() => !isUpdatingRecord);
+        isUpdatingRecord = true;
+      } else {
+        isUpdatingRecord = true;
+      }
+      try {
+        await acts.applyPatches({
+          importerId: workflowInfo().workflowId,
+          patches: updateParams.patches,
+        });
 
-      let changedColumns: string[] = [];
-      const newMessages: Record<string, ValidationMessage[]> = {};
+        let changedColumns: string[] = [];
+        const newMessages: Record<string, ValidationMessage[]> = {};
 
-      for (const patch of updateParams.patches) {
-        const columnConfig = params.columnConfig.find(
-          (item) => item.key === patch.column
-        );
-        if (!columnConfig) {
-          continue;
-        }
-        const columnValidations = columnConfig.validations;
-
-        if (columnValidations?.length) {
-          const validationResults = await performRecordValidation(
-            [columnConfig],
-            patch.rowId
+        for (const patch of updateParams.patches) {
+          const columnConfig = params.columnConfig.find(
+            (item) => item.key === patch.column
           );
-          const validationResultsGroupedByColumn = mapValues(
-            keyBy(validationResults, "column"),
-            "messages"
-          );
-          newMessages[patch.column] =
-            validationResultsGroupedByColumn[patch.column] || [];
-          if (columnValidations.find((item) => item.type === "unique")) {
-            // unique validation
-            const changedColumnsForValidator = await performValidations([
-              columnConfig,
-            ]);
-            changedColumns.push(...changedColumnsForValidator);
+          if (!columnConfig) {
+            continue;
+          }
+          const columnValidations = columnConfig.validations;
+
+          if (columnValidations?.length) {
+            const validationResults = await performRecordValidation(
+              [columnConfig],
+              patch.rowId
+            );
+            const validationResultsGroupedByColumn = mapValues(
+              keyBy(validationResults, "column"),
+              "messages"
+            );
+            newMessages[patch.column] =
+              validationResultsGroupedByColumn[patch.column] || [];
+            if (columnValidations.find((item) => item.type === "unique")) {
+              // unique validation
+              const changedColumnsForValidator = await performValidations([
+                columnConfig,
+              ]);
+              changedColumns.push(...changedColumnsForValidator);
+            }
           }
         }
+        return {
+          changedColumns,
+          newMessagesByColumn: newMessages,
+        };
+      } finally {
+        isUpdatingRecord = false;
       }
-      return {
-        changedColumns,
-        newMessagesByColumn: newMessages,
-      };
     },
     {
       validator: (params) => {
@@ -276,10 +286,7 @@ export async function importer(params: ImporterWorkflowParams) {
       importerId,
       dataMapping: configuredMappings!,
     });
-    isMappingData = false;
-
-    // step 3: data validation
-    state = "validate";
+    // initial validations for new mapped data
     const allMappedColumnsWithValidators = params.columnConfig.filter(
       (column) =>
         column.validations?.length &&
@@ -288,7 +295,10 @@ export async function importer(params: ImporterWorkflowParams) {
         )
     );
     await performValidations(allMappedColumnsWithValidators);
+    isMappingData = false;
 
+    // step 3: data validation
+    state = "validate";
     // step 4: start import
     const hasImportStartRequested = await condition(
       () => state === "importing",
@@ -369,33 +379,41 @@ export async function importer(params: ImporterWorkflowParams) {
     columnConfigs: ColumnConfig[],
     rowId: string
   ) {
-    await condition(() => !isValidating);
-    isValidating = true;
-    const columnValidators = {} as ColumnValidators;
-    for (const column of columnConfigs) {
-      for (const validator of column.validations!) {
-        if (!columnValidators[validator.type]) {
-          columnValidators[validator.type] = [];
-        }
-        columnValidators[validator.type].push({
-          column: column.key,
-          config: validator,
-        });
-      }
+    if (isValidating) {
+      await condition(() => !isValidating);
+      isValidating = true;
+    } else {
+      isValidating = true;
     }
-    const { columnStats } = await acts.generateStatsPerColumn({
-      importerId,
-      uniqueColumns: columnValidators.unique?.map((item) => item.column) ?? [],
-    });
-    const validationResults = await acts.processDataValidationForRecord({
-      importerId,
-      columnValidators,
-      stats: columnStats,
-      rowId,
-    });
-    meta = await acts.generateMeta({ importerId });
-    isValidating = false;
-    return validationResults;
+    try {
+      const columnValidators = {} as ColumnValidators;
+      for (const column of columnConfigs) {
+        for (const validator of column.validations!) {
+          if (!columnValidators[validator.type]) {
+            columnValidators[validator.type] = [];
+          }
+          columnValidators[validator.type].push({
+            column: column.key,
+            config: validator,
+          });
+        }
+      }
+      const { columnStats } = await acts.generateStatsPerColumn({
+        importerId,
+        uniqueColumns:
+          columnValidators.unique?.map((item) => item.column) ?? [],
+      });
+      const validationResults = await acts.processDataValidationForRecord({
+        importerId,
+        columnValidators,
+        stats: columnStats,
+        rowId,
+      });
+      meta = await acts.generateMeta({ importerId });
+      return validationResults;
+    } finally {
+      isValidating = false;
+    }
   }
 
   async function processSourceFile() {

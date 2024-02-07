@@ -59,14 +59,15 @@ const SelectMappings = ({
       { recommendations: initialDataMappingsRecommendations }
     );
 
-  const isWaitingForMappings = dataMappingRecommendations === null;
+  const isWaitingForMappingRecommendations =
+    dataMappingRecommendations === null;
   const isMappingData = importer.status.isMappingData;
 
   React.useEffect(() => {
-    if (isWaitingForMappings || isMappingData) {
+    if (isWaitingForMappingRecommendations || isMappingData) {
       setEnablePolling(true);
     }
-  }, [isMappingData, isWaitingForMappings]);
+  }, [isMappingData, isWaitingForMappingRecommendations]);
 
   const [currentMappings, setCurrentMappings] = React.useState<Mapping[]>([]);
   React.useEffect(() => {
@@ -121,7 +122,7 @@ const SelectMappings = ({
     }
   }, [pageForState, push]);
 
-  if (isWaitingForMappings) {
+  if (isWaitingForMappingRecommendations) {
     return (
       <div className="w-full h-full flex justify-center items-center">
         <div className="flex flex-col items-center">
