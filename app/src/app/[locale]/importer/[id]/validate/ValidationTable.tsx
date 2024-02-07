@@ -184,7 +184,9 @@ const ValidationTable = (props: Props) => {
   }, [
     props.importerDto.config.columnConfig,
     props.importerDto.status.dataMapping,
+    t,
   ]);
+
   const allEmptyData: ExtendedSourceData[] = React.useMemo(() => {
     const emptyRowEntry = props.importerDto.config.columnConfig.reduce(
       (acc, config) => {
