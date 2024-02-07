@@ -261,14 +261,7 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: source file not uploaded"
       );
     }
-    await processSourceFile(
-      isProcessingSourceFile,
-      totalRows,
-      importerId,
-      sourceFile,
-      dataMappingRecommendations,
-      params
-    );
+    await processSourceFile();
     // step 2: data mapping recommendation and user selection
     state = "mapping";
     const hasConfiguredMappings = await condition(
@@ -405,18 +398,7 @@ export async function importer(params: ImporterWorkflowParams) {
     return validationResults;
   }
 
-  async function processSourceFile(
-    isProcessingSourceFile: boolean,
-    totalRows: number,
-    importerId: string,
-    sourceFile: {
-      bucket: string;
-      fileReference: string;
-      fileFormat: "csv" | "xlsx";
-    } | null,
-    dataMappingRecommendations: DataMappingRecommendation[] | null,
-    params: ImporterWorkflowParams
-  ) {
+  async function processSourceFile() {
     isProcessingSourceFile = true;
     totalRows = await acts.processSourceFile({
       importerId,
