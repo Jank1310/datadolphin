@@ -33,7 +33,7 @@ const Validation = ({
     Record<string /* rowId */, Record<string /* columnId */, boolean>>
   >({});
   const isMounted = useIsMounted();
-  const { importer } = useGetImporter(
+  const { importer, mutate: mutateImporter } = useGetImporter(
     initialImporterDto.importerId,
     enablePolling ? 500 : undefined,
     initialImporterDto
@@ -92,8 +92,9 @@ const Validation = ({
     (
       rowIndex: number,
       rowId: string,
-      _columnId: string,
-      result: RecordUpdateResult
+      columnId: string,
+      result: RecordUpdateResult,
+      newValue: string | number | null
     ) => {
       // update messages
       const rowPage = Math.floor(rowIndex / 100);
@@ -104,15 +105,21 @@ const Validation = ({
           if (!row) {
             throw new Error("row not found: " + rowId);
           }
+          console.log("update data", rowId, result, newValue);
+          row.data[columnId].value = newValue;
           for (const newMessagesColumnId in result.newMessagesByColumn) {
             row.data[newMessagesColumnId].messages =
               result.newMessagesByColumn[newMessagesColumnId];
           }
         })
       );
+      mutateImporter();
+      if (result.changedColumns.length > 0) {
+        handleLoadPage(rowPage, true);
+      }
       // reload importer to get latest stats
     },
-    []
+    [handleLoadPage, mutateImporter]
   );
 
   const totalErrors = React.useMemo(
@@ -156,7 +163,7 @@ const Validation = ({
         );
         if (isMounted()) {
           const result = (await res.json()) as RecordUpdateResult;
-          handleRecordUpdate(rowIndex, rowId, columnId, result);
+          handleRecordUpdate(rowIndex, rowId, columnId, result, value);
         }
       } finally {
         if (isMounted()) {
@@ -170,7 +177,6 @@ const Validation = ({
           );
         }
       }
-      // TODO handle result (reload etc.)
     },
     [handleRecordUpdate, initialImporterDto.importerId, isMounted]
   );
