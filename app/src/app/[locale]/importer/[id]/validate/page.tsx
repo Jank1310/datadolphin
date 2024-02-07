@@ -2,6 +2,7 @@ import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { fetchRecords } from "@/components/hooks/useFetchRecords";
 import { getHost } from "@/lib/utils";
 import { redirect } from "next/navigation";
+import { getPageForState } from "../redirectUtil";
 import Validation from "./Validation";
 
 export default async function page(props: { params: { id: string } }) {
@@ -18,13 +19,10 @@ export default async function page(props: { params: { id: string } }) {
     initialRecordsPromise,
   ]);
 
-  if (initialImporterDto.status.dataMapping === null) {
-    return redirect("mapping");
+  const pageForState = getPageForState(initialImporterDto);
+  if (pageForState !== "validate") {
+    return redirect(pageForState);
   }
-  if (initialImporterDto.status.isImporting) {
-    return redirect("importing");
-  }
-
   return (
     <div className="h-full">
       <Validation

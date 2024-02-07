@@ -45,7 +45,6 @@ const Validation = ({
     0: initialData,
   });
   const fetchRecords = useFetchRecords(initialImporterDto.importerId);
-  const isMappingData = importer.status.isMappingData;
 
   const handleLoadPage = React.useCallback(
     async (pageNumber: number, force: boolean = false) => {
@@ -79,7 +78,7 @@ const Validation = ({
   );
 
   React.useEffect(() => {
-    if (isMappingData) {
+    if (initialImporterDto.status.isValidatingData) {
       setEnablePolling(true);
     } else {
       if (enablePolling) {
@@ -88,7 +87,12 @@ const Validation = ({
         setEnablePolling(false);
       }
     }
-  }, [enablePolling, handleLoadPage, isMappingData, mutateImporter]);
+  }, [
+    enablePolling,
+    handleLoadPage,
+    initialImporterDto.status.isValidatingData,
+    mutateImporter,
+  ]);
   const handleRecordUpdate = React.useCallback(
     (
       rowIndex: number,
@@ -106,7 +110,6 @@ const Validation = ({
           if (!row) {
             throw new Error("row not found: " + rowId);
           }
-          console.log("update data", rowId, result, newValue);
           row.data[columnId].value = newValue;
           for (const newMessagesColumnId in result.newMessagesByColumn) {
             row.data[newMessagesColumnId].messages =
@@ -207,19 +210,6 @@ const Validation = ({
       }
     }
   }, [initialImporterDto.importerId, isMounted, t, toast, totalErrors]);
-
-  if (isMappingData) {
-    return (
-      <div className="w-full h-full flex justify-center items-center">
-        <div className="flex flex-col items-center">
-          <span className="text-slate-500">
-            {t("validation.processingData")}
-          </span>
-          <LoadingSpinner className="text-slate-500 mt-2" />
-        </div>
-      </div>
-    );
-  }
 
   const hasErrors = dataStats.totalErrors > 0;
 

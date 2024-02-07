@@ -9,10 +9,20 @@ type Props = {
   importerDto: ImporterDto;
 };
 
+const stepOrder = ["select-file", "mapping", "validate", "importing", "closed"];
+
 const SidebarMenu = ({ importerDto }: Props) => {
   const pathname = usePathname();
   const currentStep = pathname.split("/").pop();
   const { t } = useTranslation();
+
+  const getStepIndex = (step: string | undefined) => {
+    if (!step) {
+      return -1;
+    }
+    return stepOrder.indexOf(step);
+  };
+
   return (
     <nav className="h-full bg-blue-500 w-3/12 text-white">
       <div className="p-4">
@@ -29,27 +39,27 @@ const SidebarMenu = ({ importerDto }: Props) => {
         <ol role="list" className="px-4 space-y-2">
           <MenuStep
             text={t("sidebar.step.file.title")}
-            isCurrent={currentStep === "import"}
+            isCurrent={currentStep === "select-file"}
             href={null}
-            isDone={importerDto.status.isWaitingForFile === false}
+            isDone={getStepIndex(currentStep) > getStepIndex("select-file")}
           />
           <MenuStep
             text={t("sidebar.step.mapping.title")}
             isCurrent={currentStep === "mapping"}
             href={null}
-            isDone={importerDto.status.dataMapping !== null}
+            isDone={getStepIndex(currentStep) > getStepIndex("mapping")}
           />
           <MenuStep
             text={t("sidebar.step.validation.title")}
-            isCurrent={currentStep === "validation"}
+            isCurrent={currentStep === "validate"}
             href={null}
-            isDone={importerDto.status.isWaitingForImport === false}
+            isDone={getStepIndex(currentStep) > getStepIndex("validate")}
           />
           <MenuStep
             text={t("sidebar.step.importing.title")}
             isCurrent={currentStep === "importing"}
             href={null}
-            isDone={importerDto.status.isImporting === true}
+            isDone={getStepIndex(currentStep) > getStepIndex("importing")}
           />
         </ol>
       </div>
