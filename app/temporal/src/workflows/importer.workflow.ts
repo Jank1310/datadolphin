@@ -173,21 +173,22 @@ export async function importer(params: ImporterWorkflowParams) {
         const columnValidations = columnConfig.validations;
 
         if (columnValidations?.length) {
+          const validationResults = await performRecordValidation(
+            [columnConfig],
+            patch.rowId
+          );
+          const validationResultsGroupedByColumn = mapValues(
+            keyBy(validationResults, "column"),
+            "messages"
+          );
+          newMessages[patch.column] =
+            validationResultsGroupedByColumn[patch.column] || [];
           if (columnValidations.find((item) => item.type === "unique")) {
             // unique validation
-            changedColumns = await performValidations([columnConfig]);
-          } else {
-            // other validations
-            const validationResults = await performRecordValidation(
-              [columnConfig],
-              patch.rowId
-            );
-            const validationResultsGroupedByColumn = mapValues(
-              keyBy(validationResults, "column"),
-              "messages"
-            );
-            newMessages[patch.column] =
-              validationResultsGroupedByColumn[patch.column] || [];
+            const changedColumnsForValidator = await performValidations([
+              columnConfig,
+            ]);
+            changedColumns.push(...changedColumnsForValidator);
           }
         }
       }
