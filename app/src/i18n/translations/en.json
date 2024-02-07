@@ -1,49 +1,57 @@
 {
-    "sidebar": {
-        "step": {
-            "file": {
-                "title": "Select file"
-            },
-            "mapping": {
-                "title": "Mapping"
-            },
-            "validation": {
-                "title": "Validation"
-            },
-            "importing": {
-                "title": "Importing"
-            }
-        }
-    },
-    "import": {
-        "uploading": "Uploading file...",
-        "uploader": {
-            "btnUpload": "Upload",
-            "dragAndDrop": "Drag and drop a file here",
-            "btnBrowseFile": "Browse file",
-            "supportedFormats": "Supported file types: .csv, .xls, .xlsx"
-        }
-    },
-    "mappings": {
-        "title": "Change of confirm column mapping",
-        "waitingForMappings": "Waiting for column mappings...",
-        "btnConfirmMappings": "Confirm mappings",
-        "columnsInYourFile": "Columns in your file",
-        "targetColumns": "Target columns",
-        "noSelectionItem": "None"
-    },
-    "validation": {
-        "processingData": "Processing data...",
-        "title": "Validate your data",
-        "btnConfirmData": "Confirm data",
-        "numberOfErrors": "{{count}} errors",
-        "toast": {
-            "errorStartingImport": "Starting import failed"
-        }
-    },
-    "importing": {
-        "title": "Import is in progress",
-        "youCanCloseNow": "You can close this window now.",
-        "backToTargetApp": "Back to target app"
+  "sidebar": {
+    "step": {
+      "file": {
+        "title": "Select file"
+      },
+      "mapping": {
+        "title": "Mapping"
+      },
+      "validation": {
+        "title": "Validation"
+      },
+      "importing": {
+        "title": "Importing"
+      }
     }
+  },
+  "import": {
+    "uploading": "Uploading file...",
+    "uploader": {
+      "btnUpload": "Upload",
+      "dragAndDrop": "Drag and drop a file here",
+      "btnBrowseFile": "Browse file",
+      "supportedFormats": "Supported file types: .csv, .xls, .xlsx"
+    }
+  },
+  "mappings": {
+    "title": "Change of confirm column mapping",
+    "waitingForMappings": "Waiting for column mappings...",
+    "btnConfirmMappings": "Confirm mappings",
+    "columnsInYourFile": "Columns in your file",
+    "targetColumns": "Target columns",
+    "noSelectionItem": "None"
+  },
+  "validation": {
+    "processingData": "Processing data...",
+    "title": "Validate your data",
+    "btnConfirmData": "Confirm data",
+    "numberOfErrors": "{{count}} errors",
+    "toast": {
+      "errorStartingImport": "Starting import failed"
+    },
+    "messages": {
+      "unique": "The values must be unique",
+      "required": "The value is required and cannot be empty",
+      "regex": "The values do not match the required format",
+      "phone": "The values must be a valid phone number",
+      "email": "The values must be a valid email address",
+      "enum": "The values must match the selection"
+    }
+  },
+  "importing": {
+    "title": "Import is in progress",
+    "youCanCloseNow": "You can close this window now.",
+    "backToTargetApp": "Back to target app"
+  }
 }

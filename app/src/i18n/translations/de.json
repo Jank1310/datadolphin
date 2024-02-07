@@ -1,49 +1,57 @@
 {
-    "sidebar": {
-        "step": {
-            "file": {
-                "title": "Datei auswählen"
-            },
-            "mapping": {
-                "title": "Zuweisungen"
-            },
-            "validation": {
-                "title": "Validierung"
-            },
-            "importing": {
-                "title": "Importieren"
-            }
-        }
-    },
-    "import": {
-        "uploading": "Datei wird hochgeladen...",
-        "uploader": {
-            "btnUpload": "Datei hochladen",
-            "dragAndDrop": "Datei hierher ziehen",
-            "btnBrowseFile": "Datei auswählen",
-            "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
-        }
-    },
-    "mappings": {
-        "title": "Änderung der Spaltenzuordnung bestätigen",
-        "waitingForMappings": "Warte auf Spaltenzuordnungen...",
-        "btnConfirmMappings": "Zuordnungen bestätigen",
-        "columnsInYourFile": "Spalten in hochgeladener Datei",
-        "targetColumns": "Ziel-Spalten",
-        "noSelectionItem": "Keine"
-    },
-    "validation": {
-        "processingData": "Daten werden verarbeitet...",
-        "title": "Daten validieren",
-        "btnConfirmData": "Daten bestätigen",
-        "numberOfErrors": "{{count}} Fehler",
-        "toast": {
-            "errorStartingImport": "Starten des Imports fehlgeschlagen"
-        }
-    },
-    "importing": {
-        "title": "Der Import wird durchgeführt",
-        "youCanCloseNow": "Das Fenster kann jetzt geschlossen werden",
-        "backToTargetApp": "Zurück zur Zielanwendung"
+  "sidebar": {
+    "step": {
+      "file": {
+        "title": "Datei auswählen"
+      },
+      "mapping": {
+        "title": "Zuweisungen"
+      },
+      "validation": {
+        "title": "Validierung"
+      },
+      "importing": {
+        "title": "Importieren"
+      }
     }
+  },
+  "import": {
+    "uploading": "Datei wird hochgeladen...",
+    "uploader": {
+      "btnUpload": "Datei hochladen",
+      "dragAndDrop": "Datei hierher ziehen",
+      "btnBrowseFile": "Datei auswählen",
+      "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
+    }
+  },
+  "mappings": {
+    "title": "Änderung der Spaltenzuordnung bestätigen",
+    "waitingForMappings": "Warte auf Spaltenzuordnungen...",
+    "btnConfirmMappings": "Zuordnungen bestätigen",
+    "columnsInYourFile": "Spalten in hochgeladener Datei",
+    "targetColumns": "Ziel-Spalten",
+    "noSelectionItem": "Keine"
+  },
+  "validation": {
+    "processingData": "Daten werden verarbeitet...",
+    "title": "Daten validieren",
+    "btnConfirmData": "Daten bestätigen",
+    "numberOfErrors": "{{count}} Fehler",
+    "toast": {
+      "errorStartingImport": "Starten des Imports fehlgeschlagen"
+    },
+    "messages": {
+      "unique": "Die Werte müssen eindeutig sein",
+      "required": "Der Wert ist erforderlich und darf nicht leer sein",
+      "regex": "Die Werte entsprechen nicht dem erforderlichen Format",
+      "phone": "Die Werte müssen eine gültige Telefonnummer sein",
+      "email": "Die Werte müssen eine gültige E-Mail-Adresse sein",
+      "enum": "Die Werte müssen der Auswahl entsprechen"
+    }
+  },
+  "importing": {
+    "title": "Der Import wird durchgeführt",
+    "youCanCloseNow": "Das Fenster kann jetzt geschlossen werden",
+    "backToTargetApp": "Zurück zur Zielanwendung"
+  }
 }
