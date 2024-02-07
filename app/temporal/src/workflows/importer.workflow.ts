@@ -251,6 +251,7 @@ export async function importer(params: ImporterWorkflowParams) {
   /** BUSINESS LOGIC */
 
   try {
+    // step 1: wait for and process source file
     const hasSourceFile = await condition(
       () => sourceFile !== null,
       uploadTimeout
@@ -260,17 +261,14 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: source file not uploaded"
       );
     }
-    // step 1: source file
-    ({ isProcessingSourceFile, totalRows, dataMappingRecommendations } =
-      await processSourceFile(
-        isProcessingSourceFile,
-        totalRows,
-        importerId,
-        sourceFile,
-        dataMappingRecommendations,
-        params
-      ));
-
+    await processSourceFile(
+      isProcessingSourceFile,
+      totalRows,
+      importerId,
+      sourceFile,
+      dataMappingRecommendations,
+      params
+    );
     // step 2: data mapping recommendation and user selection
     state = "mapping";
     const hasConfiguredMappings = await condition(
@@ -406,30 +404,30 @@ export async function importer(params: ImporterWorkflowParams) {
     isValidating = false;
     return validationResults;
   }
-}
-async function processSourceFile(
-  isProcessingSourceFile: boolean,
-  totalRows: number,
-  importerId: string,
-  sourceFile: {
-    bucket: string;
-    fileReference: string;
-    fileFormat: "csv" | "xlsx";
-  } | null,
-  dataMappingRecommendations: DataMappingRecommendation[] | null,
-  params: ImporterWorkflowParams
-) {
-  isProcessingSourceFile = true;
-  totalRows = await acts.processSourceFile({
-    importerId,
-    fileReference: sourceFile!.fileReference,
-    format: sourceFile!.fileFormat,
-    formatOptions: {},
-  });
-  dataMappingRecommendations = await acts.getMappingRecommendations({
-    importerId,
-    columnConfig: params.columnConfig,
-  });
-  isProcessingSourceFile = false;
-  return { isProcessingSourceFile, totalRows, dataMappingRecommendations };
+
+  async function processSourceFile(
+    isProcessingSourceFile: boolean,
+    totalRows: number,
+    importerId: string,
+    sourceFile: {
+      bucket: string;
+      fileReference: string;
+      fileFormat: "csv" | "xlsx";
+    } | null,
+    dataMappingRecommendations: DataMappingRecommendation[] | null,
+    params: ImporterWorkflowParams
+  ) {
+    isProcessingSourceFile = true;
+    totalRows = await acts.processSourceFile({
+      importerId,
+      fileReference: sourceFile!.fileReference,
+      format: sourceFile!.fileFormat,
+      formatOptions: {},
+    });
+    dataMappingRecommendations = await acts.getMappingRecommendations({
+      importerId,
+      columnConfig: params.columnConfig,
+    });
+    isProcessingSourceFile = false;
+  }
 }
