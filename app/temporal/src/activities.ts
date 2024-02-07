@@ -284,5 +284,34 @@ export function makeActivities(
     dropDatabase: async (params: { importerId: string }): Promise<void> => {
       await database.dropDatabases(params.importerId);
     },
+    getColumnValidators: async (params: {
+      columnConfigs: ColumnConfig[];
+    }): Promise<ColumnValidators> => {
+      const columnValidators = {} as ColumnValidators;
+      for (const column of params.columnConfigs) {
+        for (const validator of column.validations!) {
+          if (!columnValidators[validator.type]) {
+            columnValidators[validator.type] = [];
+          }
+          columnValidators[validator.type].push({
+            column: column.key,
+            config: validator,
+          });
+        }
+      }
+      return columnValidators;
+    },
+    getMappedColumnsWithValidators: async (params: {
+      columnConfig: ColumnConfig[];
+      mappings: Mapping[] | null;
+    }) => {
+      return params.columnConfig.filter(
+        (column) =>
+          column.validations?.length &&
+          (params.mappings ?? []).find(
+            (mapping) => mapping.targetColumn === column.key
+          )
+      );
+    },
   };
 }

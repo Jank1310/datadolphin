@@ -14,10 +14,7 @@ import { keyBy, mapValues, sum, times } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
-import {
-  ColumnValidators,
-  DataMappingRecommendation,
-} from "../domain/DataAnalyzer";
+import { DataMappingRecommendation } from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
 import { ValidationMessage } from "../domain/ValidationMessage";
 export interface ImporterWorkflowParams {
@@ -280,13 +277,11 @@ export async function importer(params: ImporterWorkflowParams) {
     });
     isMappingData = false;
 
-    const allMappedColumnsWithValidators = params.columnConfig.filter(
-      (column) =>
-        column.validations?.length &&
-        (configuredMappings ?? []).find(
-          (mapping) => mapping.targetColumn === column.key
-        )
-    );
+    const allMappedColumnsWithValidators =
+      await acts.getMappedColumnsWithValidators({
+        columnConfig: params.columnConfig,
+        mappings: configuredMappings!,
+      });
     await performValidations(allMappedColumnsWithValidators);
 
     const hasImportStartRequested = await condition(
@@ -335,21 +330,10 @@ export async function importer(params: ImporterWorkflowParams) {
   async function performValidations(columnConfigs: ColumnConfig[]) {
     isValidating = true;
 
-    const columnValidators = {} as ColumnValidators;
-    for (const column of columnConfigs) {
-      for (const validator of column.validations!) {
-        if (!columnValidators[validator.type]) {
-          columnValidators[validator.type] = [];
-        }
-        columnValidators[validator.type].push({
-          column: column.key,
-          config: validator,
-        });
-      }
-    }
+    const columnValidators = await acts.getColumnValidators({ columnConfigs });
     const { columnStats, totalCount } = await acts.generateStatsPerColumn({
       importerId,
-      uniqueColumns: columnValidators.unique.map((item) => item.column),
+      uniqueColumns: columnValidators.unique?.map((item) => item.column) ?? [],
     });
     //! Optimize import limit
     const limitFct = pLimit(validationParallelLimit);
@@ -378,18 +362,7 @@ export async function importer(params: ImporterWorkflowParams) {
     rowId: string
   ) {
     isValidating = true;
-    const columnValidators = {} as ColumnValidators;
-    for (const column of columnConfigs) {
-      for (const validator of column.validations!) {
-        if (!columnValidators[validator.type]) {
-          columnValidators[validator.type] = [];
-        }
-        columnValidators[validator.type].push({
-          column: column.key,
-          config: validator,
-        });
-      }
-    }
+    const columnValidators = await acts.getColumnValidators({ columnConfigs });
     const { columnStats } = await acts.generateStatsPerColumn({
       importerId,
       uniqueColumns: columnValidators.unique?.map((item) => item.column) ?? [],
