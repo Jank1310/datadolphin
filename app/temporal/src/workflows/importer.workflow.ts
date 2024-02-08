@@ -163,10 +163,8 @@ export async function importer(params: ImporterWorkflowParams) {
     async (updateParams) => {
       if (isUpdatingRecord) {
         await condition(() => !isUpdatingRecord);
-        isUpdatingRecord = true;
-      } else {
-        isUpdatingRecord = true;
       }
+      isUpdatingRecord = true;
       try {
         await acts.applyPatches({
           importerId: workflowInfo().workflowId,
@@ -381,10 +379,8 @@ export async function importer(params: ImporterWorkflowParams) {
   ) {
     if (isValidating) {
       await condition(() => !isValidating);
-      isValidating = true;
-    } else {
-      isValidating = true;
     }
+    isValidating = true;
     try {
       const columnValidators = {} as ColumnValidators;
       for (const column of columnConfigs) {
