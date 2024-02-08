@@ -4,5 +4,5 @@ export default async function ImporterPage({
 }: {
   params: { id: string };
 }) {
-  redirect(`${params.id}/import`, RedirectType.replace);
+  redirect(`${params.id}/select-file`, RedirectType.replace);
 }

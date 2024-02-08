@@ -27,18 +27,22 @@ export interface ImporterConfig {
   redirectUrl?: string;
 }
 
+export type ImporterState =
+  | "select-file"
+  | "mapping"
+  | "validate"
+  | "importing"
+  | "closed";
+
 export interface ImporterStatus {
-  isWaitingForFile: boolean;
-  isProcessingSourceFile: boolean;
-  isMappingData: boolean;
   isValidatingData: boolean;
-  isWaitingForImport: boolean;
-  isImporting: boolean;
+  state: ImporterState;
   totalRows: number;
   dataMapping: DataMapping[] | null;
   meta: Meta | null;
+  isProcessingSourceFile: boolean;
+  isMappingData: boolean;
 }
-
 export interface Meta {
   messageCount: Record<string /* columnId */, number>;
 }

@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import initTranslations from "@/i18n/initi18n";
 import { getHost } from "@/lib/utils";
 import { ZapIcon } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getPageForState } from "../redirectUtil";
 
 type Props = {
   params: {
@@ -20,7 +22,13 @@ const ImportingPage = async (props: Props) => {
       cache: "no-cache",
     }
   ).then(async (res) => (await res.json()) as ImporterDto);
+
   const initialImporterDto = await initialImporterDtoPromise;
+  const page = getPageForState(initialImporterDto);
+  if (page !== "importing") {
+    return redirect(page);
+  }
+
   const redirectUrl = initialImporterDto.config.redirectUrl;
   return (
     <div className="w-full h-full flex items-center justify-center">

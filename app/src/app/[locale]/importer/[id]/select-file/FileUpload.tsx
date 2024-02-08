@@ -90,7 +90,7 @@ const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
           <div className="py-6">
             <UploadCloudIcon className="inline-block w-12 h-12 text-gray-600" />
             <h4 className="text-base font-semibold text-gray-600">
-              {t("import.uploader.dragAndDrop")}
+              {t("select-file.uploader.dragAndDrop")}
             </h4>
           </div>
           <hr className="w-full border-gray-400 my-2" />
@@ -115,10 +115,10 @@ const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
             {!file && (
               <>
                 <Button onClick={openFileExplorer}>
-                  {t("import.uploader.btnBrowseFile")}
+                  {t("select-file.uploader.btnBrowseFile")}
                 </Button>
                 <p className="text-xs text-gray-400 mt-4">
-                  {t("import.uploader.supportedFormats")}
+                  {t("select-file.uploader.supportedFormats")}
                 </p>
               </>
             )}
@@ -134,7 +134,7 @@ const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
               }
             }}
           >
-            {t("import.uploader.btnUpload")}
+            {t("select-file.uploader.btnUpload")}
             <UploadCloudIcon className="ml-2" />
           </Button>
         </div>
