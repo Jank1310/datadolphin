@@ -12,6 +12,6 @@ export async function POST(
   const { slug: importerId } = params;
   const client = await getTemporalWorkflowClient();
   const handle = client.getHandle(importerId);
-  await handle.executeUpdate("importer:close");
+  await handle.signal("importer:close");
   return NextResponse.json({});
 }
