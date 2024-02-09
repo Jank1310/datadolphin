@@ -3,10 +3,12 @@ import {
   CancellationScope,
   condition,
   defineQuery,
+  defineSignal,
   defineUpdate,
   isCancellation,
   proxyActivities,
   setHandler,
+  sleep,
   workflowInfo,
 } from "@temporalio/workflow";
 import env from "env-var";
@@ -75,6 +77,7 @@ const addFileUpdate = defineUpdate<
   ]
 >("importer:add-file");
 const startImportSignal = defineUpdate<void, []>("importer:start-import");
+const closeSignal = defineSignal("importer:close");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const dataMappingRecommendationsQuery = defineQuery<
   DataMappingRecommendation[] | null
@@ -132,6 +135,9 @@ export async function importer(params: ImporterWorkflowParams) {
   let isMappingData = false;
   let isUpdatingRecord = false;
   /** DEFINE WORKFLOW HANDLERS */
+  setHandler(closeSignal, () => {
+    state = "closed";
+  });
   setHandler(
     addFileUpdate,
     (params) => {
@@ -312,8 +318,7 @@ export async function importer(params: ImporterWorkflowParams) {
       callbackUrl: params.callbackUrl,
     });
 
-    await condition(
-      () => state === "closed",
+    await sleep(
       "14 days" // internal max lifetime
     );
   } catch (err) {
