@@ -5,7 +5,7 @@ export async function fetchWithAuth(...args: Parameters<typeof fetch>) {
   set(
     internalArgs,
     "headers.Authorization",
-    "Bearer" + process.env.NEXT_PUBLIC_FRONTEND_TOKEN
+    "Bearer " + process.env.NEXT_PUBLIC_FRONTEND_TOKEN
   );
   return await fetch(...internalArgs);
 }
