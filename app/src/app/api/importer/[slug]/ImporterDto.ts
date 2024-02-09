@@ -25,6 +25,12 @@ export interface ImporterConfig {
    * if set a button will be shown to redirect to this url
    */
   redirectUrl?: string;
+  design?: {
+    primaryColor?: string;
+    primaryForegroundColor?: string;
+    menuBackgroundColor?: string;
+    menuForegroundColor?: string;
+  };
 }
 
 export type ImporterState =
