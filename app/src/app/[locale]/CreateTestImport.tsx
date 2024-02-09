@@ -103,7 +103,7 @@ export const CreateTestImporter = () => {
     const fetchResult = await fetch("/api/importer", {
       method: "POST",
       headers: {
-        Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+        Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
       },
       body: JSON.stringify({
         name: "Mitarbeiterdaten upload",

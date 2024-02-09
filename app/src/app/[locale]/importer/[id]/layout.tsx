@@ -15,7 +15,7 @@ type PageProps = {
 export default async function ImporterPage({ params, children }: PageProps) {
   const importerDto = (await fetch(`${getHost()}/api/importer/${params.id}`, {
     headers: {
-      Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+      Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
     },
     cache: "no-cache",
   }).then((res) => res.json())) as ImporterDto;

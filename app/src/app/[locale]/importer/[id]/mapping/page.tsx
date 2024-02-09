@@ -19,7 +19,7 @@ const MappingPage = async (props: Props) => {
     `${getHost()}/api/importer/${importerId}`,
     {
       headers: {
-        Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+        Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
       },
       cache: "no-cache",
     }
@@ -28,7 +28,7 @@ const MappingPage = async (props: Props) => {
     `${getHost()}/api/importer/${importerId}/mappings/recommendations`,
     {
       headers: {
-        Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+        Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
       },
       cache: "no-cache",
     }
