@@ -1,6 +1,7 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { Button } from "@/components/ui/button";
 import initTranslations from "@/i18n/initi18n";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import { ZapIcon } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -16,12 +17,9 @@ type Props = {
 const ImportingPage = async (props: Props) => {
   const { t } = await initTranslations(props.params.locale);
   const importerId = props.params.id;
-  const initialImporterDtoPromise = fetch(
+  const initialImporterDtoPromise = fetchWithAuth(
     `${getHost()}/api/importer/${importerId}`,
     {
-      headers: {
-        Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
-      },
       cache: "no-cache",
     }
   ).then(async (res) => (await res.json()) as ImporterDto);

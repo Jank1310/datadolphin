@@ -1,4 +1,5 @@
 import { SourceData } from "@/app/api/importer/[slug]/ImporterDto";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 
 export function useFetchRecords(importerId: string | null) {
@@ -18,13 +19,9 @@ export async function fetchRecords(
   const getUrl = new URL(`/api/importer/${importerId}/records`, getHost());
   getUrl.searchParams.append("page", page.toFixed());
   getUrl.searchParams.append("pageSize", pageSize.toFixed());
-  const result = fetch(getUrl, {
+  const result = fetchWithAuth(getUrl, {
     method: "GET",
     cache: "no-cache",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
-    },
   }).then((res) => res.json() as Promise<{ records: SourceData[] }>);
   return (await result).records;
 }

@@ -2,6 +2,7 @@ import {
   DataMappingRecommendation,
   ImporterDto,
 } from "@/app/api/importer/[slug]/ImporterDto";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { getPageForState } from "../redirectUtil";
@@ -15,21 +16,15 @@ type Props = {
 
 const MappingPage = async (props: Props) => {
   const importerId = props.params.id;
-  const initialImporterDtoPromise = fetch(
+  const initialImporterDtoPromise = fetchWithAuth(
     `${getHost()}/api/importer/${importerId}`,
     {
-      headers: {
-        Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
-      },
       cache: "no-cache",
     }
   ).then(async (res) => (await res.json()) as ImporterDto);
-  const initialDataMappingsPromise = fetch(
+  const initialDataMappingsPromise = fetchWithAuth(
     `${getHost()}/api/importer/${importerId}/mappings/recommendations`,
     {
-      headers: {
-        Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
-      },
       cache: "no-cache",
     }
   ).then(

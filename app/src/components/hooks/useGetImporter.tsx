@@ -1,4 +1,5 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import useSWR from "swr";
 
 export function useGetImporter(
@@ -8,12 +9,7 @@ export function useGetImporter(
 ) {
   const { data, error, isLoading, mutate } = useSWR(
     importerId ? [`/api/importer/${importerId}`] : null,
-    ([url]) =>
-      fetch(url, {
-        headers: {
-          Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
-        },
-      }).then((res) => res.json()),
+    ([url]) => fetchWithAuth(url).then((res) => res.json()),
     {
       refreshInterval: pollInterval,
       fallbackData,

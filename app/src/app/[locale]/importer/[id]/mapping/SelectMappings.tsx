@@ -26,6 +26,7 @@ import { produce } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPageForState } from "../redirectUtil";
@@ -101,12 +102,8 @@ const SelectMappings = ({
     }
     setIsSavingMapping(true);
     try {
-      await fetch(`/api/importer/${importer.importerId}/mappings`, {
+      await fetchWithAuth(`/api/importer/${importer.importerId}/mappings`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
-        },
         body: JSON.stringify(currentMappings),
       });
       setEnablePolling(true);

@@ -1,6 +1,7 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import TranslationsProvider from "@/components/TranslationsProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import SidebarMenu from "./SidebarMenu";
 
@@ -13,12 +14,12 @@ type PageProps = {
 };
 
 export default async function ImporterPage({ params, children }: PageProps) {
-  const importerDto = (await fetch(`${getHost()}/api/importer/${params.id}`, {
-    headers: {
-      Authorization: process.env.NEXT_PUBLIC_FRONTEND_TOKEN as string,
-    },
-    cache: "no-cache",
-  }).then((res) => res.json())) as ImporterDto;
+  const importerDto = (await fetchWithAuth(
+    `${getHost()}/api/importer/${params.id}`,
+    {
+      cache: "no-cache",
+    }
+  ).then((res) => res.json())) as ImporterDto;
   return (
     <TranslationsProvider locale={params.locale}>
       <section className="h-screen flex">
