@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
         meta: body.meta ?? {},
         logo: body.logo,
         redirectUrl: body.redirectUrl,
+        design: body.design,
       } as ImporterConfig,
     ],
   });
