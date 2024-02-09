@@ -16,6 +16,9 @@ const SelectFilePage = async (props: Props) => {
     `${getHost()}/api/importer/${importerId}`,
     {
       cache: "no-cache",
+      headers: {
+        Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
+      },
     }
   ).then((res) => res.json())) as ImporterDto;
   const pageForState = getPageForState(initialImporterDto);
