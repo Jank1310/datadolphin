@@ -98,6 +98,12 @@ export const CreateTestImporter = () => {
         logo: "https://placehold.co/200x100",
         callbackUrl: "some-url",
         columnConfig,
+        design: {
+          primaryColor: "#0000FF",
+          primaryForegroundColor: "#FFFFFF",
+          menuBackgroundColor: "#9CCC65",
+          menuForegroundColor: "#FFFFFF",
+        },
       }),
     });
     const { importerId } = await fetchResult.json();
