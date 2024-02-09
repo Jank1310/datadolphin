@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { validateAuth } from "@/lib/validateAuth";
+import { validateServerAuth } from "@/lib/validateAuth";
 import { getMinioClient } from "../../../../lib/minioClient";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
-  if (validateAuth(req) === false) {
+  if (validateServerAuth(req) === false) {
     return NextResponse.json("Unauthorized", { status: 401 });
   }
   const { slug: importerId } = params;
