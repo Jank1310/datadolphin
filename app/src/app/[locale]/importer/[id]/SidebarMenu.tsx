@@ -15,7 +15,6 @@ const SidebarMenu = ({ importerDto }: Props) => {
   const pathname = usePathname();
   const currentStep = pathname.split("/").pop();
   const { t } = useTranslation();
-
   const getStepIndex = (step: string | undefined) => {
     if (!step) {
       return -1;
