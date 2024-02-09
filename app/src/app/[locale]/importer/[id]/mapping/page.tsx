@@ -4,7 +4,8 @@ import {
 } from "@/app/api/importer/[slug]/ImporterDto";
 import { getHost } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import ShowMappings from "./ShowMappings";
+import { getPageForState } from "../redirectUtil";
+import SelectMappings from "./SelectMappings";
 
 type Props = {
   params: {
@@ -33,15 +34,13 @@ const MappingPage = async (props: Props) => {
     initialImporterDtoPromise,
     initialDataMappingsPromise,
   ]);
-  if (initialImporterDto.status.isWaitingForFile) {
-    return redirect("import");
-  }
-  if (initialImporterDto.status.dataMapping !== null) {
-    return redirect("validate");
+  const pageForState = getPageForState(initialImporterDto);
+  if (pageForState !== "mapping") {
+    return redirect(pageForState);
   }
   return (
     <div className="h-full">
-      <ShowMappings
+      <SelectMappings
         initialImporterDto={initialImporterDto}
         initialDataMappingsRecommendations={initialDataMappings}
       />
