@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { enableMapSet, produce } from "immer";
 import { sum } from "lodash";
 import { ChevronRightCircleIcon } from "lucide-react";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useIsMounted } from "usehooks-ts";
@@ -26,6 +26,7 @@ const Validation = ({
   initialRecords: initialData,
 }: Props) => {
   const { t } = useTranslation();
+  const { push } = useRouter();
   const { toast } = useToast();
   const [enablePolling, setEnablePolling] = React.useState(false);
   const [isStartingImport, setIsStartingImport] = React.useState(false);
@@ -33,7 +34,7 @@ const Validation = ({
     Record<string /* rowId */, Record<string /* columnId */, boolean>>
   >({});
   const isMounted = useIsMounted();
-  const { importer } = useGetImporter(
+  const { importer, mutate: mutateImporter } = useGetImporter(
     initialImporterDto.importerId,
     enablePolling ? 500 : undefined,
     initialImporterDto
@@ -45,7 +46,6 @@ const Validation = ({
     0: initialData,
   });
   const fetchRecords = useFetchRecords(initialImporterDto.importerId);
-  const isMappingData = importer.status.isMappingData;
 
   const handleLoadPage = React.useCallback(
     async (pageNumber: number, force: boolean = false) => {
@@ -79,21 +79,28 @@ const Validation = ({
   );
 
   React.useEffect(() => {
-    if (isMappingData) {
+    if (initialImporterDto.status.isValidatingData) {
       setEnablePolling(true);
     } else {
       if (enablePolling) {
         handleLoadPage(0, true);
+        mutateImporter(); // needed to update stats
         setEnablePolling(false);
       }
     }
-  }, [enablePolling, handleLoadPage, isMappingData]);
+  }, [
+    enablePolling,
+    handleLoadPage,
+    initialImporterDto.status.isValidatingData,
+    mutateImporter,
+  ]);
   const handleRecordUpdate = React.useCallback(
     (
       rowIndex: number,
       rowId: string,
-      _columnId: string,
-      result: RecordUpdateResult
+      columnId: string,
+      result: RecordUpdateResult,
+      newValue: string | number | null
     ) => {
       // update messages
       const rowPage = Math.floor(rowIndex / 100);
@@ -104,15 +111,20 @@ const Validation = ({
           if (!row) {
             throw new Error("row not found: " + rowId);
           }
+          row.data[columnId].value = newValue;
           for (const newMessagesColumnId in result.newMessagesByColumn) {
             row.data[newMessagesColumnId].messages =
               result.newMessagesByColumn[newMessagesColumnId];
           }
         })
       );
+      mutateImporter();
+      if (result.changedColumns.length > 0) {
+        handleLoadPage(rowPage, true);
+      }
       // reload importer to get latest stats
     },
-    []
+    [handleLoadPage, mutateImporter]
   );
 
   const totalErrors = React.useMemo(
@@ -157,7 +169,7 @@ const Validation = ({
         );
         if (isMounted()) {
           const result = (await res.json()) as RecordUpdateResult;
-          handleRecordUpdate(rowIndex, rowId, columnId, result);
+          handleRecordUpdate(rowIndex, rowId, columnId, result, value);
         }
       } finally {
         if (isMounted()) {
@@ -171,7 +183,6 @@ const Validation = ({
           );
         }
       }
-      // TODO handle result (reload etc.)
     },
     [handleRecordUpdate, initialImporterDto.importerId, isMounted]
   );
@@ -191,32 +202,19 @@ const Validation = ({
           },
         }
       );
-      redirect("importing");
+      push("importing");
     } catch (err) {
       console.error(err);
       toast({
         title: t("validation.toast.errorStartingImport"),
         variant: "destructive",
       });
-    } finally {
       if (isMounted()) {
+        // only set on error to prevent flickering
         setIsStartingImport(false);
       }
     }
-  }, [initialImporterDto.importerId, isMounted, t, toast, totalErrors]);
-
-  if (isMappingData) {
-    return (
-      <div className="w-full h-full flex justify-center items-center">
-        <div className="flex flex-col items-center">
-          <span className="text-slate-500">
-            {t("validation.processingData")}
-          </span>
-          <LoadingSpinner className="text-slate-500 mt-2" />
-        </div>
-      </div>
-    );
-  }
+  }, [initialImporterDto.importerId, isMounted, push, t, toast, totalErrors]);
 
   const hasErrors = dataStats.totalErrors > 0;
 

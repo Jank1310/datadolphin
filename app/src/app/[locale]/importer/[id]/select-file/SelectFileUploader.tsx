@@ -2,9 +2,11 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { getPageForState } from "../redirectUtil";
 import FileUpload from "./FileUpload";
 
 type Props = {
@@ -17,13 +19,15 @@ const allowedMimeTypes = [
   "text/csv",
 ];
 
-const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
+const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
   const { t } = useTranslation();
   const { push, replace } = useRouter();
+  const { toast } = useToast();
   const [isUploading, setIsUploading] = React.useState(false);
+  const [hasUploaded, setHasUploaded] = React.useState(false);
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
-    undefined,
+    hasUploaded ? 500 : undefined,
     initialImporterDto
   );
 
@@ -36,32 +40,43 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
         formData.append("importerId", importer.importerId);
         await fetch("/api/upload", {
           method: "POST",
+          body: formData,
           headers: {
             Authorization: process.env.NEXT_PUBLIC_AUTH_TOKEN as string,
           },
-          body: formData,
         });
-        push("mapping");
+        setHasUploaded(true);
       } catch (err) {
         console.error(err);
+        setIsUploading(false);
+        toast({
+          title: t("select-file.toast.errorUploading"),
+          variant: "destructive",
+        });
       } finally {
-        // is reset before the page is navigated away from
-        // setIsUploading(false);
+        setIsUploading(false);
       }
     }
   };
 
-  const hasUploadedFile = importer.status.isWaitingForFile === false;
-  if (hasUploadedFile) {
-    replace("mapping");
-    return null;
-  }
+  const pageForState = getPageForState(importer);
+  React.useEffect(() => {
+    if (pageForState !== "select-file") {
+      push(pageForState);
+    }
+  }, [pageForState, push]);
+
+  const isProcessingSourceFile = importer.status.isProcessingSourceFile;
 
   return (
-    <div className="flex h-full items-center justify-center">
-      {isUploading ? (
+    <>
+      {isUploading || isProcessingSourceFile || hasUploaded ? (
         <div className="flex flex-col items-center">
-          <span className="text-slate-500">{t("import.uploading")}</span>
+          <span className="text-slate-500">
+            {isUploading
+              ? t("select-file.uploading")
+              : t("select-file.processingFile")}
+          </span>
           <LoadingSpinner className="text-slate-500 mt-2" />
         </div>
       ) : (
@@ -71,8 +86,8 @@ const ImportPage = ({ importerDto: initialImporterDto }: Props) => {
           onSubmitFile={handleSubmitFile}
         />
       )}
-    </div>
+    </>
   );
 };
 
-export default ImportPage;
+export default SelectFileUploader;

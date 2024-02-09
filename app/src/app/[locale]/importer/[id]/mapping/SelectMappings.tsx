@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { getPageForState } from "../redirectUtil";
 
 type Props = {
   initialImporterDto: ImporterDto;
@@ -39,7 +40,7 @@ interface Mapping {
   targetColumn: string | null;
 }
 
-const ShowMappings = ({
+const SelectMappings = ({
   initialImporterDto,
   initialDataMappingsRecommendations,
 }: Props) => {
@@ -58,16 +59,15 @@ const ShowMappings = ({
       { recommendations: initialDataMappingsRecommendations }
     );
 
-  const isWaitingForMappings =
-    importer.status.isProcessingSourceFile ||
+  const isWaitingForMappingRecommendations =
     dataMappingRecommendations === null;
+  const isMappingData = importer.status.isMappingData;
+
   React.useEffect(() => {
-    if (isWaitingForMappings) {
+    if (isWaitingForMappingRecommendations || isMappingData) {
       setEnablePolling(true);
-    } else {
-      setEnablePolling(false);
     }
-  }, [isWaitingForMappings]);
+  }, [isMappingData, isWaitingForMappingRecommendations]);
 
   const [currentMappings, setCurrentMappings] = React.useState<Mapping[]>([]);
   React.useEffect(() => {
@@ -109,20 +109,39 @@ const ShowMappings = ({
         },
         body: JSON.stringify(currentMappings),
       });
-      push("validate");
+      setEnablePolling(true);
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsSavingMapping(false);
+      setIsSavingMapping(false); // only set on error to prevent flickering
     }
   };
 
-  if (isWaitingForMappings) {
+  const pageForState = getPageForState(importer);
+  React.useEffect(() => {
+    if (pageForState !== "mapping") {
+      push(pageForState);
+    }
+  }, [pageForState, push]);
+
+  if (isWaitingForMappingRecommendations) {
     return (
       <div className="w-full h-full flex justify-center items-center">
         <div className="flex flex-col items-center">
           <span className="text-slate-500">
             {t("mappings.waitingForMappings")}
+          </span>
+          <LoadingSpinner className="text-slate-500 mt-2" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isMappingData) {
+    return (
+      <div className="w-full h-full flex justify-center items-center">
+        <div className="flex flex-col items-center">
+          <span className="text-slate-500">
+            {t("mappings.applyingMappings")}
           </span>
           <LoadingSpinner className="text-slate-500 mt-2" />
         </div>
@@ -210,4 +229,4 @@ const ShowMappings = ({
   );
 };
 
-export default ShowMappings;
+export default SelectMappings;

@@ -1,7 +1,7 @@
 import { Context } from "@temporalio/activity";
 import { ApplicationFailure } from "@temporalio/workflow";
 import csv from "csv";
-import { pullAll } from "lodash";
+import { pullAll, uniq } from "lodash";
 import { ObjectId } from "mongodb";
 import XLSX from "xlsx";
 import { ColumnConfig } from "./domain/ColumnConfig";
@@ -155,8 +155,8 @@ export function makeActivities(
         return [];
       }
       // all rows should have all available headers (see source file processing)
-      const allEmptyColumns = Object.keys(firstRecord).filter((key) =>
-        key.startsWith("__EMPTY")
+      const allEmptyColumns = Object.keys(firstRecord).filter(
+        (key) => key.startsWith("__EMPTY") || key === ""
       );
       const sourceColumns = pullAll(
         Object.keys(firstRecord as SourceDataSetRow),
@@ -173,8 +173,7 @@ export function makeActivities(
       stats: SourceFileStatsPerColumn;
       skip: number;
       limit: number;
-      returnValidationResults: boolean;
-    }): Promise<ValidationResult[]> => {
+    }): Promise<string[]> => {
       const jsonData: DataSet = await database.getData(
         params.importerId,
         params.skip,
@@ -194,11 +193,11 @@ export function makeActivities(
         params.importerId,
         validationResults
       );
-      if (params.returnValidationResults) {
-        return validationResults;
-      } else {
-        return [];
-      }
+
+      const affectedColumns = uniq(
+        validationResults.map((result) => result.column)
+      );
+      return affectedColumns;
     },
     processDataValidationForRecord: async (params: {
       importerId: string;

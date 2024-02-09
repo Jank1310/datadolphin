@@ -6,7 +6,7 @@ export function useGetImporter(
   pollInterval?: number,
   fallbackData?: ImporterDto
 ) {
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR(
     importerId ? [`/api/importer/${importerId}`] : null,
     ([url]) =>
       fetch(url, {
@@ -23,5 +23,6 @@ export function useGetImporter(
     importer: data as ImporterDto,
     error,
     isLoading,
+    mutate,
   };
 }
