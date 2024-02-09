@@ -136,7 +136,9 @@ export async function importer(params: ImporterWorkflowParams) {
   let isUpdatingRecord = false;
   /** DEFINE WORKFLOW HANDLERS */
   setHandler(closeSignal, () => {
-    state = "closed";
+    if (state === "importing") {
+      state = "closed";
+    }
   });
   setHandler(
     addFileUpdate,
