@@ -318,12 +318,12 @@ export async function importer(params: ImporterWorkflowParams) {
       );
     }
     try {
-      await callbackCancellationScope.run(() =>
-        acts.invokeCallback({
+      await callbackCancellationScope.run(async () => {
+        await acts.invokeCallback({
           importerId,
           callbackUrl: params.callbackUrl,
-        })
-      );
+        });
+      });
     } catch (err) {
       if (!(err instanceof CancelledFailure)) {
         throw err;
