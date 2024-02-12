@@ -1,6 +1,7 @@
 import {
   ApplicationFailure,
   CancellationScope,
+  CancelledFailure,
   condition,
   defineQuery,
   defineSignal,
@@ -117,7 +118,7 @@ const validationParallelLimit = env
 export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
-
+  const callbackCancellationScope = new CancellationScope();
   let sourceFile: {
     bucket: string;
     fileReference: string;
@@ -138,6 +139,7 @@ export async function importer(params: ImporterWorkflowParams) {
   setHandler(closeSignal, () => {
     if (state === "importing") {
       state = "closed";
+      callbackCancellationScope.cancel();
     }
   });
   setHandler(
@@ -315,10 +317,18 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: import start not requested"
       );
     }
-    await acts.invokeCallback({
-      importerId,
-      callbackUrl: params.callbackUrl,
-    });
+    try {
+      await callbackCancellationScope.run(() =>
+        acts.invokeCallback({
+          importerId,
+          callbackUrl: params.callbackUrl,
+        })
+      );
+    } catch (err) {
+      if (!(err instanceof CancelledFailure)) {
+        throw err;
+      }
+    }
 
     await sleep(
       "14 days" // internal max lifetime
