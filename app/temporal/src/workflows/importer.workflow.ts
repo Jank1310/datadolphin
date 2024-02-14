@@ -37,6 +37,12 @@ export interface ImporterWorkflowParams {
    */
   startImportTimeout?: string;
   logo: string;
+  design?: {
+    primaryColor?: string;
+    primaryForegroundColor?: string;
+    menuBackgroundColor?: string;
+    menuForegroundColor?: string;
+  };
 }
 
 export type ImporterState =

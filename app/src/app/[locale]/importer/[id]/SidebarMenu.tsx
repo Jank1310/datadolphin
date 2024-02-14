@@ -22,9 +22,16 @@ const SidebarMenu = ({ importerDto }: Props) => {
     }
     return stepOrder.indexOf(step);
   };
-
+  const { menuBackgroundColor, menuForegroundColor } =
+    importerDto.config.design ?? {};
   return (
-    <nav className="h-full bg-blue-500 w-3/12 text-white">
+    <nav
+      className="h-full w-3/12 bg-blue-500 text-white"
+      style={{
+        backgroundColor: menuBackgroundColor,
+        color: menuForegroundColor,
+      }}
+    >
       <div className="p-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={importerDto.config.logo} alt="" />
@@ -103,7 +110,7 @@ const CurrentStep = ({ text }: { text: string }) => {
         aria-hidden="true"
       >
         <span className="absolute h-4 w-4 rounded-full bg-slate-50" />
-        <span className="relative block h-3 w-3 rounded-full bg-blue-500" />
+        <span className="relative block h-3 w-3 rounded-full bg-slate-400" />
       </span>
       <span className="ml-3 text-sm font-medium text-white">{text}</span>
     </div>

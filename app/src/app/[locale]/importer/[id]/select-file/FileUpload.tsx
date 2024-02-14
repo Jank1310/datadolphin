@@ -71,60 +71,58 @@ const FileUpload = ({ importerId, allowedMimeTypes, onSubmitFile }: Props) => {
 
   return (
     <div>
-      <div
+      <form
         className={cn(
           "bg-gray-50 text-center px-4 rounded w-80 flex flex-col items-center justify-center cursor-pointer border-2 border-gray-400 border-dashed mx-auto font-[sans-serif]",
           {
-            "border-blue-400": dragActive,
-            "bg-blue-100": dragActive,
+            "border-primary": dragActive,
+            "bg-primary/10": dragActive,
           }
         )}
+        onDragEnter={handleDragEnter}
+        onSubmit={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
       >
-        <form
-          onDragEnter={handleDragEnter}
-          onSubmit={(e) => e.preventDefault()}
-          onDrop={handleDrop}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-        >
-          <div className="py-6">
-            <UploadCloudIcon className="inline-block w-12 h-12 text-gray-600" />
-            <h4 className="text-base font-semibold text-gray-600">
-              {t("select-file.uploader.dragAndDrop")}
-            </h4>
-          </div>
-          <hr className="w-full border-gray-400 my-2" />
-          {file && (
-            <Card>
-              <CardContent className="flex items-center justify-center py-2">
-                <span>{file.name}</span>
-              </CardContent>
-            </Card>
+        <div className="py-6">
+          <UploadCloudIcon className="inline-block w-12 h-12 text-gray-600" />
+          <h4 className="text-base font-semibold text-gray-600">
+            {t("select-file.uploader.dragAndDrop")}
+          </h4>
+        </div>
+        <hr className="w-full border-gray-400 my-2" />
+        {file && (
+          <Card>
+            <CardContent className="flex items-center justify-center py-2">
+              <span>{file.name}</span>
+            </CardContent>
+          </Card>
+        )}
+        <div className="py-4">
+          <input
+            id="uploadFile1"
+            placeholder="fileInput"
+            className="hidden"
+            ref={inputRef}
+            type="file"
+            multiple={false}
+            onChange={handleChange}
+            accept=".xlsx,.xls,.csv"
+          />
+          {!file && (
+            <>
+              <Button onClick={openFileExplorer}>
+                {t("select-file.uploader.btnBrowseFile")}
+              </Button>
+              <p className="text-xs text-gray-400 mt-4">
+                {t("select-file.uploader.supportedFormats")}
+              </p>
+            </>
           )}
-          <div className="py-4">
-            <input
-              id="uploadFile1"
-              placeholder="fileInput"
-              className="hidden"
-              ref={inputRef}
-              type="file"
-              multiple={false}
-              onChange={handleChange}
-              accept=".xlsx,.xls,.csv"
-            />
-            {!file && (
-              <>
-                <Button onClick={openFileExplorer}>
-                  {t("select-file.uploader.btnBrowseFile")}
-                </Button>
-                <p className="text-xs text-gray-400 mt-4">
-                  {t("select-file.uploader.supportedFormats")}
-                </p>
-              </>
-            )}
-          </div>
-        </form>
-      </div>
+        </div>
+      </form>
+
       {file && (
         <div className="mt-4 flex justify-center">
           <Button
