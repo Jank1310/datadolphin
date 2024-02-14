@@ -1,12 +1,15 @@
 import {
   ApplicationFailure,
   CancellationScope,
+  CancelledFailure,
   condition,
   defineQuery,
+  defineSignal,
   defineUpdate,
   isCancellation,
   proxyActivities,
   setHandler,
+  sleep,
   workflowInfo,
 } from "@temporalio/workflow";
 import env from "env-var";
@@ -81,6 +84,7 @@ const addFileUpdate = defineUpdate<
   ]
 >("importer:add-file");
 const startImportSignal = defineUpdate<void, []>("importer:start-import");
+const closeSignal = defineSignal("importer:close");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
 const dataMappingRecommendationsQuery = defineQuery<
   DataMappingRecommendation[] | null
@@ -120,7 +124,7 @@ const validationParallelLimit = env
 export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
-
+  const callbackCancellationScope = new CancellationScope();
   let sourceFile: {
     bucket: string;
     fileReference: string;
@@ -138,6 +142,12 @@ export async function importer(params: ImporterWorkflowParams) {
   let isMappingData = false;
   let isUpdatingRecord = false;
   /** DEFINE WORKFLOW HANDLERS */
+  setHandler(closeSignal, () => {
+    if (state === "importing") {
+      state = "closed";
+      callbackCancellationScope.cancel();
+    }
+  });
   setHandler(
     addFileUpdate,
     (params) => {
@@ -313,13 +323,20 @@ export async function importer(params: ImporterWorkflowParams) {
         "Timeout: import start not requested"
       );
     }
-    await acts.invokeCallback({
-      importerId,
-      callbackUrl: params.callbackUrl,
-    });
+    try {
+      await callbackCancellationScope.run(async () => {
+        await acts.invokeCallback({
+          importerId,
+          callbackUrl: params.callbackUrl,
+        });
+      });
+    } catch (err) {
+      if (!(err instanceof CancelledFailure)) {
+        throw err;
+      }
+    }
 
-    await condition(
-      () => state === "closed",
+    await sleep(
       "14 days" // internal max lifetime
     );
   } catch (err) {

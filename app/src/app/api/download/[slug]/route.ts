@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { validateServerAuth } from "@/lib/validateAuth";
 import { getMinioClient } from "../../../../lib/minioClient";
+import { ImporterStatus } from "../../importer/[slug]/ImporterDto";
 
 export async function GET(
   req: NextRequest,
@@ -10,7 +12,13 @@ export async function GET(
   if (validateServerAuth(req) === false) {
     return NextResponse.json("Unauthorized", { status: 401 });
   }
+  const client = getTemporalWorkflowClient();
   const { slug: importerId } = params;
+  const handle = (await client).getHandle(importerId);
+  const workflowState = await handle.query<ImporterStatus>("importer:status");
+  if (workflowState.state === "closed") {
+    return NextResponse.json({ error: "Importer is closed" }, { status: 410 });
+  }
   const fileReference = "export.json";
 
   if (!importerId) {
