@@ -1,5 +1,6 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import initTranslations from "@/i18n/initi18n";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import { CheckCircleIcon } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -15,7 +16,7 @@ type Props = {
 const ImporterClosedPage = async (props: Props) => {
   const { t } = await initTranslations(props.params.locale);
   const importerId = props.params.id;
-  const initialImporterDto = (await fetch(
+  const initialImporterDto = (await fetchWithAuth(
     `${getHost()}/api/importer/${importerId}`,
     {
       cache: "no-cache",

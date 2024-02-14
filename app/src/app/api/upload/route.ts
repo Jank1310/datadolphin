@@ -1,11 +1,15 @@
 import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { randomUUID } from "crypto";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { extname } from "path";
 
+import { validateAuth } from "@/lib/validateAuth";
 import { getMinioClient } from "../../../lib/minioClient";
 
 export async function POST(req: NextRequest) {
+  if (validateAuth(req) === false) {
+    return NextResponse.json("Unauthorized", { status: 401 });
+  }
   const formData = await req.formData();
   const file: File | null = formData.get("file") as unknown as File;
   const importerId = formData.get("importerId") as unknown as string;

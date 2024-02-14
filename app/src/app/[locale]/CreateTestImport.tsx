@@ -4,17 +4,6 @@ import Link from "next/link";
 import React from "react";
 
 const doctorsImporterColumns = [
-  // {
-  //   key: "email",
-  //   label: "E-Mail",
-  //   type: "text",
-  // },
-  // {
-  //   key: "work role",
-  //   keyAlternatives: ["position"],
-  //   label: "Role",
-  //   type: "text",
-  // },
   {
     key: "BSNR",
     label: "BSNR",
@@ -110,6 +99,10 @@ export const CreateTestImporter = () => {
         callbackUrl: "some-url",
         columnConfig,
       }),
+      headers: {
+        //! ONLY USED FOR DEVELOPMENT
+        Authorization: "Bearer " + "some-secret-server-token",
+      },
     });
     const { importerId } = await fetchResult.json();
     setImporterId(importerId);

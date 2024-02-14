@@ -1,4 +1,5 @@
 import { DataMappingRecommendation } from "@/app/api/importer/[slug]/ImporterDto";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import useSWR from "swr";
 
 export function useGetMappingRecommendations(
@@ -10,7 +11,7 @@ export function useGetMappingRecommendations(
     importerId
       ? [`/api/importer/${importerId}/mappings/recommendations`]
       : null,
-    ([url]) => fetch(url).then((res) => res.json()),
+    ([url]) => fetchWithAuth(url).then((res) => res.json()),
     {
       refreshInterval: pollInterval,
       fallbackData,
