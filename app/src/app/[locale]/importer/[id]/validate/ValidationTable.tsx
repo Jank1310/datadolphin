@@ -293,7 +293,7 @@ const ValidationTable = (props: Props) => {
                               header.getContext()
                             )}
                         {numberOfMessages > 0 && (
-                          <Badge className="ml-4 bg-red-500">
+                          <Badge className="ml-4 bg-red-500 text-white">
                             {t("validation.numberOfErrors", {
                               count: numberOfMessages,
                             })}
