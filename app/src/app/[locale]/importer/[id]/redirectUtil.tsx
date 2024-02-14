@@ -2,20 +2,18 @@ import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 
 export function getPageForState(importerDto: ImporterDto) {
   const { state } = importerDto.status;
-  if (state === "select-file") {
-    return "select-file";
+  switch (state) {
+    case "select-file":
+      return "select-file";
+    case "mapping":
+      return "mapping";
+    case "validate":
+      return "validate";
+    case "importing":
+      return "importing";
+    case "closed":
+      return "closed";
+    default:
+      throw new Error(`Unknown state: ${state}`);
   }
-  if (state === "mapping") {
-    return "mapping";
-  }
-  if (state === "validate") {
-    return "validate";
-  }
-  if (state === "importing") {
-    return "importing";
-  }
-  if (state === "closed") {
-    return "closed";
-  }
-  throw new Error(`Unknown state: ${state}`);
 }
