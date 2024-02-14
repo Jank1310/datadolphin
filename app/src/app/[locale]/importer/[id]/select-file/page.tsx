@@ -1,4 +1,5 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { getPageForState } from "../redirectUtil";
@@ -12,7 +13,7 @@ type Props = {
 
 const SelectFilePage = async (props: Props) => {
   const importerId = props.params.id;
-  const initialImporterDto = (await fetch(
+  const initialImporterDto = (await fetchWithAuth(
     `${getHost()}/api/importer/${importerId}`,
     {
       cache: "no-cache",

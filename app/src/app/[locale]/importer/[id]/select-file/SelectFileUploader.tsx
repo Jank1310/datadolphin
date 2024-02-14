@@ -3,6 +3,7 @@ import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useToast } from "@/components/ui/use-toast";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -38,7 +39,10 @@ const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("importerId", importer.importerId);
-        await fetch("/api/upload", { method: "POST", body: formData });
+        await fetchWithAuth("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
         setHasUploaded(true);
       } catch (err) {
         console.error(err);

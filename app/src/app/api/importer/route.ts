@@ -2,6 +2,7 @@ import {
   DEFAULT_TEMPORAL_QUEUE,
   getTemporalWorkflowClient,
 } from "@/lib/temporalClient";
+import { validateServerAuth } from "@/lib/validateAuth";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ImporterConfig } from "./[slug]/ImporterDto";
@@ -13,6 +14,10 @@ export interface ImportWorkflowPostResponse {
 }
 
 export async function POST(req: NextRequest) {
+  if (validateServerAuth(req) === false) {
+    return NextResponse.json("Unauthorized", { status: 401 });
+  }
+
   const importerId = `imp-${randomUUID()}`;
   const client = await getTemporalWorkflowClient();
   const body = (await req.json()) as ImportWorkflowPostPayload;

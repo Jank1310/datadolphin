@@ -7,6 +7,7 @@ import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useToast } from "@/components/ui/use-toast";
+import { fetchWithAuth } from "@/lib/frontendFetch";
 import { enableMapSet, produce } from "immer";
 import { sum } from "lodash";
 import { ChevronRightCircleIcon } from "lucide-react";
@@ -152,13 +153,10 @@ const Validation = ({
         })
       );
       try {
-        const res = await fetch(
+        const res = await fetchWithAuth(
           `/api/importer/${initialImporterDto.importerId}/records`,
           {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
             body: JSON.stringify({
               _id: rowId,
               columnId,
@@ -192,7 +190,7 @@ const Validation = ({
     }
     setIsStartingImport(true);
     try {
-      await fetch(
+      await fetchWithAuth(
         `/api/importer/${initialImporterDto.importerId}/start-import`,
         {
           method: "POST",

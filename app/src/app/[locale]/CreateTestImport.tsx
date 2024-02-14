@@ -105,6 +105,10 @@ export const CreateTestImporter = () => {
           menuForegroundColor: "#FFFFFF",
         },
       }),
+      headers: {
+        //! ONLY USED FOR DEVELOPMENT
+        Authorization: "Bearer " + "some-secret-server-token",
+      },
     });
     const { importerId } = await fetchResult.json();
     setImporterId(importerId);
