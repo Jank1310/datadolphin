@@ -23,8 +23,8 @@ RUN apt-get update \
 RUN mkdir /app
 WORKDIR /app
 
-COPY --from=build /build/build/standalone /app/nextjs
-COPY --from=build /build/build/static /app/nextjs/.next/static
+COPY --from=build /build/dist/standalone /app/nextjs
+COPY --from=build /build/dist/static /app/nextjs/dist/static
 COPY --from=build /build/temporal/lib /app/worker
 COPY --from=build /build/package*.json /app
 
