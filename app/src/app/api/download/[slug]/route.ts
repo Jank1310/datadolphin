@@ -41,7 +41,6 @@ export async function GET(
     .skip(Number(page) * Number(limit))
     .limit(Number(limit))
     .toArray();
-  console.log("recoreds", records, limit, page);
   return NextResponse.json({
     records,
     pages: totalPages,
