@@ -24,6 +24,7 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY --from=build /build/build/standalone /app/nextjs
+COPY --from=build /build/build/static /app/nextjs/.next/static
 COPY --from=build /build/temporal/lib /app/worker
 COPY --from=build /build/package*.json /app
 
