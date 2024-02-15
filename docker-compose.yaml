@@ -8,6 +8,8 @@ x-default-env: &defaultEnv
   MONGO_URL: ${MONGO_URL}
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
   TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+  SERVER_AUTH_TOKEN: ${SERVER_AUTH_TOKEN}
+  NEXT_PUBLIC_FRONTEND_TOKEN: ${NEXT_PUBLIC_FRONTEND_TOKEN}
 
 services:
   app:
@@ -104,7 +106,7 @@ services:
       - caddy_config:/config
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     networks:
-      - proxy-network
+      - caddy-network
     depends_on:
       - app
 networks:
