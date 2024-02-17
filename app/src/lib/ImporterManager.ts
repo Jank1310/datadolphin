@@ -3,10 +3,12 @@ import {
   DataMappingRecommendation,
   ImporterConfig,
   ImporterDto,
+  ImporterStatus,
+  SourceData,
 } from "@/app/api/importer/[slug]/ImporterDto";
 import { WorkflowClient } from "@temporalio/client";
 import { Db, MongoClient } from "mongodb";
-import { ImporterStatus } from "../../temporal/lib/workflows/importer.workflow";
+
 import { getMongoClient } from "./mongoClient";
 import { getTemporalWorkflowClient } from "./temporalClient";
 
@@ -64,7 +66,7 @@ export class ImporterManager {
     importerId: string,
     page: number,
     size: number
-  ): Promise<unknown[]> {
+  ): Promise<SourceData[]> {
     const handle = this.workflowClient.getHandle(importerId);
     const workflowState = await handle.query<ImporterStatus>("importer:status");
     if (workflowState.state === "closed") {
@@ -72,7 +74,7 @@ export class ImporterManager {
     }
     const db = this.getDb(importerId);
     const records = await db
-      .collection("data")
+      .collection<SourceData>("data")
       .find()
       .sort({ __sourceRowId: 1 })
       .skip(page * size)

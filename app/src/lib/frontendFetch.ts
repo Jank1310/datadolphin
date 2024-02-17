@@ -1,4 +1,4 @@
-export async function fetchWithAuth(...args: Parameters<typeof fetch>) {
+export async function frontendFetchWithAuth(...args: Parameters<typeof fetch>) {
   return await fetch(args[0], {
     ...args[1],
     headers: {

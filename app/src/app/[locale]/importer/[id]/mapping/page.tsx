@@ -1,9 +1,4 @@
-import {
-  DataMappingRecommendation,
-  ImporterDto,
-} from "@/app/api/importer/[slug]/ImporterDto";
-import { fetchWithAuth } from "@/lib/frontendFetch";
-import { getHost } from "@/lib/utils";
+import { getImporterManager } from "@/lib/ImporterManager";
 import { redirect } from "next/navigation";
 import { getPageForState } from "../redirectUtil";
 import SelectMappings from "./SelectMappings";
@@ -16,21 +11,10 @@ type Props = {
 
 const MappingPage = async (props: Props) => {
   const importerId = props.params.id;
-  const initialImporterDtoPromise = fetchWithAuth(
-    `${getHost()}/api/importer/${importerId}`,
-    {
-      cache: "no-cache",
-    }
-  ).then(async (res) => (await res.json()) as ImporterDto);
-  const initialDataMappingsPromise = fetchWithAuth(
-    `${getHost()}/api/importer/${importerId}/mappings/recommendations`,
-    {
-      cache: "no-cache",
-    }
-  ).then(
-    async (res) =>
-      (await res.json()).recommendations as DataMappingRecommendation[] | null
-  );
+  const importerManager = await getImporterManager();
+  const initialImporterDtoPromise = importerManager.getImporterDto(importerId);
+  const initialDataMappingsPromise =
+    importerManager.getMappingRecommendations(importerId);
   const [initialImporterDto, initialDataMappings] = await Promise.all([
     initialImporterDtoPromise,
     initialDataMappingsPromise,

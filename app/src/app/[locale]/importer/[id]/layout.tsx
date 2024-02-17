@@ -1,8 +1,7 @@
-import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import TranslationsProvider from "@/components/TranslationsProvider";
 import { Toaster } from "@/components/ui/toaster";
-import { fetchWithAuth } from "@/lib/frontendFetch";
-import { getHost, hexToCssHsl } from "@/lib/utils";
+import { getImporterManager } from "@/lib/ImporterManager";
+import { hexToCssHsl } from "@/lib/utils";
 import SidebarMenu from "./SidebarMenu";
 
 type PageProps = {
@@ -14,12 +13,8 @@ type PageProps = {
 };
 
 export default async function ImporterPage({ params, children }: PageProps) {
-  const importerDto = (await fetchWithAuth(
-    `${getHost()}/api/importer/${params.id}`,
-    {
-      cache: "no-cache",
-    }
-  ).then((res) => res.json())) as ImporterDto;
+  const importerManager = await getImporterManager();
+  const importerDto = await importerManager.getImporterDto(params.id);
   const { primaryColor, primaryForegroundColor } =
     importerDto.config.design ?? {};
   return (

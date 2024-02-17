@@ -7,7 +7,7 @@ import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useToast } from "@/components/ui/use-toast";
-import { fetchWithAuth } from "@/lib/frontendFetch";
+import { frontendFetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import { enableMapSet, produce } from "immer";
 import { sum } from "lodash";
@@ -154,7 +154,7 @@ const Validation = ({
         })
       );
       try {
-        const res = await fetchWithAuth(
+        const res = await frontendFetchWithAuth(
           `${getHost()}/api/importer/${initialImporterDto.importerId}/records`,
           {
             method: "PATCH",
@@ -191,7 +191,7 @@ const Validation = ({
     }
     setIsStartingImport(true);
     try {
-      await fetchWithAuth(
+      await frontendFetchWithAuth(
         `${getHost()}/api/importer/${
           initialImporterDto.importerId
         }/start-import`,

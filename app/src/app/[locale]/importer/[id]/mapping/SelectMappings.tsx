@@ -26,7 +26,7 @@ import { produce } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { fetchWithAuth } from "@/lib/frontendFetch";
+import { frontendFetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -103,7 +103,7 @@ const SelectMappings = ({
     }
     setIsSavingMapping(true);
     try {
-      await fetchWithAuth(
+      await frontendFetchWithAuth(
         `${getHost()}/api/importer/${importer.importerId}/mappings`,
         {
           method: "PUT",

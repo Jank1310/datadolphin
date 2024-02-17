@@ -1,7 +1,5 @@
-import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import initTranslations from "@/i18n/initi18n";
-import { fetchWithAuth } from "@/lib/frontendFetch";
-import { getHost } from "@/lib/utils";
+import { getImporterManager } from "@/lib/ImporterManager";
 import { CheckCircleIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getPageForState } from "../redirectUtil";
@@ -16,13 +14,9 @@ type Props = {
 const ImporterClosedPage = async (props: Props) => {
   const { t } = await initTranslations(props.params.locale);
   const importerId = props.params.id;
-  const initialImporterDto = (await fetchWithAuth(
-    `${getHost()}/api/importer/${importerId}`,
-    {
-      cache: "no-cache",
-    }
-  ).then((res) => res.json())) as ImporterDto;
-  const pageForState = getPageForState(initialImporterDto);
+  const importerManager = await getImporterManager();
+  const importerDto = await importerManager.getImporterDto(importerId);
+  const pageForState = getPageForState(importerDto);
   if (pageForState !== "closed") {
     return redirect(pageForState);
   }

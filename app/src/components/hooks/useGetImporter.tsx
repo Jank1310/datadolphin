@@ -1,5 +1,5 @@
 import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
-import { fetchWithAuth } from "@/lib/frontendFetch";
+import { frontendFetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import useSWR from "swr";
 
@@ -10,7 +10,7 @@ export function useGetImporter(
 ) {
   const { data, error, isLoading, mutate } = useSWR(
     importerId ? [`${getHost()}/api/importer/${importerId}`] : null,
-    ([url]) => fetchWithAuth(url).then((res) => res.json()),
+    ([url]) => frontendFetchWithAuth(url).then((res) => res.json()),
     {
       refreshInterval: pollInterval,
       fallbackData,
