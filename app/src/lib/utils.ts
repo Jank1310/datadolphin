@@ -42,5 +42,5 @@ export function hexToCssHsl(hex: string): string {
   s = Math.round(s * 100);
   l = Math.round(l * 100);
 
-  return `${h} ${s} ${l}`;
+  return `${h} ${s}% ${l}%`;
 }
