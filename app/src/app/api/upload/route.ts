@@ -1,15 +1,11 @@
 import { randomUUID } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { extname } from "path";
 
 import { getImporterManager } from "@/lib/ImporterManager";
-import { validateAuth } from "@/lib/validateAuth";
 import { getMinioClient } from "../../../lib/minioClient";
 
 export async function POST(req: NextRequest) {
-  if (validateAuth(req) === false) {
-    return NextResponse.json("Unauthorized", { status: 401 });
-  }
   const { importerId, bucket, destFileName, fileFormat } =
     await handleFileUpload(req);
   const importerManager = await getImporterManager();

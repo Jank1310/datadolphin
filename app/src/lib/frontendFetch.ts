@@ -7,7 +7,6 @@ export function useFrontendFetchWithAuth() {
     return await fetch(url, {
       ...args[1],
       headers: {
-        authorization: "Bearer " + process.env.NEXT_PUBLIC_FRONTEND_TOKEN,
         ...args[1]?.headers,
       },
     });
