@@ -7,7 +7,7 @@ import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useToast } from "@/components/ui/use-toast";
-import { frontendFetchWithAuth } from "@/lib/frontendFetch";
+import { useFrontendFetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import { enableMapSet, produce } from "immer";
 import { sum } from "lodash";
@@ -30,6 +30,7 @@ const Validation = ({
   const { t } = useTranslation();
   const { push } = useRouter();
   const { toast } = useToast();
+  const frontendFetch = useFrontendFetchWithAuth();
   const [enablePolling, setEnablePolling] = React.useState(false);
   const [isStartingImport, setIsStartingImport] = React.useState(false);
   const [currentValidations, setCurrentValidations] = React.useState<
@@ -154,7 +155,7 @@ const Validation = ({
         })
       );
       try {
-        const res = await frontendFetchWithAuth(
+        const res = await frontendFetch(
           `${getHost()}/api/importer/${initialImporterDto.importerId}/records`,
           {
             method: "PATCH",
@@ -182,7 +183,12 @@ const Validation = ({
         }
       }
     },
-    [handleRecordUpdate, initialImporterDto.importerId, isMounted]
+    [
+      frontendFetch,
+      handleRecordUpdate,
+      initialImporterDto.importerId,
+      isMounted,
+    ]
   );
 
   const handleStartImport = React.useCallback(async () => {
@@ -191,7 +197,7 @@ const Validation = ({
     }
     setIsStartingImport(true);
     try {
-      await frontendFetchWithAuth(
+      await frontendFetch(
         `${getHost()}/api/importer/${
           initialImporterDto.importerId
         }/start-import`,
@@ -211,7 +217,15 @@ const Validation = ({
         setIsStartingImport(false);
       }
     }
-  }, [initialImporterDto.importerId, isMounted, push, t, toast, totalErrors]);
+  }, [
+    frontendFetch,
+    initialImporterDto.importerId,
+    isMounted,
+    push,
+    t,
+    toast,
+    totalErrors,
+  ]);
 
   const hasErrors = dataStats.totalErrors > 0;
 
