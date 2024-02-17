@@ -11,6 +11,16 @@ x-default-env: &defaultEnv
   SERVER_AUTH_TOKEN: ${SERVER_AUTH_TOKEN}
   NEXT_PUBLIC_FRONTEND_TOKEN: ${NEXT_PUBLIC_FRONTEND_TOKEN}
 
+x-worker: &worker
+  extends:
+    file: docker-compose.base.yaml
+    service: worker
+  environment:
+    <<: *defaultEnv
+    PUBLIC_API_URL: ${PUBLIC_API_URL}
+  networks:
+    - backend-network
+
 services:
   app:
     extends:
@@ -19,27 +29,15 @@ services:
     environment:
       <<: *defaultEnv
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+    networks:
+      - frontend-network
+      - backend-network
   worker-1:
-    extends:
-      file: docker-compose.base.yaml
-      service: worker
-    environment:
-      <<: *defaultEnv
-      PUBLIC_API_URL: ${PUBLIC_API_URL}
+    <<: *worker
   worker-2:
-    extends:
-      file: docker-compose.base.yaml
-      service: worker
-    environment:
-      <<: *defaultEnv
-      PUBLIC_API_URL: ${PUBLIC_API_URL}
+    <<: *worker
   worker-3:
-    extends:
-      file: docker-compose.base.yaml
-      service: worker
-    environment:
-      <<: *defaultEnv
-      PUBLIC_API_URL: ${PUBLIC_API_URL}
+    <<: *worker
   # STORAGE
   minio:
     extends:
@@ -50,6 +48,8 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - miniostorage:/data
+    networks:
+      - backend-network
   temporal-postgresql:
     extends:
       file: docker-compose.base.yaml
@@ -58,7 +58,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - temporal-network
+      - backend-network
     volumes:
       - temporal-postgresql:/var/lib/postgresql/data
   mongodb:
@@ -70,13 +70,15 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     volumes:
       - mongodb:/data/db
+    networks:
+      - backend-network
   # TEMPORAL
   temporal:
     extends:
       file: docker-compose.base.yaml
       service: temporal
     networks:
-      - temporal-network
+      - backend-network
     environment:
       - DB=postgresql
       - DB_PORT=5432
@@ -92,7 +94,7 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     networks:
-      - temporal-network
+      - backend-network
   # PROXY
   caddy:
     image: caddy
@@ -104,21 +106,18 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     networks:
-      - caddy-network
+      - frontend-network
     depends_on:
       - app
 networks:
-  temporal-network:
+  backend-network:
     driver: bridge
-    name: temporal-network
-  ferretdb-network:
+    name: backend-network
+  frontend-network:
     driver: bridge
-    name: ferretdb-network
-  caddy-network:
-    driver: bridge
-    name: caddy-network
+    name: frontend-network
 volumes:
   miniostorage:
   temporal-postgresql:
