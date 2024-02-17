@@ -29,6 +29,7 @@ services:
     environment:
       <<: *defaultEnv
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      HOSTNAME: 0.0.0.0 # needed for correct interface binding
     networks:
       - frontend-network
       - backend-network
