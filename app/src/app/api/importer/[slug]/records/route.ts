@@ -1,8 +1,6 @@
-import { getTemporalWorkflowClient } from "@/lib/temporalClient";
+import { getImporterManager } from "@/lib/ImporterManager";
 import { validateAuth } from "@/lib/validateAuth";
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "../../../../../lib/mongoClient";
-import { DataSetPatch, ImporterStatus } from "../ImporterDto";
 
 export async function GET(
   req: NextRequest,
@@ -12,23 +10,10 @@ export async function GET(
     return NextResponse.json("Unauthorized", { status: 401 });
   }
   const { slug: importerId } = params;
-  const client = await getTemporalWorkflowClient();
-  const handle = client.getHandle(importerId);
-  const workflowState = await handle.query<ImporterStatus>("importer:status");
-  if (workflowState.state === "closed") {
-    return NextResponse.json({ error: "Importer is closed" }, { status: 410 });
-  }
-  const db = await getDb(importerId);
+  const importerManager = await getImporterManager();
   const page = parseInt(req.nextUrl.searchParams.get("page") ?? "0");
   const size = parseInt(req.nextUrl.searchParams.get("size") ?? "100");
-  // TODO validate access or so :)
-  const records = await db
-    .collection("data")
-    .find()
-    .sort({ __sourceRowId: 1 })
-    .skip(page * size)
-    .limit(size)
-    .toArray();
+  const records = await importerManager.getRecords(importerId, page, size);
   return NextResponse.json({ records });
 }
 
@@ -40,29 +25,15 @@ export async function PATCH(
     return NextResponse.json("Unauthorized", { status: 401 });
   }
   const { slug: importerId } = params;
-  const client = await getTemporalWorkflowClient();
-  const handle = client.getHandle(importerId);
+  const importerManager = await getImporterManager();
   const updateData = await req.json();
-  const updateResult = await handle.executeUpdate<
+  const patches = [
     {
-      changedColumns: string[];
-      newMessages: Record<string, any[]>;
+      column: updateData.columnId,
+      rowId: updateData._id,
+      newValue: updateData.value,
     },
-    [{ patches: DataSetPatch[] }]
-  >("importer:update-record", {
-    args: [
-      {
-        patches: [
-          {
-            column: updateData.columnId,
-            rowId: updateData._id,
-            newValue: updateData.value,
-          },
-        ],
-      },
-    ],
-  });
-  // CALL update for patches
-  // TODO return new messages for cell and return if it whole column changed (client can reload pages and stats)
+  ];
+  const updateResult = await importerManager.patchRecords(importerId, patches);
   return NextResponse.json(updateResult);
 }

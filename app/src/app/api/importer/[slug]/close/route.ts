@@ -1,4 +1,4 @@
-import { getTemporalWorkflowClient } from "@/lib/temporalClient";
+import { getImporterManager } from "@/lib/ImporterManager";
 import { validateServerAuth } from "@/lib/validateAuth";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -10,8 +10,7 @@ export async function POST(
     return NextResponse.json("Unauthorized", { status: 401 });
   }
   const { slug: importerId } = params;
-  const client = await getTemporalWorkflowClient();
-  const handle = client.getHandle(importerId);
-  await handle.signal("importer:close");
+  const importerManager = await getImporterManager();
+  await importerManager.closeImporter(importerId);
   return NextResponse.json({});
 }
