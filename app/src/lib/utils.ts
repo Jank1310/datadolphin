@@ -6,10 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getHost(): string {
-  // this is needed because we use the api for ssr to. This is not really a good solution but works for now
-  // See https://github.com/vercel/next.js/discussions/48793 for the "correct" way
   const isServer = typeof window === "undefined";
-  const host = isServer ? "http://127.0.0.1:3000" : "";
+  if (isServer) {
+    throw new Error("getHost() should only be called on the client");
+  }
+  const host = "";
   return host;
 }
 

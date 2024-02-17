@@ -1,7 +1,6 @@
-import { getTemporalWorkflowClient } from "@/lib/temporalClient";
+import { getImporterManager } from "@/lib/ImporterManager";
 import { validateAuth } from "@/lib/validateAuth";
 import { NextRequest, NextResponse } from "next/server";
-import { ImporterStatus } from "../ImporterDto";
 
 export async function POST(
   req: NextRequest,
@@ -11,12 +10,7 @@ export async function POST(
     return NextResponse.json("Unauthorized", { status: 401 });
   }
   const { slug: importerId } = params;
-  const client = await getTemporalWorkflowClient();
-  const handle = client.getHandle(importerId);
-  const workflowState = await handle.query<ImporterStatus>("importer:status");
-  if (workflowState.state === "closed") {
-    return NextResponse.json({ error: "Importer is closed" }, { status: 410 });
-  }
-  await handle.executeUpdate("importer:start-import");
+  const importerManager = await getImporterManager();
+  await importerManager.startImport(importerId);
   return NextResponse.json({ importerId });
 }

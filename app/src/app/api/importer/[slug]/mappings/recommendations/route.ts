@@ -1,7 +1,6 @@
-import { getTemporalWorkflowClient } from "@/lib/temporalClient";
+import { getImporterManager } from "@/lib/ImporterManager";
 import { validateAuth } from "@/lib/validateAuth";
 import { NextRequest, NextResponse } from "next/server";
-import { ImporterStatus } from "../../ImporterDto";
 
 export async function GET(
   req: NextRequest,
@@ -11,14 +10,17 @@ export async function GET(
     return NextResponse.json("Unauthorized", { status: 401 });
   }
   const { slug: importerId } = params;
-  const client = await getTemporalWorkflowClient();
-  const handle = client.getHandle(importerId);
-  const workflowState = await handle.query<ImporterStatus>("importer:status");
-  if (workflowState.state === "closed") {
-    return NextResponse.json({ error: "Importer is closed" }, { status: 410 });
+  const importerManager = await getImporterManager();
+  try {
+    const recommendations = await importerManager.getMappingRecommendations(
+      importerId
+    );
+    return NextResponse.json({ recommendations });
+  } catch (err) {
+    if ((err as Error).message === "Importer is closed") {
+      return NextResponse.json("Importer is closed", { status: 400 });
+    } else {
+      throw err;
+    }
   }
-  const recommendations = await handle.query(
-    "importer:data-mapping-recommendations"
-  );
-  return NextResponse.json({ recommendations });
 }

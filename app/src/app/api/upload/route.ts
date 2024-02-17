@@ -1,8 +1,8 @@
-import { getTemporalWorkflowClient } from "@/lib/temporalClient";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { extname } from "path";
 
+import { getImporterManager } from "@/lib/ImporterManager";
 import { validateAuth } from "@/lib/validateAuth";
 import { getMinioClient } from "../../../lib/minioClient";
 
@@ -10,16 +10,24 @@ export async function POST(req: NextRequest) {
   if (validateAuth(req) === false) {
     return NextResponse.json("Unauthorized", { status: 401 });
   }
+  const { importerId, bucket, destFileName, fileFormat } =
+    await handleFileUpload(req);
+  const importerManager = await getImporterManager();
+  await importerManager.addFile(importerId, destFileName, fileFormat, bucket);
+  return new Response(undefined, { status: 201 });
+}
+
+async function handleFileUpload(req: NextRequest) {
   const formData = await req.formData();
   const file: File | null = formData.get("file") as unknown as File;
   const importerId = formData.get("importerId") as unknown as string;
   const fileBuffer = Buffer.from(await file.arrayBuffer());
 
   if (!importerId) {
-    return new Response("importerId missing", { status: 500 });
+    throw new Error("importerId missing");
   }
   if (!fileBuffer) {
-    return new Response("file missing", { status: 500 });
+    throw new Error("file missing");
   }
 
   const bucket = importerId;
@@ -45,18 +53,14 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error(error);
-    return new Response("Failed to upload file", { status: 500 });
+    throw new Error("Error uploading file");
   }
-  const client = await getTemporalWorkflowClient();
-  const handle = client.getHandle(importerId);
-  await handle.executeUpdate("importer:add-file", {
-    args: [
-      {
-        fileReference: destFileName,
-        fileFormat: extname(file.name) === ".csv" ? "csv" : "xlsx",
-        bucket,
-      },
-    ],
-  });
-  return new Response("", { status: 201 });
+  const fileFormat = extname(file.name) === ".csv" ? "csv" : "xlsx";
+
+  return {
+    importerId,
+    bucket,
+    destFileName,
+    fileFormat,
+  };
 }

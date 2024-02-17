@@ -26,7 +26,7 @@ import { produce } from "immer";
 import { ChevronRightCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { fetchWithAuth } from "@/lib/frontendFetch";
+import { useFrontendFetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -48,6 +48,7 @@ const SelectMappings = ({
 }: Props) => {
   const { push } = useRouter();
   const { t } = useTranslation();
+  const frontendFetch = useFrontendFetchWithAuth();
   const [enablePolling, setEnablePolling] = React.useState(false);
   const { importer } = useGetImporter(
     initialImporterDto.importerId,
@@ -103,7 +104,7 @@ const SelectMappings = ({
     }
     setIsSavingMapping(true);
     try {
-      await fetchWithAuth(
+      await frontendFetch(
         `${getHost()}/api/importer/${importer.importerId}/mappings`,
         {
           method: "PUT",

@@ -1,8 +1,6 @@
-import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { Button } from "@/components/ui/button";
 import initTranslations from "@/i18n/initi18n";
-import { fetchWithAuth } from "@/lib/frontendFetch";
-import { getHost } from "@/lib/utils";
+import { getImporterManager } from "@/lib/ImporterManager";
 import { ZapIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getPageForState } from "../redirectUtil";
@@ -17,20 +15,14 @@ type Props = {
 const ImportingPage = async (props: Props) => {
   const { t } = await initTranslations(props.params.locale);
   const importerId = props.params.id;
-  const initialImporterDtoPromise = fetchWithAuth(
-    `${getHost()}/api/importer/${importerId}`,
-    {
-      cache: "no-cache",
-    }
-  ).then(async (res) => (await res.json()) as ImporterDto);
-
-  const initialImporterDto = await initialImporterDtoPromise;
-  const page = getPageForState(initialImporterDto);
+  const importerManager = await getImporterManager();
+  const importerDto = await importerManager.getImporterDto(importerId);
+  const page = getPageForState(importerDto);
   if (page !== "importing") {
     return redirect(page);
   }
 
-  const redirectUrl = initialImporterDto.config.redirectUrl;
+  const redirectUrl = importerDto.config.redirectUrl;
   return (
     <div className="w-full h-full flex items-center justify-center">
       <div className="flex flex-col items-center">

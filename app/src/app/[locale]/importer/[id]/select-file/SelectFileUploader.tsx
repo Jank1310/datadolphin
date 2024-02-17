@@ -3,7 +3,7 @@ import { ImporterDto } from "@/app/api/importer/[slug]/ImporterDto";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useToast } from "@/components/ui/use-toast";
-import { fetchWithAuth } from "@/lib/frontendFetch";
+import { useFrontendFetchWithAuth } from "@/lib/frontendFetch";
 import { getHost } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -23,7 +23,8 @@ const allowedMimeTypes = [
 
 const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
   const { t } = useTranslation();
-  const { push, replace } = useRouter();
+  const { push } = useRouter();
+  const frontendFetch = useFrontendFetchWithAuth();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = React.useState(false);
   const [hasUploaded, setHasUploaded] = React.useState(false);
@@ -40,7 +41,7 @@ const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("importerId", importer.importerId);
-        await fetchWithAuth(`${getHost()}/api/upload`, {
+        await frontendFetch(`${getHost()}/api/upload`, {
           method: "POST",
           body: formData,
         });

@@ -5,7 +5,6 @@ export const DEFAULT_TEMPORAL_QUEUE = "imports";
 let connection: Connection;
 
 export async function getTemporalWorkflowClient() {
-  // TODO get options from env
   if (!connection) {
     connection = await Connection.connect({
       address: env.get("TEMPORAL_ADDRESS").default("localhost:7233").asString(),
