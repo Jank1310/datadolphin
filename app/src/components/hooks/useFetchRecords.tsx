@@ -1,6 +1,5 @@
 import { SourceData } from "@/app/api/importer/[slug]/ImporterDto";
 import { useFrontendFetchWithAuth } from "@/lib/frontendFetch";
-import { getHost } from "@/lib/utils";
 
 export function useFetchRecords(importerId: string | null) {
   const frontendFetch = useFrontendFetchWithAuth();
@@ -18,7 +17,7 @@ export async function fetchRecords(
   page: number,
   pageSize: number
 ): Promise<SourceData[]> {
-  const getUrl = new URL(`/api/importer/${importerId}/records`, getHost());
+  const getUrl = new URL(`/api/importer/${importerId}/records`);
   getUrl.searchParams.append("page", page.toFixed());
   getUrl.searchParams.append("pageSize", pageSize.toFixed());
   const result = frontendFetch(getUrl, {

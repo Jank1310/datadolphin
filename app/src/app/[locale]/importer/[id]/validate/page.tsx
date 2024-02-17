@@ -12,6 +12,10 @@ export default async function page(props: { params: { id: string } }) {
     initialImporterDtoPromise,
     initialRecordsPromise,
   ]);
+  const plainRecords = initialRecords.map((record) => ({
+    ...record,
+    _id: record._id.toString(),
+  }));
 
   const pageForState = getPageForState(initialImporterDto);
   if (pageForState !== "validate") {
@@ -21,7 +25,7 @@ export default async function page(props: { params: { id: string } }) {
     <div className="h-full">
       <Validation
         initialImporterDto={initialImporterDto}
-        initialRecords={initialRecords}
+        initialRecords={plainRecords}
       />
     </div>
   );

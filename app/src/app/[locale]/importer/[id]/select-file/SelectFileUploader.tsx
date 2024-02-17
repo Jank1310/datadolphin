@@ -4,7 +4,6 @@ import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useToast } from "@/components/ui/use-toast";
 import { useFrontendFetchWithAuth } from "@/lib/frontendFetch";
-import { getHost } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -41,7 +40,7 @@ const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("importerId", importer.importerId);
-        await frontendFetch(`${getHost()}/api/upload`, {
+        await frontendFetch(`/api/upload`, {
           method: "POST",
           body: formData,
         });

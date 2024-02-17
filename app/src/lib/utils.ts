@@ -5,15 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getHost(): string {
-  const isServer = typeof window === "undefined";
-  if (isServer) {
-    throw new Error("getHost() should only be called on the client");
-  }
-  const host = "";
-  return host;
-}
-
 export function hexToCssHsl(hex: string): string {
   let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) {

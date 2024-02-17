@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { useToast } from "@/components/ui/use-toast";
 import { useFrontendFetchWithAuth } from "@/lib/frontendFetch";
-import { getHost } from "@/lib/utils";
 import { enableMapSet, produce } from "immer";
 import { sum } from "lodash";
 import { ChevronRightCircleIcon } from "lucide-react";
@@ -156,7 +155,7 @@ const Validation = ({
       );
       try {
         const res = await frontendFetch(
-          `${getHost()}/api/importer/${initialImporterDto.importerId}/records`,
+          `/api/importer/${initialImporterDto.importerId}/records`,
           {
             method: "PATCH",
             body: JSON.stringify({
@@ -198,9 +197,7 @@ const Validation = ({
     setIsStartingImport(true);
     try {
       await frontendFetch(
-        `${getHost()}/api/importer/${
-          initialImporterDto.importerId
-        }/start-import`,
+        `/api/importer/${initialImporterDto.importerId}/start-import`,
         {
           method: "POST",
         }
