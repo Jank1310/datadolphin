@@ -31,9 +31,9 @@ const SidebarMenu = ({ importerDto }: Props) => {
         color: menuForegroundColor,
       }}
     >
-      <div className="p-4">
+      <div className="p-4 h-24">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={importerDto.config.logo} alt="" />
+        <img className="h-full" src={importerDto.config.logo} alt="" />
       </div>
       <div className="p-4 w-full">
         <h1 className="text-2xl font-extrabold tracking-tight break-words">
