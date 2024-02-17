@@ -1,5 +1,6 @@
 import { DataMappingRecommendation } from "@/app/api/importer/[slug]/ImporterDto";
 import { fetchWithAuth } from "@/lib/frontendFetch";
+import { getHost } from "@/lib/utils";
 import useSWR from "swr";
 
 export function useGetMappingRecommendations(
@@ -9,7 +10,7 @@ export function useGetMappingRecommendations(
 ) {
   const { data, error, isLoading } = useSWR(
     importerId
-      ? [`/api/importer/${importerId}/mappings/recommendations`]
+      ? [`${getHost()}/api/importer/${importerId}/mappings/recommendations`]
       : null,
     ([url]) => fetchWithAuth(url).then((res) => res.json()),
     {

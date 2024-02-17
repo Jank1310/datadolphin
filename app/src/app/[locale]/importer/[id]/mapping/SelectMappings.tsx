@@ -27,6 +27,7 @@ import { ChevronRightCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { fetchWithAuth } from "@/lib/frontendFetch";
+import { getHost } from "@/lib/utils";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPageForState } from "../redirectUtil";
@@ -102,10 +103,13 @@ const SelectMappings = ({
     }
     setIsSavingMapping(true);
     try {
-      await fetchWithAuth(`/api/importer/${importer.importerId}/mappings`, {
-        method: "PUT",
-        body: JSON.stringify(currentMappings),
-      });
+      await fetchWithAuth(
+        `${getHost()}/api/importer/${importer.importerId}/mappings`,
+        {
+          method: "PUT",
+          body: JSON.stringify(currentMappings),
+        }
+      );
       setEnablePolling(true);
     } catch (err) {
       console.error(err);
