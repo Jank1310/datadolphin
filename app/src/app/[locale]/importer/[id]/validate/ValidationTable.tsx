@@ -56,6 +56,7 @@ type Props = {
     string /* rowId */,
     Record<string /* columnId */, boolean>
   >;
+  onReloadConfig: VoidFunction;
 };
 
 type ExtendedSourceData = SourceData & {
@@ -75,6 +76,8 @@ declare module "@tanstack/react-table" {
 
 const ValidationTable = (props: Props) => {
   const { t } = useTranslation();
+  const { importerId } = props.importerDto;
+  const { onReloadConfig } = props;
   const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
   const tableBodyRef = React.useRef<HTMLTableSectionElement | null>(null);
   const columns = React.useMemo(() => {
@@ -137,9 +140,13 @@ const ValidationTable = (props: Props) => {
               <SelectCell
                 value={(value as string) ?? ""}
                 availableValues={availableValues}
+                configKey={config.key}
+                importerId={importerId}
                 onChange={handleChangeData}
                 isRequired={isValueRequired}
                 isReadOnly={isValidating}
+                onReloadConfig={onReloadConfig}
+                allowAddNewValue={true}
               />
             );
           } else if (config.type === "text") {
