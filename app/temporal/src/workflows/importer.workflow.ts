@@ -17,6 +17,7 @@ import { keyBy, mapValues, sum, times } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
+import { ColumnValidation } from "../domain/ColumnValidation";
 import {
   ColumnValidators,
   DataMappingRecommendation,
@@ -109,7 +110,15 @@ const recordUpdate = defineUpdate<
   },
   [{ patches: DataSetPatch[] }]
 >("importer:update-record");
-
+const columnValidationUpdate = defineUpdate<
+  void,
+  [
+    {
+      columnConfigKey: string;
+      columnValidation: ColumnValidation;
+    }
+  ]
+>("importer:update-column-validation");
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
@@ -125,6 +134,7 @@ export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
   const callbackCancellationScope = new CancellationScope();
+  let columnConfig = params.columnConfig;
   let sourceFile: {
     bucket: string;
     fileReference: string;
@@ -191,17 +201,17 @@ export async function importer(params: ImporterWorkflowParams) {
         const newMessages: Record<string, ValidationMessage[]> = {};
 
         for (const patch of updateParams.patches) {
-          const columnConfig = params.columnConfig.find(
+          const _columnConfig = columnConfig.find(
             (item) => item.key === patch.column
           );
-          if (!columnConfig) {
+          if (!_columnConfig) {
             continue;
           }
-          const columnValidations = columnConfig.validations;
+          const columnValidations = _columnConfig.validations;
 
           if (columnValidations?.length) {
             const validationResults = await performRecordValidation(
-              [columnConfig],
+              [_columnConfig],
               patch.rowId
             );
             const validationResultsGroupedByColumn = mapValues(
@@ -213,7 +223,7 @@ export async function importer(params: ImporterWorkflowParams) {
             if (columnValidations.find((item) => item.type === "unique")) {
               // unique validation
               const changedColumnsForValidator = await performValidations([
-                columnConfig,
+                _columnConfig,
               ]);
               changedColumns.push(...changedColumnsForValidator);
             }
@@ -251,8 +261,26 @@ export async function importer(params: ImporterWorkflowParams) {
       },
     }
   );
+  setHandler(columnValidationUpdate, (params) => {
+    console.log("columnValidationUpdate", params);
+    columnConfig = columnConfig.map((column) => {
+      if (column.key === params.columnConfigKey) {
+        return {
+          ...column,
+          validations: column.validations?.map((validation) => {
+            if (validation.type === params.columnValidation.type) {
+              return params.columnValidation;
+            } else {
+              return validation;
+            }
+          }),
+        };
+      }
+      return column;
+    });
+  });
   setHandler(importerConfigQuery, () => {
-    return params;
+    return { ...params, columnConfig };
   });
   setHandler(dataMappingRecommendationsQuery, () => {
     return dataMappingRecommendations ?? null;
@@ -301,7 +329,7 @@ export async function importer(params: ImporterWorkflowParams) {
       dataMapping: configuredMappings!,
     });
     // initial validations for new mapped data
-    const allMappedColumnsWithValidators = params.columnConfig.filter(
+    const allMappedColumnsWithValidators = columnConfig.filter(
       (column) =>
         column.validations?.length &&
         (configuredMappings ?? []).find(
@@ -445,7 +473,7 @@ export async function importer(params: ImporterWorkflowParams) {
     });
     dataMappingRecommendations = await acts.getMappingRecommendations({
       importerId,
-      columnConfig: params.columnConfig,
+      columnConfig: columnConfig,
     });
     isProcessingSourceFile = false;
   }
