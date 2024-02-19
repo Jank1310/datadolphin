@@ -1,71 +1,71 @@
 {
-  "sidebar": {
-    "step": {
-      "file": {
-        "title": "Select file"
-      },
-      "mapping": {
-        "title": "Mapping"
-      },
-      "validation": {
-        "title": "Validation"
-      },
-      "importing": {
-        "title": "Importing"
-      }
+    "sidebar": {
+        "step": {
+            "file": {
+                "title": "Select file"
+            },
+            "mapping": {
+                "title": "Mapping"
+            },
+            "validation": {
+                "title": "Validation"
+            },
+            "importing": {
+                "title": "Importing"
+            }
+        }
+    },
+    "select-file": {
+        "uploading": "Uploading file...",
+        "processingFile": "Processing file...",
+        "uploader": {
+            "btnUpload": "Upload",
+            "dragAndDrop": "Drag and drop a file here",
+            "btnBrowseFile": "Browse file",
+            "supportedFormats": "Supported file types: .csv, .xls, .xlsx"
+        },
+        "toast": {
+            "errorUploading": "Error uploading file"
+        }
+    },
+    "mappings": {
+        "title": "Change of confirm column mapping",
+        "waitingForMappings": "Waiting for column mappings...",
+        "btnConfirmMappings": "Confirm mappings",
+        "columnsInYourFile": "Columns in your file",
+        "targetColumns": "Target columns",
+        "noSelectionItem": "None",
+        "applyingMappings": "Processing data..."
+    },
+    "validation": {
+        "title": "Validate your data",
+        "btnConfirmData": "Confirm data",
+        "numberOfErrors": "{{count}} errors",
+        "toast": {
+            "errorStartingImport": "Starting import failed"
+        },
+        "messages": {
+            "unique": "The values must be unique",
+            "required": "The value is required and cannot be empty",
+            "regex": "The values do not match the required format",
+            "phone": "The values must be a valid phone number",
+            "email": "The values must be a valid email address",
+            "enum": "The values must match the selection"
+        },
+        "selectCellAddNewValue": "+ add new"
+    },
+    "newValueDialog": {
+        "title": "Add new value",
+        "label": "New value",
+        "save": "Save"
+    },
+    "importing": {
+        "title": "Import is in progress",
+        "youCanCloseNow": "You can close this window now.",
+        "backToTargetApp": "Back to target app"
+    },
+    "closed": {
+        "title": "Import has been closed",
+        "message": "The import has been closed. You can close this window now."
     }
-  },
-  "select-file": {
-    "uploading": "Uploading file...",
-    "processingFile": "Processing file...",
-    "uploader": {
-      "btnUpload": "Upload",
-      "dragAndDrop": "Drag and drop a file here",
-      "btnBrowseFile": "Browse file",
-      "supportedFormats": "Supported file types: .csv, .xls, .xlsx"
-    },
-    "toast": {
-      "errorUploading": "Error uploading file"
-    }
-  },
-  "mappings": {
-    "title": "Change of confirm column mapping",
-    "waitingForMappings": "Waiting for column mappings...",
-    "btnConfirmMappings": "Confirm mappings",
-    "columnsInYourFile": "Columns in your file",
-    "targetColumns": "Target columns",
-    "noSelectionItem": "None",
-    "applyingMappings": "Processing data..."
-  },
-  "validation": {
-    "title": "Validate your data",
-    "btnConfirmData": "Confirm data",
-    "numberOfErrors": "{{count}} errors",
-    "toast": {
-      "errorStartingImport": "Starting import failed"
-    },
-    "messages": {
-      "unique": "The values must be unique",
-      "required": "The value is required and cannot be empty",
-      "regex": "The values do not match the required format",
-      "phone": "The values must be a valid phone number",
-      "email": "The values must be a valid email address",
-      "enum": "The values must match the selection"
-    },
-    "selectCellAddNewValue": "+ add new"
-  },
-  "newValueDialog": {
-    "title": "Add new value",
-    "label": "New value",
-    "save": "Save"
-  },
-  "importing": {
-    "title": "Import is in progress",
-    "youCanCloseNow": "You can close this window now.",
-    "backToTargetApp": "Back to target app"
-  },
-  "closed": {
-    "title": "Import has been closed",
-    "message": "The import has been closed. You can close this window now."
-  }
 }

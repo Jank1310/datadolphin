@@ -1,71 +1,71 @@
 {
-  "sidebar": {
-    "step": {
-      "file": {
-        "title": "Datei auswählen"
-      },
-      "mapping": {
-        "title": "Zuweisungen"
-      },
-      "validation": {
-        "title": "Validierung"
-      },
-      "importing": {
-        "title": "Importieren"
-      }
+    "sidebar": {
+        "step": {
+            "file": {
+                "title": "Datei auswählen"
+            },
+            "mapping": {
+                "title": "Zuweisungen"
+            },
+            "validation": {
+                "title": "Validierung"
+            },
+            "importing": {
+                "title": "Importieren"
+            }
+        }
+    },
+    "select-file": {
+        "uploading": "Datei wird hochgeladen...",
+        "processingFile": "Datei wird verarbeitet...",
+        "uploader": {
+            "btnUpload": "Datei hochladen",
+            "dragAndDrop": "Datei hierher ziehen",
+            "btnBrowseFile": "Datei auswählen",
+            "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
+        },
+        "toast": {
+            "errorUploading": "Fehler beim Hochladen der Datei"
+        }
+    },
+    "mappings": {
+        "title": "Änderung der Spaltenzuordnung bestätigen",
+        "waitingForMappings": "Warte auf Spaltenzuordnungen...",
+        "btnConfirmMappings": "Zuordnungen bestätigen",
+        "columnsInYourFile": "Spalten in hochgeladener Datei",
+        "targetColumns": "Ziel-Spalten",
+        "noSelectionItem": "Keine",
+        "applyingMappings": "Zuordnungen werden angewendet..."
+    },
+    "validation": {
+        "title": "Daten validieren",
+        "btnConfirmData": "Daten bestätigen",
+        "numberOfErrors": "{{count}} Fehler",
+        "toast": {
+            "errorStartingImport": "Starten des Imports fehlgeschlagen"
+        },
+        "messages": {
+            "unique": "Die Werte müssen eindeutig sein",
+            "required": "Der Wert ist erforderlich und darf nicht leer sein",
+            "regex": "Die Werte entsprechen nicht dem erforderlichen Format",
+            "phone": "Die Werte müssen eine gültige Telefonnummer sein",
+            "email": "Die Werte müssen eine gültige E-Mail-Adresse sein",
+            "enum": "Die Werte müssen der Auswahl entsprechen"
+        },
+        "selectCellAddNewValue": "+ hinzufügen"
+    },
+    "newValueDialog": {
+        "title": "Neuen Wert hinzufügen",
+        "label": "Neuer Wert",
+        "save": "Speichern"
+    },
+    "importing": {
+        "title": "Der Import wird durchgeführt",
+        "youCanCloseNow": "Das Fenster kann jetzt geschlossen werden",
+        "backToTargetApp": "Zurück zur Zielanwendung"
+    },
+    "closed": {
+        "title": "Der Import wurde geschlossen",
+        "message": "Sie können dieses Fenster jetzt schließen."
     }
-  },
-  "select-file": {
-    "uploading": "Datei wird hochgeladen...",
-    "processingFile": "Datei wird verarbeitet...",
-    "uploader": {
-      "btnUpload": "Datei hochladen",
-      "dragAndDrop": "Datei hierher ziehen",
-      "btnBrowseFile": "Datei auswählen",
-      "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
-    },
-    "toast": {
-      "errorUploading": "Fehler beim Hochladen der Datei"
-    }
-  },
-  "mappings": {
-    "title": "Änderung der Spaltenzuordnung bestätigen",
-    "waitingForMappings": "Warte auf Spaltenzuordnungen...",
-    "btnConfirmMappings": "Zuordnungen bestätigen",
-    "columnsInYourFile": "Spalten in hochgeladener Datei",
-    "targetColumns": "Ziel-Spalten",
-    "noSelectionItem": "Keine",
-    "applyingMappings": "Zuordnungen werden angewendet..."
-  },
-  "validation": {
-    "title": "Daten validieren",
-    "btnConfirmData": "Daten bestätigen",
-    "numberOfErrors": "{{count}} Fehler",
-    "toast": {
-      "errorStartingImport": "Starten des Imports fehlgeschlagen"
-    },
-    "messages": {
-      "unique": "Die Werte müssen eindeutig sein",
-      "required": "Der Wert ist erforderlich und darf nicht leer sein",
-      "regex": "Die Werte entsprechen nicht dem erforderlichen Format",
-      "phone": "Die Werte müssen eine gültige Telefonnummer sein",
-      "email": "Die Werte müssen eine gültige E-Mail-Adresse sein",
-      "enum": "Die Werte müssen der Auswahl entsprechen"
-    },
-    "selectCellAddNewValue": "+ hinzufügen"
-  },
-  "newValueDialog": {
-    "title": "Neuen Wert hinzufügen",
-    "label": "Neuer Wert",
-    "save": "Speichern"
-  },
-  "importing": {
-    "title": "Der Import wird durchgeführt",
-    "youCanCloseNow": "Das Fenster kann jetzt geschlossen werden",
-    "backToTargetApp": "Zurück zur Zielanwendung"
-  },
-  "closed": {
-    "title": "Der Import wurde geschlossen",
-    "message": "Sie können dieses Fenster jetzt schließen."
-  }
 }
