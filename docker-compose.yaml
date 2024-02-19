@@ -95,6 +95,14 @@ services:
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     networks:
       - backend-network
+  temporal-admin-tools:
+    extends:
+      file: docker-compose.base.yaml
+      service: temporal-admin-tools
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    networks:
+      - backend-network
   # PROXY
   caddy:
     image: caddy
