@@ -262,7 +262,6 @@ export async function importer(params: ImporterWorkflowParams) {
     }
   );
   setHandler(columnValidationUpdate, (params) => {
-    console.log("columnValidationUpdate", params);
     columnConfig = columnConfig.map((column) => {
       if (column.key === params.columnConfigKey) {
         return {
