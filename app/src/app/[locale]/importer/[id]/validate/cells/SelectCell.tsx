@@ -21,7 +21,7 @@ type Props = {
   configKey: string;
   importerId: string;
   onReloadConfig: VoidFunction;
-  allowAddNewValue?: boolean;
+  canAddNewValues?: boolean;
 };
 
 const SelectCellTrigger = React.forwardRef<
@@ -53,7 +53,7 @@ const SelectCell = ({
   configKey,
   importerId,
   onReloadConfig,
-  allowAddNewValue,
+  canAddNewValues,
 }: Props) => {
   const { t } = useTranslation();
   const id = useId();
@@ -116,11 +116,13 @@ const SelectCell = ({
               {selectableValue}
             </SelectItem>
           ))}
-          <SelectSeparator />
-          {allowAddNewValue && (
-            <SelectItem value="$$new" key={`enum-value-${id}-new`}>
-              {t("validation.selectCellAddNewValue")}
-            </SelectItem>
+          {canAddNewValues && (
+            <>
+              <SelectSeparator />
+              <SelectItem value="$$new" key={`enum-value-${id}-new`}>
+                {t("validation.selectCellAddNewValue")}
+              </SelectItem>
+            </>
           )}
         </SelectContent>
       </Select>

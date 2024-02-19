@@ -136,6 +136,9 @@ const ValidationTable = (props: Props) => {
             const availableValues = enumValidators.flatMap(
               (validator) => validator.values
             );
+            const canAddNewValues = enumValidators.some(
+              (validator) => validator.canAddNewValues === true
+            );
             displayValue = (
               <SelectCell
                 value={(value as string) ?? ""}
@@ -146,7 +149,7 @@ const ValidationTable = (props: Props) => {
                 isRequired={isValueRequired}
                 isReadOnly={isValidating}
                 onReloadConfig={onReloadConfig}
-                allowAddNewValue={true}
+                canAddNewValues={canAddNewValues}
               />
             );
           } else if (config.type === "text") {
