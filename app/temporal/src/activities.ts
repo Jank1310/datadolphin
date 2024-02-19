@@ -274,7 +274,10 @@ export function makeActivities(
       const downloadUrl = `${host}/api/download/${params.importerId}`;
       await fetch(params.callbackUrl, {
         method: "POST",
-        body: downloadUrl,
+        body: JSON.stringify({
+          downloadUrl,
+          importerId: params.importerId,
+        }),
       });
     },
     createDatabases: async (params: { importerId: string }): Promise<void> => {
