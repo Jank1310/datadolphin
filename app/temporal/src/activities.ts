@@ -272,13 +272,21 @@ export function makeActivities(
     }): Promise<void> => {
       const host = process.env.PUBLIC_API_URL ?? "http://localhost:3000";
       const downloadUrl = `${host}/api/download/${params.importerId}`;
-      await fetch(params.callbackUrl, {
+      const response = await fetch(params.callbackUrl, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           downloadUrl,
           importerId: params.importerId,
         }),
       });
+      if (!response.ok) {
+        throw ApplicationFailure.retryable(
+          `Failed to invoke callback ${response.status}`
+        );
+      }
     },
     createDatabases: async (params: { importerId: string }): Promise<void> => {
       await database.dropDatabases(params.importerId);
