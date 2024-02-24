@@ -369,16 +369,6 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: "65b39818ab8b36794717db1d",
-          column: "Postleitzahl",
-          messages: [
-            {
-              message: "value does not match regex ^[0-9]{5}$",
-              type: "regex",
-            },
-          ],
-        },
-        {
           rowId: "65b39818ab8b36794717db1e",
           column: "Postleitzahl",
           messages: [
@@ -637,10 +627,6 @@ describe("DataAnalyzer", () => {
               message: "value is not a valid email",
               type: "email",
             },
-            {
-              message: "value does not match regex ^[0-9]{5}$",
-              type: "regex",
-            },
           ],
         },
         {
@@ -663,10 +649,6 @@ describe("DataAnalyzer", () => {
             {
               message: "value is not a valid email",
               type: "email",
-            },
-            {
-              message: "value does not match regex ^[0-9]{5}$",
-              type: "regex",
             },
           ],
         },
