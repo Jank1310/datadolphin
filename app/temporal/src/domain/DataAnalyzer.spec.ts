@@ -202,16 +202,6 @@ describe("DataAnalyzer", () => {
           },
         },
         {
-          _id: new ObjectId("65b39818ab8b36794717db1e"),
-          __sourceRowId: 4,
-          data: {
-            name: {
-              value: "",
-              messages: [],
-            },
-          },
-        },
-        {
           _id: new ObjectId("65b39818ab8b36794717db1f"),
           __sourceRowId: 5,
           data: {
@@ -246,26 +236,6 @@ describe("DataAnalyzer", () => {
         },
         {
           rowId: "65b39818ab8b36794717db1b",
-          column: "name",
-          messages: [
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-          ],
-        },
-        {
-          rowId: "65b39818ab8b36794717db1d",
-          column: "name",
-          messages: [
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-          ],
-        },
-        {
-          rowId: "65b39818ab8b36794717db1e",
           column: "name",
           messages: [
             {
@@ -455,16 +425,6 @@ describe("DataAnalyzer", () => {
             },
           ],
         },
-        {
-          rowId: "65b39818ab8b36794717db1e",
-          column: "phone",
-          messages: [
-            {
-              message: "value is not a valid phone number",
-              type: "phone",
-            },
-          ],
-        },
       ]);
     });
 
@@ -604,15 +564,6 @@ describe("DataAnalyzer", () => {
               message: "value is required",
               type: "required",
             },
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-
-            {
-              message: "value is not a valid phone number",
-              type: "phone",
-            },
           ],
         },
         {
@@ -622,15 +573,6 @@ describe("DataAnalyzer", () => {
             {
               message: "value is required",
               type: "required",
-            },
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-
-            {
-              message: "value is not a valid phone number",
-              type: "phone",
             },
           ],
         },

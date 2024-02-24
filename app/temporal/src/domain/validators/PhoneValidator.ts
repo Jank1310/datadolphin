@@ -1,21 +1,26 @@
 import { isPossiblePhoneNumber } from "libphonenumber-js";
+import { PhoneColumnValidation } from "../ColumnValidation";
 import { DataSetRow } from "../DataSet";
 import { ValidationMessage } from "../ValidationMessage";
 
 export class PhoneValidator {
   validate(
     row: DataSetRow,
-    columnConfig: { column: string; regex?: string }[]
+    columnConfig: { column: string; config: PhoneColumnValidation }[]
   ): Record<string, ValidationMessage> {
     const errors: Record<string, ValidationMessage> = {};
-    const columnsToValidate = columnConfig.map((item) => item.column);
-    for (const columnToValidate of columnsToValidate) {
-      let dataToValidate = row.data[columnToValidate].value;
-      // check if defaultCountry DE is ok
+    for (const { column, config } of columnConfig) {
+      let dataToValidate = row.data[column].value;
+      const isEmptyValue = Boolean(dataToValidate) === false;
+      if (isEmptyValue) {
+        continue;
+      }
       if (
-        isPossiblePhoneNumber((dataToValidate as string) ?? "", "DE") === false
+        typeof dataToValidate !== "string" ||
+        isPossiblePhoneNumber(dataToValidate, config.defaultCountry ?? "DE") ===
+          false
       ) {
-        errors[columnToValidate] = {
+        errors[column] = {
           type: "phone",
           message: "value is not a valid phone number",
         };
