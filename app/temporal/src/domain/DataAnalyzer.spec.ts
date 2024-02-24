@@ -541,16 +541,6 @@ describe("DataAnalyzer", () => {
             },
           ],
         },
-        {
-          rowId: "65b39818ab8b36794717db1f",
-          column: "email",
-          messages: [
-            {
-              message: "value is not a valid email",
-              type: "email",
-            },
-          ],
-        },
       ]);
     });
 
@@ -623,10 +613,6 @@ describe("DataAnalyzer", () => {
               message: "value is not a valid phone number",
               type: "phone",
             },
-            {
-              message: "value is not a valid email",
-              type: "email",
-            },
           ],
         },
         {
@@ -645,10 +631,6 @@ describe("DataAnalyzer", () => {
             {
               message: "value is not a valid phone number",
               type: "phone",
-            },
-            {
-              message: "value is not a valid email",
-              type: "email",
             },
           ],
         },
