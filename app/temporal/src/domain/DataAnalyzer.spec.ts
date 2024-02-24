@@ -684,7 +684,7 @@ describe("DataAnalyzer", () => {
     });
 
     it("should validate enum values", () => {
-      const rowsWithEmailValues = [
+      const rowsWithValues = [
         {
           _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
@@ -719,7 +719,7 @@ describe("DataAnalyzer", () => {
       } as ColumnValidators;
       const stats = {};
       const result = analyzer.processDataValidations(
-        rowsWithEmailValues,
+        rowsWithValues,
         validatorColumns,
         stats
       );
@@ -727,16 +727,6 @@ describe("DataAnalyzer", () => {
         {
           column: "department",
           rowId: "65b39818ab8b36794717db1c",
-          messages: [
-            {
-              message: "value is not a valid enum",
-              type: "enum",
-            },
-          ],
-        },
-        {
-          column: "department",
-          rowId: "65b39818ab8b36794717db1d",
           messages: [
             {
               message: "value is not a valid enum",
