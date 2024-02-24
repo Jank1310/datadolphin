@@ -38,6 +38,7 @@
         "applyingMappings": "Zuordnungen werden angewendet..."
     },
     "validation": {
+        "none": "Leer",
         "title": "Daten validieren",
         "btnConfirmData": "Daten bestätigen",
         "numberOfErrors": "{{count}} Fehler",
