@@ -5,7 +5,7 @@
                 "title": "Select file"
             },
             "mapping": {
-                "title": "Mapping"
+                "title": "Map data"
             },
             "validation": {
                 "title": "Validation"
@@ -29,13 +29,17 @@
         }
     },
     "mappings": {
-        "title": "Change of confirm column mapping",
+        "title": "Map your data",
         "waitingForMappings": "Waiting for column mappings...",
         "btnConfirmMappings": "Confirm mappings",
         "columnsInYourFile": "Columns in your file",
         "targetColumns": "Target columns",
         "noSelectionItem": "None",
-        "applyingMappings": "Processing data..."
+        "applyingMappings": "Processing data...",
+        "toast": {
+            "errorResettingData": "Error resetting import"
+        },
+        "btnUploadDifferentFile": "Re-upload file"
     },
     "validation": {
         "none": "Empty",
@@ -43,7 +47,8 @@
         "btnConfirmData": "Confirm data",
         "numberOfErrors": "{{count}} errors",
         "toast": {
-            "errorStartingImport": "Starting import failed"
+            "errorStartingImport": "Starting import failed",
+            "errorResettingData": "Error resetting import"
         },
         "messages": {
             "unique": "The values must be unique",
@@ -53,7 +58,8 @@
             "email": "The values must be a valid email address",
             "enum": "The values must match the selection"
         },
-        "selectCellAddNewValue": "+ add new"
+        "selectCellAddNewValue": "+ add new",
+        "btnUploadDifferentFile": "Re-upload file"
     },
     "newValueDialog": {
         "title": "Add new value",

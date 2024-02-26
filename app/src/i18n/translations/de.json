@@ -5,7 +5,7 @@
         "title": "Datei auswählen"
       },
       "mapping": {
-        "title": "Zuweisungen"
+        "title": "Daten zuordnen"
       },
       "validation": {
         "title": "Validierung"
@@ -25,17 +25,23 @@
       "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
     },
     "toast": {
-      "errorUploading": "Fehler beim Hochladen der Datei"
-    }
+      "errorUploading": "Fehler beim Hochladen der Datei",
+      "errorResettingData": "Fehler beim Zurücksetzen der Daten"
+    },
+    "btnUploadDifferentFile": "Andere Datei hochladen"
   },
   "mappings": {
-    "title": "Änderung der Spaltenzuordnung bestätigen",
+    "title": "Daten zuordnen",
     "waitingForMappings": "Warte auf Spaltenzuordnungen...",
     "btnConfirmMappings": "Zuordnungen bestätigen",
     "columnsInYourFile": "Spalten in hochgeladener Datei",
     "targetColumns": "Ziel-Spalten",
     "noSelectionItem": "Keine",
-    "applyingMappings": "Zuordnungen werden angewendet..."
+    "applyingMappings": "Zuordnungen werden angewendet...",
+    "toast": {
+      "errorResettingData": "Fehler beim Zurücksetzen der Daten"
+    },
+    "btnUploadDifferentFile": "Andere Datei hochladen"
   },
   "validation": {
     "none": "Leer",

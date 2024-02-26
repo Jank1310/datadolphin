@@ -3,6 +3,7 @@ import {
     CancellationScope,
     CancelledFailure,
     condition,
+    continueAsNew,
     defineQuery,
     defineSignal,
     defineUpdate,
@@ -116,6 +117,7 @@ const triggerColumnValidation = defineUpdate<
     },
     string[] /* columnKey */
 >("importer:trigger-column-validation");
+const resetImporter = defineSignal<[]>("importer:reset");
 
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
     startToCloseTimeout: "5 minute",
@@ -148,6 +150,11 @@ export async function importer(params: ImporterWorkflowParams) {
     let isMappingData = false;
     let isUpdatingRecord = false;
     /** DEFINE WORKFLOW HANDLERS */
+    setHandler(resetImporter, async () => {
+        if (state !== "closed" && state !== "importing") {
+            await continueAsNew(params);
+        }
+    });
     setHandler(closeSignal, () => {
         if (state === "importing") {
             state = "closed";
