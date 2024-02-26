@@ -31,7 +31,7 @@ const ImportingPage = async (props: Props) => {
         <p className="mb-6">{t("importing.youCanCloseNow")}</p>
         {Boolean(redirectUrl) && (
           <Button asChild>
-            <a href="https://google.com">{t("importing.backToTargetApp")}</a>
+            <a href={redirectUrl}>{t("importing.backToTargetApp")}</a>
           </Button>
         )}
       </div>
