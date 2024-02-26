@@ -43,6 +43,7 @@ export async function GET(
     .toArray();
   return NextResponse.json({
     records,
+    workflowState,
     pages: totalPages,
     total: total,
   });
