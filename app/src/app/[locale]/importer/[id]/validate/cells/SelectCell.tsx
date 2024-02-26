@@ -1,9 +1,4 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectSeparator } from "@/components/ui/select";
 import { useFrontendFetchWithAuth } from "@/lib/frontendFetch";
 import { cn } from "@/lib/utils";
 import * as SelectPrimitive from "@radix-ui/react-select";
@@ -30,10 +25,7 @@ const SelectCellTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
-    className={cn(
-      "flex w-full items-center justify-between text-sm",
-      className
-    )}
+    className={cn("flex w-full items-center justify-between text-sm", className)}
     {...props}
   >
     <span>{children}</span>
@@ -64,6 +56,8 @@ const SelectCell = ({
   React.useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
+  const normalizedString = (value as string) ?? "";
+  const isValueEmpty = normalizedString === "";
 
   const handleDialogSave = async (value: string) => {
     if (!value) {
@@ -73,17 +67,14 @@ const SelectCell = ({
     // use settimeout to get a snappier experience
     setTimeout(() => onChange(value));
     setValue(value);
-    await frontendFetch(
-      `/api/importer/${importerId}/columnConfig/${configKey}/validations`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({
-          type: "enum",
+    await frontendFetch(`/api/importer/${importerId}/columnConfig/${configKey}/validations`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        type: "enum",
 
-          values: [...new Set([...availableValues, value])],
-        }),
-      }
-    );
+        values: [...new Set([...availableValues, value])],
+      }),
+    });
     onReloadConfig();
     setDialogOpen(false);
   };
@@ -92,27 +83,35 @@ const SelectCell = ({
     <>
       <Select
         disabled={isReadOnly}
-        value={(value as string) ?? ""}
+        value={normalizedString === "" ? "none" : normalizedString}
         onValueChange={(newValue) => {
-          if (value !== newValue) {
-            if (newValue === "$$new") {
+          const normalizedNewValue = newValue === "none" ? "" : newValue;
+          if (value !== normalizedNewValue) {
+            if (normalizedNewValue === "$$new") {
               setDialogOpen(true);
               return;
             }
             // use settimeout to get a snappier experience
-            setTimeout(() => onChange(newValue));
+            setTimeout(() => onChange(normalizedNewValue));
           }
           setValue(newValue);
         }}
       >
-        <SelectCellTrigger className="">{value}</SelectCellTrigger>
+        <SelectCellTrigger
+          className={cn({
+            "text-gray-400": isValueEmpty,
+          })}
+        >
+          {isValueEmpty ? t("validation.none") : value}
+        </SelectCellTrigger>
         <SelectContent>
-          {!isRequired && <SelectItem value={"none"}>None</SelectItem>}
+          {!isRequired && (
+            <SelectItem className="text-gray-400" value={"none"}>
+              {t("validation.none")}
+            </SelectItem>
+          )}
           {availableValues.map((selectableValue) => (
-            <SelectItem
-              value={selectableValue}
-              key={`enum-value-${id}-${selectableValue}`}
-            >
+            <SelectItem value={selectableValue} key={`enum-value-${id}-${selectableValue}`}>
               {selectableValue}
             </SelectItem>
           ))}

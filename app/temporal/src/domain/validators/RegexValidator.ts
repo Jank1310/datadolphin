@@ -15,6 +15,10 @@ export class RegexValidator implements Validator {
       config: { regex },
     } of columnConfig) {
       let dataToValidate = row.data[column].value;
+      const isEmptyValue = Boolean(dataToValidate) === false;
+      if (isEmptyValue) {
+        continue;
+      }
       if (cache[column] === false) {
         errors[column] = {
           type: "regex",

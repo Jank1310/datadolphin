@@ -38,6 +38,7 @@
         "applyingMappings": "Processing data..."
     },
     "validation": {
+        "none": "Empty",
         "title": "Validate your data",
         "btnConfirmData": "Confirm data",
         "numberOfErrors": "{{count}} errors",

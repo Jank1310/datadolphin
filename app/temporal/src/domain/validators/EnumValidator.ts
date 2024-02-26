@@ -11,12 +11,14 @@ export class EnumValidator implements Validator {
     const errors: Record<string, ValidationMessage> = {};
     for (const { column, config } of columnConfigs) {
       let dataToValidate = row.data[column].value;
-      if (!dataToValidate || typeof dataToValidate !== "string") {
-        errors[column] = {
-          type: "enum",
-          message: "value is not a valid enum",
-        };
-      } else if (config.values.includes(dataToValidate) === false) {
+      const isEmptyValue = Boolean(dataToValidate) === false;
+      if (isEmptyValue) {
+        continue;
+      }
+      const isValueInEnum =
+        typeof dataToValidate === "string" &&
+        config.values.includes(dataToValidate);
+      if (isValueInEnum === false) {
         errors[column] = {
           type: "enum",
           message: "value is not a valid enum",

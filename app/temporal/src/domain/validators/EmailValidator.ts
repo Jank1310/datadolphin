@@ -15,6 +15,10 @@ export class EmailValidator implements Validator {
     const columnsToValidate = columnConfig.map((item) => item.column);
     for (const columnToValidate of columnsToValidate) {
       let dataToValidate = row.data[columnToValidate].value;
+      const isEmptyValue = Boolean(dataToValidate) === false;
+      if (isEmptyValue) {
+        continue;
+      }
       if (EMAIL_REGEX.test((dataToValidate as string) ?? "") === false) {
         errors[columnToValidate] = {
           type: "email",

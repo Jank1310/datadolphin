@@ -202,16 +202,6 @@ describe("DataAnalyzer", () => {
           },
         },
         {
-          _id: new ObjectId("65b39818ab8b36794717db1e"),
-          __sourceRowId: 4,
-          data: {
-            name: {
-              value: "",
-              messages: [],
-            },
-          },
-        },
-        {
           _id: new ObjectId("65b39818ab8b36794717db1f"),
           __sourceRowId: 5,
           data: {
@@ -246,26 +236,6 @@ describe("DataAnalyzer", () => {
         },
         {
           rowId: "65b39818ab8b36794717db1b",
-          column: "name",
-          messages: [
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-          ],
-        },
-        {
-          rowId: "65b39818ab8b36794717db1d",
-          column: "name",
-          messages: [
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-          ],
-        },
-        {
-          rowId: "65b39818ab8b36794717db1e",
           column: "name",
           messages: [
             {
@@ -369,16 +339,6 @@ describe("DataAnalyzer", () => {
           ],
         },
         {
-          rowId: "65b39818ab8b36794717db1d",
-          column: "Postleitzahl",
-          messages: [
-            {
-              message: "value does not match regex ^[0-9]{5}$",
-              type: "regex",
-            },
-          ],
-        },
-        {
           rowId: "65b39818ab8b36794717db1e",
           column: "Postleitzahl",
           messages: [
@@ -465,16 +425,6 @@ describe("DataAnalyzer", () => {
             },
           ],
         },
-        {
-          rowId: "65b39818ab8b36794717db1e",
-          column: "phone",
-          messages: [
-            {
-              message: "value is not a valid phone number",
-              type: "phone",
-            },
-          ],
-        },
       ]);
     });
 
@@ -551,16 +501,6 @@ describe("DataAnalyzer", () => {
             },
           ],
         },
-        {
-          rowId: "65b39818ab8b36794717db1f",
-          column: "email",
-          messages: [
-            {
-              message: "value is not a valid email",
-              type: "email",
-            },
-          ],
-        },
       ]);
     });
 
@@ -624,23 +564,6 @@ describe("DataAnalyzer", () => {
               message: "value is required",
               type: "required",
             },
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-
-            {
-              message: "value is not a valid phone number",
-              type: "phone",
-            },
-            {
-              message: "value is not a valid email",
-              type: "email",
-            },
-            {
-              message: "value does not match regex ^[0-9]{5}$",
-              type: "regex",
-            },
           ],
         },
         {
@@ -650,23 +573,6 @@ describe("DataAnalyzer", () => {
             {
               message: "value is required",
               type: "required",
-            },
-            {
-              message: "value is not unique",
-              type: "unique",
-            },
-
-            {
-              message: "value is not a valid phone number",
-              type: "phone",
-            },
-            {
-              message: "value is not a valid email",
-              type: "email",
-            },
-            {
-              message: "value does not match regex ^[0-9]{5}$",
-              type: "regex",
             },
           ],
         },
@@ -684,7 +590,7 @@ describe("DataAnalyzer", () => {
     });
 
     it("should validate enum values", () => {
-      const rowsWithEmailValues = [
+      const rowsWithValues = [
         {
           _id: new ObjectId("65b39818ab8b36794717db1a"),
           __sourceRowId: 0,
@@ -719,7 +625,7 @@ describe("DataAnalyzer", () => {
       } as ColumnValidators;
       const stats = {};
       const result = analyzer.processDataValidations(
-        rowsWithEmailValues,
+        rowsWithValues,
         validatorColumns,
         stats
       );
@@ -727,16 +633,6 @@ describe("DataAnalyzer", () => {
         {
           column: "department",
           rowId: "65b39818ab8b36794717db1c",
-          messages: [
-            {
-              message: "value is not a valid enum",
-              type: "enum",
-            },
-          ],
-        },
-        {
-          column: "department",
-          rowId: "65b39818ab8b36794717db1d",
           messages: [
             {
               message: "value is not a valid enum",
