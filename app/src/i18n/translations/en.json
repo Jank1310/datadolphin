@@ -51,7 +51,13 @@
             "phone": "The values must be a valid phone number",
             "email": "The values must be a valid email address",
             "enum": "The values must match the selection"
-        }
+        },
+        "selectCellAddNewValue": "+ add new"
+    },
+    "newValueDialog": {
+        "title": "Add new value",
+        "label": "New value",
+        "save": "Save"
     },
     "importing": {
         "title": "Import is in progress",

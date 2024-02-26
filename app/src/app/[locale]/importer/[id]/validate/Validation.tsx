@@ -49,6 +49,10 @@ const Validation = ({
   });
   const fetchRecords = useFetchRecords(initialImporterDto.importerId);
 
+  const handleReloadConfig = React.useCallback(async () => {
+    mutateImporter();
+  }, [mutateImporter]);
+
   const handleLoadPage = React.useCallback(
     async (pageNumber: number, force: boolean = false) => {
       setTimeout(async () => {
@@ -252,6 +256,7 @@ const Validation = ({
           onUpdateData={handleUpdateData}
           onLoadPage={handleLoadPage}
           currentValidations={currentValidations}
+          onReloadConfig={handleReloadConfig}
         />
       </div>
     </div>

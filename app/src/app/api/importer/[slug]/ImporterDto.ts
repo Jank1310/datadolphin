@@ -79,6 +79,7 @@ export interface RegexColumnValidation extends ColumnValidation {
 
 export interface EnumerationColumnValidation extends ColumnValidation {
   values: string[];
+  canAddNewValues?: boolean;
 }
 
 export interface DataMapping {
