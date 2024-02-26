@@ -4,15 +4,15 @@ import csv from "csv";
 import { pullAll, uniq } from "lodash";
 import { ObjectId } from "mongodb";
 import XLSX from "xlsx";
-import { ColumnConfig } from "./domain/ColumnConfig";
-import {
+import type { ColumnConfig } from "./domain/ColumnConfig";
+import type {
   ColumnValidators,
   DataAnalyzer,
   DataMappingRecommendation,
   SourceFileStatsPerColumn,
   ValidationResult,
 } from "./domain/DataAnalyzer";
-import {
+import type {
   DataSet,
   DataSetPatch,
   DataSetRow,
@@ -21,7 +21,11 @@ import {
 } from "./domain/DataSet";
 import { Database } from "./infrastructure/Database";
 import { FileStore } from "./infrastructure/FileStore";
-import { Mapping, Meta } from "./workflows/importer.workflow";
+import type {
+  ImporterStatus,
+  Mapping,
+  Meta,
+} from "./workflows/importer.workflow";
 export interface DownloadSourceFileParams {
   filename: string;
   importerId: string;
@@ -269,6 +273,7 @@ export function makeActivities(
     invokeCallback: async (params: {
       importerId: string;
       callbackUrl: string;
+      status: ImporterStatus;
     }): Promise<void> => {
       const host = process.env.PUBLIC_API_URL ?? "http://localhost:3000";
       const downloadUrl = `${host}/api/download/${params.importerId}`;
@@ -280,6 +285,7 @@ export function makeActivities(
         body: JSON.stringify({
           downloadUrl,
           importerId: params.importerId,
+          status: params.status,
         }),
       });
       if (!response.ok) {

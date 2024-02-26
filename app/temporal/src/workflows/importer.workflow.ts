@@ -399,9 +399,20 @@ export async function importer(params: ImporterWorkflowParams) {
     }
     try {
       await callbackCancellationScope.run(async () => {
+        const currentStatus = {
+          state,
+          isValidatingData: isValidating,
+          dataMapping: configuredMappings,
+          totalRows,
+          meta,
+          isProcessingSourceFile,
+          isMappingData,
+          changedEnums,
+        };
         await acts.invokeCallback({
           importerId,
           callbackUrl: params.callbackUrl,
+          status: currentStatus,
         });
       });
     } catch (err) {
