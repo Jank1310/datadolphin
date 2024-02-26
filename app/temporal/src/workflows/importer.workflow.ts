@@ -13,11 +13,14 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import env from "env-var";
-import { keyBy, mapValues, sum, times } from "lodash";
+import { difference, keyBy, mapValues, sum, times } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
-import { ColumnValidation } from "../domain/ColumnValidation";
+import {
+  ColumnValidation,
+  EnumerationColumnValidation,
+} from "../domain/ColumnValidation";
 import {
   ColumnValidators,
   DataMappingRecommendation,
@@ -119,6 +122,13 @@ const columnValidationUpdate = defineUpdate<
     }
   ]
 >("importer:update-column-validation");
+const triggerColumnValidation = defineUpdate<
+  {
+    changedColumns: string[];
+  },
+  string[] /* columnKey */
+>("importer:trigger-column-validation");
+
 const acts = proxyActivities<ReturnType<typeof makeActivities>>({
   startToCloseTimeout: "5 minute",
 });
@@ -134,7 +144,7 @@ export async function importer(params: ImporterWorkflowParams) {
   const uploadTimeout = params.uploadTimeout ?? "24 hours";
   const startImportTimeout = params.startImportTimeout ?? "24 hours";
   const callbackCancellationScope = new CancellationScope();
-  let columnConfig = params.columnConfig;
+  let columnConfig = mergeEnumValidations(params.columnConfig);
   let sourceFile: {
     bucket: string;
     fileReference: string;
@@ -144,6 +154,7 @@ export async function importer(params: ImporterWorkflowParams) {
   let configuredMappings: Mapping[] | null = null;
   let totalRows = 0;
   let meta: Meta | null = null;
+  const changedEnums: Record<string, { action: "added"; value: string }[]> = {};
 
   // progress states
   let state: ImporterState = "select-file";
@@ -268,6 +279,27 @@ export async function importer(params: ImporterWorkflowParams) {
           ...column,
           validations: column.validations?.map((validation) => {
             if (validation.type === params.columnValidation.type) {
+              if (params.columnValidation.type === "enum") {
+                const newEnumValidation =
+                  params.columnValidation as EnumerationColumnValidation;
+                const currentEnumValidation =
+                  validation as EnumerationColumnValidation;
+                const addedEnums = difference(
+                  newEnumValidation.values,
+                  currentEnumValidation.values
+                );
+                changedEnums[column.key] = [
+                  ...(changedEnums[column.key] || []),
+                  ...addedEnums.map((value) => ({
+                    action: "added" as "added",
+                    value,
+                  })),
+                ];
+                return {
+                  ...validation,
+                  values: newEnumValidation.values,
+                };
+              }
               return params.columnValidation;
             } else {
               return validation;
@@ -277,6 +309,20 @@ export async function importer(params: ImporterWorkflowParams) {
       }
       return column;
     });
+  });
+  setHandler(triggerColumnValidation, async (columnKeys) => {
+    let changedColumns: string[] = [];
+    for (const columnKey of columnKeys) {
+      const config = columnConfig.find((item) => item.key === columnKey);
+      if (!config) {
+        continue;
+      }
+      const changedColumnsForValidator = await performValidations([config]);
+      changedColumns.push(...changedColumnsForValidator);
+    }
+    return {
+      changedColumns,
+    };
   });
   setHandler(importerConfigQuery, () => {
     return { ...params, columnConfig };
@@ -294,6 +340,7 @@ export async function importer(params: ImporterWorkflowParams) {
       meta,
       isProcessingSourceFile,
       isMappingData,
+      changedEnums,
     };
   });
 
@@ -476,4 +523,35 @@ export async function importer(params: ImporterWorkflowParams) {
     });
     isProcessingSourceFile = false;
   }
+}
+
+function mergeEnumValidations(configs: ColumnConfig[]): ColumnConfig[] {
+  return configs.map((config) => {
+    if (config.validations) {
+      const enumValidations = config.validations.filter(
+        (val) => val.type === "enum"
+      ) as EnumerationColumnValidation[];
+      if (enumValidations.length > 1) {
+        const mergedValues = Array.from(
+          new Set(enumValidations.flatMap((val) => val.values || []))
+        );
+        const canAddNewValues = enumValidations.some(
+          (val) => val.canAddNewValues
+        );
+        const mergedValidation: EnumerationColumnValidation = {
+          type: "enum",
+          values: mergedValues,
+          canAddNewValues,
+        };
+        // Remove all enum validations
+        const filteredValidations = config.validations.filter(
+          (val) => val.type !== "enum"
+        );
+        // Add the merged enum validation
+        filteredValidations.push(mergedValidation);
+        return { ...config, validations: filteredValidations };
+      }
+    }
+    return config;
+  });
 }
