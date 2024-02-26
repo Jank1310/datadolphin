@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { ChevronDown } from "lucide-react";
 import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { NewValueDialog } from "../NewValueDialog";
 
 type Props = {
   value: string;
@@ -79,50 +80,53 @@ const SelectCell = ({
   };
 
   return (
-    <Select
-      disabled={isReadOnly}
-      value={normalizedString === "" ? "none" : normalizedString}
-      onValueChange={(newValue) => {
-        const normalizedNewValue = newValue === "none" ? "" : newValue;
-        if (value !== normalizedNewValue) {
-          if (normalizedNewValue === "$$new") {
-            setDialogOpen(true);
-            return;
+    <>
+      <Select
+        disabled={isReadOnly}
+        value={normalizedString === "" ? "none" : normalizedString}
+        onValueChange={(newValue) => {
+          const normalizedNewValue = newValue === "none" ? "" : newValue;
+          if (value !== normalizedNewValue) {
+            if (normalizedNewValue === "$$new") {
+              setDialogOpen(true);
+              return;
+            }
+            // use settimeout to get a snappier experience
+            setTimeout(() => onChange(normalizedNewValue));
           }
-          // use settimeout to get a snappier experience
-          setTimeout(() => onChange(normalizedNewValue));
-        }
-        setValue(newValue);
-      }}
-    >
-      <SelectCellTrigger
-        className={cn({
-          "text-gray-400": isValueEmpty,
-        })}
+          setValue(newValue);
+        }}
       >
-        {isValueEmpty ? t("validation.none") : value}
-      </SelectCellTrigger>
-      <SelectContent>
-        {!isRequired && (
-          <SelectItem className="text-gray-400" value={"none"}>
-            {t("validation.none")}
-          </SelectItem>
-        )}
-        {availableValues.map((selectableValue) => (
-          <SelectItem value={selectableValue} key={`enum-value-${id}-${selectableValue}`}>
-            {selectableValue}
-          </SelectItem>
-        ))}
-        {canAddNewValues && (
-          <>
-            <SelectSeparator />
-            <SelectItem value="$$new" key={`enum-value-${id}-new`}>
-              {t("validation.selectCellAddNewValue")}
+        <SelectCellTrigger
+          className={cn({
+            "text-gray-400": isValueEmpty,
+          })}
+        >
+          {isValueEmpty ? t("validation.none") : value}
+        </SelectCellTrigger>
+        <SelectContent>
+          {!isRequired && (
+            <SelectItem className="text-gray-400" value={"none"}>
+              {t("validation.none")}
             </SelectItem>
-          </>
-        )}
-      </SelectContent>
-    </Select>
+          )}
+          {availableValues.map((selectableValue) => (
+            <SelectItem value={selectableValue} key={`enum-value-${id}-${selectableValue}`}>
+              {selectableValue}
+            </SelectItem>
+          ))}
+          {canAddNewValues && (
+            <>
+              <SelectSeparator />
+              <SelectItem value="$$new" key={`enum-value-${id}-new`}>
+                {t("validation.selectCellAddNewValue")}
+              </SelectItem>
+            </>
+          )}
+        </SelectContent>
+      </Select>
+      <NewValueDialog dialogOpen={dialogOpen} onSave={handleDialogSave} />
+    </>
   );
 };
 
