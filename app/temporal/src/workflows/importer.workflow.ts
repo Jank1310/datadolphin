@@ -17,14 +17,8 @@ import { difference, keyBy, mapValues, sum, times } from "lodash";
 import pLimit from "p-limit";
 import { makeActivities } from "../activities";
 import { ColumnConfig } from "../domain/ColumnConfig";
-import {
-    ColumnValidation,
-    EnumerationColumnValidation,
-} from "../domain/ColumnValidation";
-import {
-    ColumnValidators,
-    DataMappingRecommendation,
-} from "../domain/DataAnalyzer";
+import { ColumnValidation, EnumerationColumnValidation } from "../domain/ColumnValidation";
+import { ColumnValidators, DataMappingRecommendation } from "../domain/DataAnalyzer";
 import { DataSetPatch } from "../domain/DataSet";
 import { ValidationMessage } from "../domain/ValidationMessage";
 export interface ImporterWorkflowParams {
@@ -52,12 +46,7 @@ export interface ImporterWorkflowParams {
     };
 }
 
-export type ImporterState =
-    | "select-file"
-    | "mapping"
-    | "validate"
-    | "importing"
-    | "closed";
+export type ImporterState = "select-file" | "mapping" | "validate" | "importing" | "closed";
 export interface ImporterStatus {
     isValidatingData: boolean;
     state: ImporterState;
@@ -90,11 +79,10 @@ const addFileUpdate = defineUpdate<
 const startImportSignal = defineUpdate<void, []>("importer:start-import");
 const closeSignal = defineSignal("importer:close");
 const importStatusQuery = defineQuery<ImporterStatus>("importer:status");
-const dataMappingRecommendationsQuery = defineQuery<
-    DataMappingRecommendation[] | null
->("importer:data-mapping-recommendations");
-const importerConfigQuery =
-    defineQuery<ImporterWorkflowParams>("importer:config");
+const dataMappingRecommendationsQuery = defineQuery<DataMappingRecommendation[] | null>(
+    "importer:data-mapping-recommendations"
+);
+const importerConfigQuery = defineQuery<ImporterWorkflowParams>("importer:config");
 const mappingUpdate = defineUpdate<
     void,
     [
@@ -133,10 +121,7 @@ const acts = proxyActivities<ReturnType<typeof makeActivities>>({
     startToCloseTimeout: "5 minute",
 });
 
-const validationParallelLimit = env
-    .get("VALIDATION_PARALLEL_LIMIT")
-    .default(10)
-    .asIntPositive();
+const validationParallelLimit = env.get("VALIDATION_PARALLEL_LIMIT").default(10).asIntPositive();
 /**
  * Entity workflow which represents a complete importer workflow
  */
@@ -154,8 +139,7 @@ export async function importer(params: ImporterWorkflowParams) {
     let configuredMappings: Mapping[] | null = null;
     let totalRows = 0;
     let meta: Meta | null = null;
-    const changedEnums: Record<string, { action: "added"; value: string }[]> =
-        {};
+    const changedEnums: Record<string, { action: "added"; value: string }[]> = {};
 
     // progress states
     let state: ImporterState = "select-file";
@@ -213,34 +197,22 @@ export async function importer(params: ImporterWorkflowParams) {
                 const newMessages: Record<string, ValidationMessage[]> = {};
 
                 for (const patch of updateParams.patches) {
-                    const _columnConfig = columnConfig.find(
-                        (item) => item.key === patch.column
-                    );
+                    const _columnConfig = columnConfig.find((item) => item.key === patch.column);
                     if (!_columnConfig) {
                         continue;
                     }
                     const columnValidations = _columnConfig.validations;
 
                     if (columnValidations?.length) {
-                        const validationResults = await performRecordValidation(
-                            [_columnConfig],
-                            patch.rowId
-                        );
+                        const validationResults = await performRecordValidation([_columnConfig], patch.rowId);
                         const validationResultsGroupedByColumn = mapValues(
                             keyBy(validationResults, "column"),
                             "messages"
                         );
-                        newMessages[patch.column] =
-                            validationResultsGroupedByColumn[patch.column] ||
-                            [];
-                        if (
-                            columnValidations.find(
-                                (item) => item.type === "unique"
-                            )
-                        ) {
+                        newMessages[patch.column] = validationResultsGroupedByColumn[patch.column] || [];
+                        if (columnValidations.find((item) => item.type === "unique")) {
                             // unique validation
-                            const changedColumnsForValidator =
-                                await performValidations([_columnConfig]);
+                            const changedColumnsForValidator = await performValidations([_columnConfig]);
                             changedColumns.push(...changedColumnsForValidator);
                         }
                     }
@@ -268,13 +240,9 @@ export async function importer(params: ImporterWorkflowParams) {
         },
         {
             validator: () => {
-                const totalMessageCount = sum(
-                    Object.values(meta?.messageCount ?? {})
-                );
+                const totalMessageCount = sum(Object.values(meta?.messageCount ?? {}));
                 if (totalMessageCount > 0) {
-                    throw new ApplicationFailure(
-                        "Import not allowed due to existing messages"
-                    );
+                    throw new ApplicationFailure("Import not allowed due to existing messages");
                 }
             },
         }
@@ -287,14 +255,9 @@ export async function importer(params: ImporterWorkflowParams) {
                     validations: column.validations?.map((validation) => {
                         if (validation.type === params.columnValidation.type) {
                             if (params.columnValidation.type === "enum") {
-                                const newEnumValidation =
-                                    params.columnValidation as EnumerationColumnValidation;
-                                const currentEnumValidation =
-                                    validation as EnumerationColumnValidation;
-                                const addedEnums = difference(
-                                    newEnumValidation.values,
-                                    currentEnumValidation.values
-                                );
+                                const newEnumValidation = params.columnValidation as EnumerationColumnValidation;
+                                const currentEnumValidation = validation as EnumerationColumnValidation;
+                                const addedEnums = difference(newEnumValidation.values, currentEnumValidation.values);
                                 changedEnums[column.key] = [
                                     ...(changedEnums[column.key] || []),
                                     ...addedEnums.map((value) => ({
@@ -324,9 +287,7 @@ export async function importer(params: ImporterWorkflowParams) {
             if (!config) {
                 continue;
             }
-            const changedColumnsForValidator = await performValidations([
-                config,
-            ]);
+            const changedColumnsForValidator = await performValidations([config]);
             changedColumns.push(...changedColumnsForValidator);
         }
         return {
@@ -359,26 +320,16 @@ export async function importer(params: ImporterWorkflowParams) {
 
     try {
         // step 1: wait for and process source file
-        const hasSourceFile = await condition(
-            () => sourceFile !== null,
-            uploadTimeout
-        );
+        const hasSourceFile = await condition(() => sourceFile !== null, uploadTimeout);
         if (!hasSourceFile) {
-            throw ApplicationFailure.nonRetryable(
-                "Timeout: source file not uploaded"
-            );
+            throw ApplicationFailure.nonRetryable("Timeout: source file not uploaded");
         }
         await processSourceFile();
         // step 2: data mapping recommendation and user selection
         state = "mapping";
-        const hasConfiguredMappings = await condition(
-            () => configuredMappings !== null,
-            startImportTimeout
-        );
+        const hasConfiguredMappings = await condition(() => configuredMappings !== null, startImportTimeout);
         if (!hasConfiguredMappings) {
-            throw ApplicationFailure.nonRetryable(
-                "Timeout: mappings not configured"
-            );
+            throw ApplicationFailure.nonRetryable("Timeout: mappings not configured");
         }
         isMappingData = true;
         await acts.applyMappings({
@@ -389,9 +340,7 @@ export async function importer(params: ImporterWorkflowParams) {
         const allMappedColumnsWithValidators = columnConfig.filter(
             (column) =>
                 column.validations?.length &&
-                (configuredMappings ?? []).find(
-                    (mapping) => mapping.targetColumn === column.key
-                )
+                (configuredMappings ?? []).find((mapping) => mapping.targetColumn === column.key)
         );
         await performValidations(allMappedColumnsWithValidators);
         isMappingData = false;
@@ -399,14 +348,9 @@ export async function importer(params: ImporterWorkflowParams) {
         // step 3: data validation
         state = "validate";
         // step 4: start import
-        const hasImportStartRequested = await condition(
-            () => state === "importing",
-            startImportTimeout
-        );
+        const hasImportStartRequested = await condition(() => state === "importing", startImportTimeout);
         if (!hasImportStartRequested) {
-            throw ApplicationFailure.nonRetryable(
-                "Timeout: import start not requested"
-            );
+            throw ApplicationFailure.nonRetryable("Timeout: import start not requested");
         }
         try {
             await callbackCancellationScope.run(async () => {
@@ -474,18 +418,16 @@ export async function importer(params: ImporterWorkflowParams) {
         const limitFct = pLimit(validationParallelLimit);
         const limit = 5000;
         const validationRecordChunks = Math.ceil(totalCount / limit);
-        const parallelValidations = times(
-            validationRecordChunks,
-            (chunkIndex) =>
-                limitFct(() => {
-                    return acts.processDataValidations({
-                        importerId,
-                        columnValidators,
-                        stats: columnStats,
-                        skip: chunkIndex * limit,
-                        limit,
-                    });
-                })
+        const parallelValidations = times(validationRecordChunks, (chunkIndex) =>
+            limitFct(() => {
+                return acts.processDataValidations({
+                    importerId,
+                    columnValidators,
+                    stats: columnStats,
+                    skip: chunkIndex * limit,
+                    limit,
+                });
+            })
         );
         const affectedColumns = await Promise.all(parallelValidations);
 
@@ -494,10 +436,7 @@ export async function importer(params: ImporterWorkflowParams) {
         return affectedColumns.flat();
     }
 
-    async function performRecordValidation(
-        columnConfigs: ColumnConfig[],
-        rowId: string
-    ) {
+    async function performRecordValidation(columnConfigs: ColumnConfig[], rowId: string) {
         if (isValidating) {
             await condition(() => !isValidating);
         }
@@ -517,17 +456,14 @@ export async function importer(params: ImporterWorkflowParams) {
             }
             const { columnStats } = await acts.generateStatsPerColumn({
                 importerId,
-                uniqueColumns:
-                    columnValidators.unique?.map((item) => item.column) ?? [],
+                uniqueColumns: columnValidators.unique?.map((item) => item.column) ?? [],
             });
-            const validationResults = await acts.processDataValidationForRecord(
-                {
-                    importerId,
-                    columnValidators,
-                    stats: columnStats,
-                    rowId,
-                }
-            );
+            const validationResults = await acts.processDataValidationForRecord({
+                importerId,
+                columnValidators,
+                stats: columnStats,
+                rowId,
+            });
             meta = await acts.generateMeta({ importerId });
             return validationResults;
         } finally {
@@ -558,21 +494,15 @@ function mergeEnumValidations(configs: ColumnConfig[]): ColumnConfig[] {
                 (val) => val.type === "enum"
             ) as EnumerationColumnValidation[];
             if (enumValidations.length > 1) {
-                const mergedValues = Array.from(
-                    new Set(enumValidations.flatMap((val) => val.values || []))
-                );
-                const canAddNewValues = enumValidations.some(
-                    (val) => val.canAddNewValues
-                );
+                const mergedValues = Array.from(new Set(enumValidations.flatMap((val) => val.values || [])));
+                const canAddNewValues = enumValidations.some((val) => val.canAddNewValues);
                 const mergedValidation: EnumerationColumnValidation = {
                     type: "enum",
                     values: mergedValues,
                     canAddNewValues,
                 };
                 // Remove all enum validations
-                const filteredValidations = config.validations.filter(
-                    (val) => val.type !== "enum"
-                );
+                const filteredValidations = config.validations.filter((val) => val.type !== "enum");
                 // Add the merged enum validation
                 filteredValidations.push(mergedValidation);
                 return { ...config, validations: filteredValidations };

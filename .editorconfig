@@ -2,3 +2,4 @@
 quote_type = double
 indent_size = 4
 indent_style = space
+max_line_length = 120

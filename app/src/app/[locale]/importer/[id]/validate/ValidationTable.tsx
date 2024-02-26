@@ -1,37 +1,14 @@
 "use client";
-import {
-    EnumerationColumnValidation,
-    ImporterDto,
-    SourceData,
-} from "@/app/api/importer/[slug]/ImporterDto";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { EnumerationColumnValidation, ImporterDto, SourceData } from "@/app/api/importer/[slug]/ImporterDto";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
-import {
-    Row,
-    RowData,
-    createColumnHelper,
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
-} from "@tanstack/react-table";
+import { Row, RowData, createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { produce } from "immer";
 import { isObject, isString } from "lodash";
 import { AlertCircle } from "lucide-react";
@@ -52,10 +29,7 @@ type Props = {
         previousValue: string | number | null
     ) => void;
     onLoadPage: (page: number) => void;
-    currentValidations: Record<
-        string /* rowId */,
-        Record<string /* columnId */, boolean>
-    >;
+    currentValidations: Record<string /* rowId */, Record<string /* columnId */, boolean>>;
     onReloadConfig: VoidFunction;
 };
 
@@ -81,22 +55,16 @@ const ValidationTable = (props: Props) => {
     const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
     const tableBodyRef = React.useRef<HTMLTableSectionElement | null>(null);
     const columns = React.useMemo(() => {
-        const dataMappingWithConfig = (
-            props.importerDto.status.dataMapping ?? []
-        )
+        const dataMappingWithConfig = (props.importerDto.status.dataMapping ?? [])
             .filter((mapping) => mapping.targetColumn !== null)
             .map((mapping) => {
-                const config = props.importerDto.config.columnConfig.find(
-                    (c) => c.key === mapping.targetColumn
-                );
+                const config = props.importerDto.config.columnConfig.find((c) => c.key === mapping.targetColumn);
                 if (!config) {
                     throw new Error("Config not found for mapping");
                 }
                 return { ...mapping, config };
             });
-        const columnHelper = createColumnHelper<
-            ExtendedSourceData | "loading"
-        >();
+        const columnHelper = createColumnHelper<ExtendedSourceData | "loading">();
         return dataMappingWithConfig.map(({ targetColumn, config }) =>
             columnHelper.accessor(`data.${config.key}.value`, {
                 header: config.label,
@@ -118,32 +86,19 @@ const ValidationTable = (props: Props) => {
                         : [];
                     const columnValidations = config.validations ?? [];
                     const isValidating = isObject(originalRecord)
-                        ? originalRecord.isValidatingByColumn?.[
-                              mapperColumnId
-                          ] === true ?? false
+                        ? originalRecord.isValidatingByColumn?.[mapperColumnId] === true ?? false
                         : false;
                     const enumValidators = columnValidations.filter(
                         (validation) => validation.type === "enum"
                     ) as EnumerationColumnValidation[];
-                    const isValueRequired = columnValidations.some(
-                        (validation) => validation.type === "required"
-                    );
+                    const isValueRequired = columnValidations.some((validation) => validation.type === "required");
                     let displayValue: React.ReactNode = value;
                     const handleChangeData = (newValue: string) => {
-                        props.table.options.meta?.updateData(
-                            props.row.index,
-                            mapperColumnId,
-                            newValue,
-                            value
-                        );
+                        props.table.options.meta?.updateData(props.row.index, mapperColumnId, newValue, value);
                     };
                     if (enumValidators && enumValidators.length > 0) {
-                        const availableValues = enumValidators.flatMap(
-                            (validator) => validator.values
-                        );
-                        const canAddNewValues = enumValidators.some(
-                            (validator) => validator.canAddNewValues === true
-                        );
+                        const availableValues = enumValidators.flatMap((validator) => validator.values);
+                        const canAddNewValues = enumValidators.some((validator) => validator.canAddNewValues === true);
                         displayValue = (
                             <SelectCell
                                 value={(value as string) ?? ""}
@@ -181,20 +136,10 @@ const ValidationTable = (props: Props) => {
                                         <AlertCircle className="ml-2 text-red-500 size-5" />
                                     </TooltipTrigger>
                                     <TooltipPortal>
-                                        <TooltipContent
-                                            collisionBoundary={
-                                                tableBodyRef.current
-                                            }
-                                        >
-                                            {allMessagesForCell.map(
-                                                (message, index) => (
-                                                    <div key={index}>
-                                                        {t(
-                                                            `validation.messages.${message.type}`
-                                                        )}
-                                                    </div>
-                                                )
-                                            )}
+                                        <TooltipContent collisionBoundary={tableBodyRef.current}>
+                                            {allMessagesForCell.map((message, index) => (
+                                                <div key={index}>{t(`validation.messages.${message.type}`)}</div>
+                                            ))}
                                         </TooltipContent>
                                     </TooltipPortal>
                                 </Tooltip>
@@ -204,11 +149,7 @@ const ValidationTable = (props: Props) => {
                 },
             })
         );
-    }, [
-        props.importerDto.config.columnConfig,
-        props.importerDto.status.dataMapping,
-        t,
-    ]);
+    }, [props.importerDto.config.columnConfig, props.importerDto.status.dataMapping, t]);
 
     const allEmptyData: ExtendedSourceData[] = React.useMemo(() => {
         const emptyRowEntry = props.importerDto.config.columnConfig.reduce(
@@ -224,17 +165,13 @@ const ValidationTable = (props: Props) => {
         // TODO find better way
         return produce(allEmptyData, (draft) => {
             // insert all page data
-            for (const pageNumber of Object.keys(props.data).map((k) =>
-                parseInt(k)
-            )) {
+            for (const pageNumber of Object.keys(props.data).map((k) => parseInt(k))) {
                 const start = pageNumber * 100;
                 const pageData = props.data[pageNumber];
                 for (let i = 0; i < pageData.length; i++) {
-                    const currentValidationsForRow =
-                        props.currentValidations[pageData[i]._id];
+                    const currentValidationsForRow = props.currentValidations[pageData[i]._id];
                     draft[start + i] = { ...pageData[i] };
-                    draft[start + i].isValidatingByColumn =
-                        currentValidationsForRow ?? {};
+                    draft[start + i].isValidatingByColumn = currentValidationsForRow ?? {};
                 }
             }
         });
@@ -246,13 +183,7 @@ const ValidationTable = (props: Props) => {
         meta: {
             updateData: (rowIndex, columnId, value, previousValue) => {
                 const rowId = allData[rowIndex]._id;
-                props.onUpdateData(
-                    rowIndex,
-                    rowId,
-                    columnId,
-                    value,
-                    previousValue
-                );
+                props.onUpdateData(rowIndex, rowId, columnId, value, previousValue);
             },
         },
     });
@@ -263,8 +194,7 @@ const ValidationTable = (props: Props) => {
         getScrollElement: () => tableContainerRef.current,
         //measure dynamic row height, except in firefox because it measures table border height incorrectly
         measureElement:
-            typeof window !== "undefined" &&
-            navigator.userAgent.indexOf("Firefox") === -1
+            typeof window !== "undefined" && navigator.userAgent.indexOf("Firefox") === -1
                 ? (element) => element?.getBoundingClientRect().height
                 : undefined,
         overscan: 5,
@@ -294,25 +224,16 @@ const ValidationTable = (props: Props) => {
 
     const { rows } = table.getRowModel();
     return (
-        <div
-            className="rounded-md overflow-auto border h-[calc(100vh_-_4.5rem)]"
-            ref={tableContainerRef}
-        >
+        <div className="rounded-md overflow-auto border h-[calc(100vh_-_4.5rem)]" ref={tableContainerRef}>
             <TooltipProvider>
                 <Tooltip>
                     <Table className="relative">
                         <TableHeader className="sticky top-0 z-10 bg-white">
                             {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow
-                                    key={headerGroup.id}
-                                    className="flex w-full"
-                                >
+                                <TableRow key={headerGroup.id} className="flex w-full">
                                     {headerGroup.headers.map((header) => {
                                         const numberOfMessages =
-                                            props.importerDto.status.meta
-                                                ?.messageCount[
-                                                header.column.id
-                                            ] ?? 0;
+                                            props.importerDto.status.meta?.messageCount[header.column.id] ?? 0;
                                         return (
                                             <TableHead
                                                 className="border-r"
@@ -323,19 +244,12 @@ const ValidationTable = (props: Props) => {
                                             >
                                                 {header.isPlaceholder
                                                     ? null
-                                                    : flexRender(
-                                                          header.column
-                                                              .columnDef.header,
-                                                          header.getContext()
-                                                      )}
+                                                    : flexRender(header.column.columnDef.header, header.getContext())}
                                                 {numberOfMessages > 0 && (
                                                     <Badge className="ml-4 bg-red-500 text-white">
-                                                        {t(
-                                                            "validation.numberOfErrors",
-                                                            {
-                                                                count: numberOfMessages,
-                                                            }
-                                                        )}
+                                                        {t("validation.numberOfErrors", {
+                                                            count: numberOfMessages,
+                                                        })}
                                                     </Badge>
                                                 )}
                                             </TableHead>
@@ -350,61 +264,46 @@ const ValidationTable = (props: Props) => {
                                 height: `${rowVirtualizer.getTotalSize()}px`,
                             }}
                         >
-                            {rowVirtualizer
-                                .getVirtualItems()
-                                .map((virtualRow) => {
-                                    const hasLoadedRow =
-                                        rows[virtualRow.index] !== undefined;
-                                    if (!hasLoadedRow) {
-                                        return (
-                                            <TableRow
-                                                className="absolute w-full flex"
-                                                style={{
-                                                    transform: `translateY(${virtualRow.start}px)`,
-                                                }}
-                                                key={`loading-${virtualRow.index}`}
-                                            ></TableRow>
-                                        );
-                                    }
-                                    const row = rows[
-                                        virtualRow.index
-                                    ] as Row<any>;
-
+                            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                                const hasLoadedRow = rows[virtualRow.index] !== undefined;
+                                if (!hasLoadedRow) {
                                     return (
                                         <TableRow
                                             className="absolute w-full flex"
                                             style={{
                                                 transform: `translateY(${virtualRow.start}px)`,
                                             }}
-                                            key={row.id}
-                                            data-state={
-                                                row.getIsSelected() &&
-                                                "selected"
-                                            }
-                                        >
-                                            {row
-                                                .getVisibleCells()
-                                                .map((cell) => {
-                                                    return (
-                                                        <TableCell
-                                                            className="border-r"
-                                                            key={cell.id}
-                                                            style={{
-                                                                width: cell.column.getSize(),
-                                                            }}
-                                                        >
-                                                            {flexRender(
-                                                                cell.column
-                                                                    .columnDef
-                                                                    .cell,
-                                                                cell.getContext()
-                                                            )}
-                                                        </TableCell>
-                                                    );
-                                                })}
-                                        </TableRow>
+                                            key={`loading-${virtualRow.index}`}
+                                        ></TableRow>
                                     );
-                                })}
+                                }
+                                const row = rows[virtualRow.index] as Row<any>;
+
+                                return (
+                                    <TableRow
+                                        className="absolute w-full flex"
+                                        style={{
+                                            transform: `translateY(${virtualRow.start}px)`,
+                                        }}
+                                        key={row.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        {row.getVisibleCells().map((cell) => {
+                                            return (
+                                                <TableCell
+                                                    className="border-r"
+                                                    key={cell.id}
+                                                    style={{
+                                                        width: cell.column.getSize(),
+                                                    }}
+                                                >
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </Tooltip>
