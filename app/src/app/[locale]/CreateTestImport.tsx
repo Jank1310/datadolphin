@@ -46,8 +46,30 @@ const doctorsImporterColumns = [
     validations: [
       {
         type: "enum",
-
         values: ["IT", "HR", "Support"],
+        canAddNewValues: true,
+      },
+      {
+        type: "enum",
+        values: ["foo"],
+        canAddNewValues: false,
+      },
+      {
+        type: "enum",
+        values: ["bar"],
+      },
+    ],
+  },
+  {
+    key: "department2",
+    label: "Department",
+    keyAlternatives: ["abteilung"],
+    type: "text",
+    validations: [
+      {
+        type: "enum",
+        values: ["IT", "HR", "Support"],
+        canAddNewValues: false,
       },
     ],
   },
@@ -80,6 +102,7 @@ const userImporterColumns = [
       {
         type: "enum",
         values: ["IT", "HR", "Support"],
+        canAddNewValues: true,
       },
     ],
   },

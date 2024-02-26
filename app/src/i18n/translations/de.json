@@ -52,7 +52,13 @@
             "phone": "Die Werte müssen eine gültige Telefonnummer sein",
             "email": "Die Werte müssen eine gültige E-Mail-Adresse sein",
             "enum": "Die Werte müssen der Auswahl entsprechen"
-        }
+        },
+        "selectCellAddNewValue": "+ hinzufügen"
+    },
+    "newValueDialog": {
+        "title": "Neuen Wert hinzufügen",
+        "label": "Neuer Wert",
+        "save": "Speichern"
     },
     "importing": {
         "title": "Der Import wird durchgeführt",

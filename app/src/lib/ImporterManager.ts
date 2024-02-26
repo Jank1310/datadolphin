@@ -1,4 +1,5 @@
 import {
+  ColumnValidation,
   DataMapping,
   DataMappingRecommendation,
   ImporterConfig,
@@ -124,6 +125,26 @@ export class ImporterManager {
           fileReference,
           fileFormat,
           bucket,
+        },
+      ],
+    });
+  }
+
+  public async updateColumnValidation(
+    importerId: string,
+    columnConfigKey: string,
+    columnValidation: ColumnValidation
+  ) {
+    const handle = this.workflowClient.getHandle(importerId);
+    const workflowState = await handle.query<ImporterStatus>("importer:status");
+    if (workflowState.state === "closed") {
+      throw new Error("Importer is closed");
+    }
+    await handle.executeUpdate("importer:update-column-validation", {
+      args: [
+        {
+          columnConfigKey,
+          columnValidation,
         },
       ],
     });

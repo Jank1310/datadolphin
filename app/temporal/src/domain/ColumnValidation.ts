@@ -13,6 +13,7 @@ export interface RegexColumnValidation extends ColumnValidation {
 export interface EnumerationColumnValidation extends ColumnValidation {
   type: "enum";
   values: string[];
+  canAddNewValues?: boolean;
 }
 
 export interface PhoneColumnValidation extends ColumnValidation {
