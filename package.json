@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@temporalio/proto": "^1.9.3",
+    "p-retry": "^4.6.2"
+  }
+}
