@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { ColumnConfig } from "./ColumnConfig";
-import { EnumerationColumnValidation, RegexColumnValidation } from "./ColumnValidation";
+import { EnumerationColumnValidation, PhoneColumnValidation, RegexColumnValidation } from "./ColumnValidation";
 import { ColumnValidators, DataAnalyzer, SourceFileStatsPerColumn } from "./DataAnalyzer";
 import { DataSetRow } from "./DataSet";
 
@@ -386,13 +386,56 @@ describe("DataAnalyzer", () => {
             ];
 
             const validatorColumns = {
-                phone: [{ column: "phone", config: { type: "phone" } }],
+                phone: [
+                    {
+                        column: "phone",
+                        config: { type: "phone", defaultCountry: "DE" } as PhoneColumnValidation,
+                    },
+                ],
             } as ColumnValidators;
             const stats = {};
             const result = analyzer.processDataValidations(rowsWithPhoneValues, validatorColumns, stats);
             expect(result).toEqual([
                 {
                     rowId: "65b39818ab8b36794717db1d",
+                    column: "phone",
+                    messages: [
+                        {
+                            message: "value is not a valid phone number",
+                            type: "phone",
+                        },
+                    ],
+                },
+            ]);
+        });
+
+        it("should invalidate if no default country is set for phone validation", () => {
+            const rowsWithPhoneValues = [
+                {
+                    _id: new ObjectId("65b39818ab8b36794717db1a"),
+                    __sourceRowId: 0,
+                    data: {
+                        phone: {
+                            value: "015140604777",
+                            messages: [],
+                        },
+                    },
+                },
+            ];
+
+            const validatorColumns = {
+                phone: [
+                    {
+                        column: "phone",
+                        config: { type: "phone" } as PhoneColumnValidation,
+                    },
+                ],
+            } as ColumnValidators;
+            const stats = {};
+            const result = analyzer.processDataValidations(rowsWithPhoneValues, validatorColumns, stats);
+            expect(result).toEqual([
+                {
+                    rowId: "65b39818ab8b36794717db1a",
                     column: "phone",
                     messages: [
                         {

@@ -17,7 +17,7 @@ export class PhoneValidator {
             }
             if (
                 typeof dataToValidate !== "string" ||
-                isValidPhoneNumber(dataToValidate, config.defaultCountry ?? "DE") === false
+                isValidPhoneNumber(dataToValidate, config.defaultCountry) === false
             ) {
                 errors[column] = {
                     type: "phone",
