@@ -48,6 +48,7 @@ export function makeActivities(fileStore: FileStore, database: Database, dataAna
                                 columns: true,
                                 delimiter: params.formatOptions.delimiter ?? ",",
                                 relax_column_count: true,
+                                skip_empty_lines: true,
                             },
                             (err, records) => {
                                 if (err) {
