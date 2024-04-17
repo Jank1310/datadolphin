@@ -60,20 +60,55 @@ export class ImporterManager {
         await handle.signal("importer:close");
     }
 
-    public async getRecords(importerId: string, page: number, size: number): Promise<SourceData[]> {
+    public async getRecords(
+        importerId: string,
+        page: number,
+        size: number,
+        filterErrorsForColumn?: string | null
+    ): Promise<SourceData[]> {
         const handle = this.workflowClient.getHandle(importerId);
         const workflowState = await handle.query<ImporterStatus>("importer:status");
         if (workflowState.state === "closed") {
             throw new Error("Importer is closed");
         }
         const db = this.getDb(importerId);
-        const records = await db
-            .collection<SourceData>("data")
-            .find()
-            .sort({ __sourceRowId: 1 })
-            .skip(page * size)
-            .limit(size)
-            .toArray();
+
+        const aggregationPipeline = [];
+        if (filterErrorsForColumn) {
+            aggregationPipeline.push({
+                $project: {
+                    __sourceRowId: 1,
+                    dataAsArray: {
+                        $objectToArray: "$data",
+                    },
+                },
+            });
+            if (filterErrorsForColumn === "all") {
+                aggregationPipeline.push({
+                    $match: {
+                        "dataAsArray.v.messages.type": { $exists: true },
+                    },
+                });
+            } else {
+                aggregationPipeline.push({
+                    $match: {
+                        "dataAsArray.k": filterErrorsForColumn,
+                        "dataAsArray.v.messages.type": { $exists: true },
+                    },
+                });
+            }
+            aggregationPipeline.push({
+                $project: {
+                    __sourceRowId: 1,
+                    data: {
+                        $arrayToObject: "$dataAsArray",
+                    },
+                },
+            });
+        }
+        aggregationPipeline.push({ $sort: { __sourceRowId: 1 } }, { $skip: page * size }, { $limit: size });
+
+        const records = await db.collection("data").aggregate<SourceData>(aggregationPipeline).toArray();
         return records;
     }
 

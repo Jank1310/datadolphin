@@ -59,7 +59,9 @@
             "enum": "The values must match the selection"
         },
         "selectCellAddNewValue": "+ add new",
-        "btnUploadDifferentFile": "Re-upload file"
+        "btnUploadDifferentFile": "Re-upload file",
+        "btnShowOnlyErrors": "Show only errors",
+        "btnShowAll": "Show all"
     },
     "newValueDialog": {
         "title": "Add new value",
