@@ -17,7 +17,7 @@ export async function fetchRecords(
     page: number,
     pageSize: number,
     filterErrorsForColumn: string | null
-): Promise<SourceData[]> {
+): Promise<{ recordCount: number; records: SourceData[] }> {
     const searchParams = new URLSearchParams();
     searchParams.append("page", page.toFixed());
     searchParams.append("pageSize", pageSize.toFixed());
@@ -28,6 +28,6 @@ export async function fetchRecords(
     const result = frontendFetch(getUrl, {
         method: "GET",
         cache: "no-cache",
-    }).then((res) => res.json() as Promise<{ records: SourceData[] }>);
-    return (await result).records;
+    }).then((res) => res.json() as Promise<{ recordCount: number; records: SourceData[] }>);
+    return await result;
 }

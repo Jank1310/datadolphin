@@ -7,8 +7,8 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     const page = parseInt(req.nextUrl.searchParams.get("page") ?? "0");
     const size = parseInt(req.nextUrl.searchParams.get("size") ?? "100");
     const filterErrorsForColumn = req.nextUrl.searchParams.get("filterErrorsForColumn");
-    const records = await importerManager.getRecords(importerId, page, size, filterErrorsForColumn);
-    return NextResponse.json({ records });
+    const getRecorsResponse = await importerManager.getRecords(importerId, page, size, filterErrorsForColumn);
+    return NextResponse.json(getRecorsResponse);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { slug: string } }) {

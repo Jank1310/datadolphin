@@ -40,6 +40,14 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
         enablePolling ? 500 : undefined,
         initialImporterDto
     );
+    const totalErrors = React.useMemo(
+        () => sum(Object.values(importer.status.meta?.messageCount ?? {})),
+        [importer.status.meta?.messageCount]
+    );
+    const [dataStats, setDataStats] = React.useState({
+        total: initialImporterDto.status.totalRows,
+        totalErrors,
+    });
     const [currentlyLoading, setCurrentlyLoading] = React.useState<Record<string, boolean>>({});
     const [pageData, setPageData] = React.useState<Record<number, SourceData[]>>({
         0: initialData,
@@ -62,10 +70,17 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
                     [pageNumber]: true,
                 });
                 try {
-                    const result = await fetchRecords(pageNumber, 100, filter);
+                    const result = (await fetchRecords(pageNumber, 100, filter)) as {
+                        recordCount: number;
+                        records: SourceData[];
+                    };
                     setPageData({
                         ...pageData,
-                        [pageNumber]: result,
+                        [pageNumber]: result.records,
+                    });
+                    setDataStats({
+                        total: result.recordCount,
+                        totalErrors,
                     });
                 } finally {
                     setCurrentlyLoading({
@@ -127,15 +142,6 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
         },
         [handleLoadPage, mutateImporter, filterErrorsForColumn]
     );
-
-    const totalErrors = React.useMemo(
-        () => sum(Object.values(importer.status.meta?.messageCount ?? {})),
-        [importer.status.meta?.messageCount]
-    );
-    const dataStats = {
-        total: initialImporterDto.status.totalRows,
-        totalErrors,
-    };
 
     const handleUpdateData = React.useCallback(
         async (rowIndex: number, rowId: string, columnId: string, value: string | number | null) => {

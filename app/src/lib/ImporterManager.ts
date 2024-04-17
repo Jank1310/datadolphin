@@ -65,7 +65,7 @@ export class ImporterManager {
         page: number,
         size: number,
         filterErrorsForColumn?: string | null
-    ): Promise<SourceData[]> {
+    ): Promise<{ recordCount: number; records: SourceData[] }> {
         const handle = this.workflowClient.getHandle(importerId);
         const workflowState = await handle.query<ImporterStatus>("importer:status");
         if (workflowState.state === "closed") {
@@ -106,10 +106,18 @@ export class ImporterManager {
                 },
             });
         }
-        aggregationPipeline.push({ $sort: { __sourceRowId: 1 } }, { $skip: page * size }, { $limit: size });
+        aggregationPipeline.push({
+            $facet: {
+                totalCount: [{ $count: "count" }],
+                records: [{ $sort: { __sourceRowId: 1 } }, { $skip: page * size }, { $limit: size }],
+            },
+        });
 
-        const records = await db.collection("data").aggregate<SourceData>(aggregationPipeline).toArray();
-        return records;
+        const result = await db
+            .collection("data")
+            .aggregate<{ totalCount: { count: number }[]; records: SourceData[] }>(aggregationPipeline)
+            .toArray();
+        return { records: result[0].records, recordCount: result[0].totalCount[0].count };
     }
 
     public async patchRecords(importerId: string, patches: { column: string; rowId: string; newValue: string }[]) {
