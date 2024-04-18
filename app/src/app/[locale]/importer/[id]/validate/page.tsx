@@ -8,11 +8,11 @@ export default async function page(props: { params: { id: string } }) {
   const importerManager = await getImporterManager();
   const initialImporterDtoPromise = importerManager.getImporterDto(importerId);
   const initialRecordsPromise = importerManager.getRecords(importerId, 0, 100);
-  const [initialImporterDto, initialRecords] = await Promise.all([
+  const [initialImporterDto, initialRecordsResponse] = await Promise.all([
     initialImporterDtoPromise,
     initialRecordsPromise,
   ]);
-  const plainRecords = initialRecords.map((record) => ({
+  const plainRecords = initialRecordsResponse.records.map((record) => ({
     ...record,
     _id: record._id.toString(),
   }));
@@ -23,10 +23,7 @@ export default async function page(props: { params: { id: string } }) {
   }
   return (
     <div className="h-full">
-      <Validation
-        initialImporterDto={initialImporterDto}
-        initialRecords={plainRecords}
-      />
+      <Validation initialImporterDto={initialImporterDto} initialRecords={plainRecords} />
     </div>
   );
 }

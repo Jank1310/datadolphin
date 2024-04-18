@@ -1,22 +1,17 @@
 import { getImporterManager } from "@/lib/ImporterManager";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
   const { slug: importerId } = params;
   const importerManager = await getImporterManager();
   const page = parseInt(req.nextUrl.searchParams.get("page") ?? "0");
   const size = parseInt(req.nextUrl.searchParams.get("size") ?? "100");
-  const records = await importerManager.getRecords(importerId, page, size);
-  return NextResponse.json({ records });
+  const filterErrorsForColumn = req.nextUrl.searchParams.get("filterErrorsForColumn");
+  const getRecordsResponse = await importerManager.getRecords(importerId, page, size, filterErrorsForColumn);
+  return NextResponse.json(getRecordsResponse);
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { slug: string } }) {
   const { slug: importerId } = params;
   const importerManager = await getImporterManager();
   const updateData = await req.json();

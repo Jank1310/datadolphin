@@ -41,7 +41,9 @@
     "toast": {
       "errorResettingData": "Fehler beim Zurücksetzen der Daten"
     },
-    "btnUploadDifferentFile": "Andere Datei hochladen"
+    "btnUploadDifferentFile": "Andere Datei hochladen",
+    "btnShowOnlyErrors": "Zeige nur Fehler an",
+    "btnShowAll": "Alle anzeigen"
   },
   "validation": {
     "none": "Leer",

@@ -60,21 +60,64 @@ export class ImporterManager {
         await handle.signal("importer:close");
     }
 
-    public async getRecords(importerId: string, page: number, size: number): Promise<SourceData[]> {
+    public async getRecords(
+        importerId: string,
+        page: number,
+        size: number,
+        filterErrorsForColumn?: string | null
+    ): Promise<{ recordCount: number; records: SourceData[] }> {
         const handle = this.workflowClient.getHandle(importerId);
         const workflowState = await handle.query<ImporterStatus>("importer:status");
         if (workflowState.state === "closed") {
             throw new Error("Importer is closed");
         }
         const db = this.getDb(importerId);
-        const records = await db
-            .collection<SourceData>("data")
-            .find()
-            .sort({ __sourceRowId: 1 })
-            .skip(page * size)
-            .limit(size)
+
+        const aggregationPipeline = [];
+        if (filterErrorsForColumn) {
+            aggregationPipeline.push({
+                $project: {
+                    __sourceRowId: 1,
+                    dataAsArray: {
+                        $objectToArray: "$data",
+                    },
+                },
+            });
+            if (filterErrorsForColumn === "__ALL_COLUMNS__") {
+                aggregationPipeline.push({
+                    $match: {
+                        "dataAsArray.v.messages.type": { $exists: true },
+                    },
+                });
+            } else {
+                aggregationPipeline.push({
+                    $match: {
+                        "dataAsArray.k": filterErrorsForColumn,
+                        "dataAsArray.v.messages.type": { $exists: true },
+                    },
+                });
+            }
+            aggregationPipeline.push({
+                $project: {
+                    __sourceRowId: 1,
+                    data: {
+                        $arrayToObject: "$dataAsArray",
+                    },
+                },
+            });
+        }
+        aggregationPipeline.push({
+            $facet: {
+                totalCount: [{ $count: "count" }],
+                records: [{ $sort: { __sourceRowId: 1 } }, { $skip: page * size }, { $limit: size }],
+            },
+        });
+
+        const result = await db
+            .collection("data")
+            .aggregate<{ totalCount: { count: number }[]; records: SourceData[] }>(aggregationPipeline)
             .toArray();
-        return records;
+        return { records: result[0].records, recordCount: result[0].totalCount[0].count };
     }
 
     public async patchRecords(importerId: string, patches: { column: string; rowId: string; newValue: string }[]) {
