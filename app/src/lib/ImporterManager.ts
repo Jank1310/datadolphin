@@ -78,6 +78,7 @@ export class ImporterManager {
             aggregationPipeline.push({
                 $project: {
                     __sourceRowId: 1,
+                    data: 1,
                     dataAsArray: {
                         $objectToArray: "$data",
                     },
@@ -92,19 +93,10 @@ export class ImporterManager {
             } else {
                 aggregationPipeline.push({
                     $match: {
-                        "dataAsArray.k": filterErrorsForColumn,
-                        "dataAsArray.v.messages.type": { $exists: true },
+                        [`data.${filterErrorsForColumn}.messages.type`]: { $exists: true },
                     },
                 });
             }
-            aggregationPipeline.push({
-                $project: {
-                    __sourceRowId: 1,
-                    data: {
-                        $arrayToObject: "$dataAsArray",
-                    },
-                },
-            });
         }
         aggregationPipeline.push({
             $facet: {
