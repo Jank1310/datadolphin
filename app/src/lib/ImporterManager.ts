@@ -83,7 +83,7 @@ export class ImporterManager {
                     },
                 },
             });
-            if (filterErrorsForColumn === "all") {
+            if (filterErrorsForColumn === "__ALL_COLUMNS__") {
                 aggregationPipeline.push({
                     $match: {
                         "dataAsArray.v.messages.type": { $exists: true },

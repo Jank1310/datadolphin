@@ -2,7 +2,7 @@
 
 import { ImporterDto, SourceData } from "@/app/api/importer/[slug]/ImporterDto";
 import { RecordUpdateResult } from "@/app/api/importer/[slug]/records/RecordUpdateResult";
-import { useFetchRecords } from "@/components/hooks/useFetchRecords";
+import { FetchRecordsFilter, useFetchRecords } from "@/components/hooks/useFetchRecords";
 import { useGetImporter } from "@/components/hooks/useGetImporter";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
@@ -16,7 +16,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useIsMounted } from "usehooks-ts";
 import ValidationTable from "./ValidationTable";
+
 enableMapSet();
+
 type Props = {
     initialImporterDto: ImporterDto;
     initialRecords: SourceData[];
@@ -30,7 +32,7 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
     const [enablePolling, setEnablePolling] = React.useState(false);
     const [isStartingImport, setIsStartingImport] = React.useState(false);
     const [isResetting, setIsResetting] = React.useState(false);
-    const [filterErrorsForColumn, setFilterErrorsForColumn] = React.useState<string | null>(null);
+    const [currentFilter, setCurrentFilter] = React.useState<FetchRecordsFilter>({});
     const [currentValidations, setCurrentValidations] = React.useState<
         Record<string /* rowId */, Record<string /* columnId */, boolean>>
     >({});
@@ -59,7 +61,7 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
     }, [mutateImporter]);
 
     const handleLoadPage = React.useCallback(
-        async (pageNumber: number, force: boolean = false, filter: string | null) => {
+        async (pageNumber: number, force: boolean = false, filter: FetchRecordsFilter) => {
             setTimeout(async () => {
                 // needed to get the latest states
                 if (!force && (currentlyLoading[pageNumber.toFixed()] || pageNumber in pageData)) {
@@ -90,7 +92,7 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
                 }
             });
         },
-        [currentlyLoading, fetchRecords, pageData]
+        [currentlyLoading, fetchRecords, pageData, totalErrors]
     );
 
     React.useEffect(() => {
@@ -98,18 +100,12 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
             setEnablePolling(true);
         } else {
             if (enablePolling) {
-                handleLoadPage(0, true, filterErrorsForColumn);
+                handleLoadPage(0, true, currentFilter);
                 mutateImporter(); // needed to update stats
                 setEnablePolling(false);
             }
         }
-    }, [
-        enablePolling,
-        handleLoadPage,
-        initialImporterDto.status.isValidatingData,
-        mutateImporter,
-        filterErrorsForColumn,
-    ]);
+    }, [enablePolling, handleLoadPage, initialImporterDto.status.isValidatingData, mutateImporter, currentFilter]);
 
     const handleRecordUpdate = React.useCallback(
         (
@@ -136,11 +132,11 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
             );
             mutateImporter();
             if (result.changedColumns.length > 0) {
-                handleLoadPage(rowPage, true, filterErrorsForColumn);
+                handleLoadPage(rowPage, true, currentFilter);
             }
             // reload importer to get latest stats
         },
-        [handleLoadPage, mutateImporter, filterErrorsForColumn]
+        [mutateImporter, handleLoadPage, currentFilter]
     );
 
     const handleUpdateData = React.useCallback(
@@ -233,27 +229,32 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
     }, [frontendFetch, initialImporterDto.importerId, isMounted, isResetting, push, t, toast]);
 
     React.useEffect(() => {
-        handleLoadPage(0, true, filterErrorsForColumn);
+        handleLoadPage(0, true, currentFilter);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filterErrorsForColumn]);
+    }, [currentFilter]);
 
     const hasErrors = dataStats.totalErrors > 0;
+
+    const toggleErrorsFilter = () => {
+        setCurrentFilter(
+            produce((draft) => {
+                if (draft?.errors) {
+                    draft.errors = null;
+                } else {
+                    draft.errors = "__ALL_COLUMNS__";
+                }
+                return draft;
+            })
+        );
+    };
 
     return (
         <div>
             <div className="h-14 flex justify-between items-center px-4">
                 <h1 className="text-3xl font-bold">{t("validation.title")}</h1>
                 <div className="flex gap-2">
-                    <Button
-                        disabled={isResetting}
-                        variant="secondary"
-                        onClick={() =>
-                            filterErrorsForColumn === null
-                                ? setFilterErrorsForColumn("all")
-                                : setFilterErrorsForColumn(null)
-                        }
-                    >
-                        {t(filterErrorsForColumn === null ? "validation.btnShowOnlyErrors" : "validation.btnShowAll")}
+                    <Button disabled={isResetting} variant="secondary" onClick={toggleErrorsFilter}>
+                        {t(currentFilter?.errors ? "validation.btnShowAll" : "validation.btnShowOnlyErrors")}
                     </Button>
                     <Button disabled={isResetting} variant="secondary" onClick={handleUploadDifferentFile}>
                         {t("validation.btnUploadDifferentFile")}
@@ -274,10 +275,17 @@ const Validation = ({ initialImporterDto, initialRecords: initialData }: Props) 
                     data={pageData}
                     totalRows={dataStats.total}
                     onUpdateData={handleUpdateData}
-                    onLoadPage={handleLoadPage}
+                    onLoadPage={(page, force) => handleLoadPage(page, force, currentFilter)}
                     currentValidations={currentValidations}
                     onReloadConfig={handleReloadConfig}
-                    onFilterErrorsForColumn={(column: string) => setFilterErrorsForColumn(column)}
+                    onFilterErrorsForColumn={(column: string) => {
+                        console.log(column);
+                        setCurrentFilter(
+                            produce((draft) => {
+                                draft.errors = column;
+                            })
+                        );
+                    }}
                 />
             </div>
         </div>

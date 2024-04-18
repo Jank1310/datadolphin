@@ -28,7 +28,7 @@ type Props = {
         value: string | number | null,
         previousValue: string | number | null
     ) => void;
-    onLoadPage: (page: number, force: boolean, filter: string | null) => void;
+    onLoadPage: (page: number, force: boolean) => void;
     currentValidations: Record<string /* rowId */, Record<string /* columnId */, boolean>>;
     onReloadConfig: VoidFunction;
     onFilterErrorsForColumn: (columnId: string) => void;
@@ -212,13 +212,13 @@ const ValidationTable = (props: Props) => {
         if (firstItem) {
             const pageOfFirstItem = Math.floor(firstItem.index / 100);
             if (pageOfFirstItem in data === false) {
-                onLoadPage(pageOfFirstItem, false, null);
+                onLoadPage(pageOfFirstItem, false);
             }
         }
         if (lastItem) {
             const pageOfLastItem = Math.floor(lastItem.index / 100);
             if (pageOfLastItem in data === false) {
-                onLoadPage(pageOfLastItem, false, null);
+                onLoadPage(pageOfLastItem, false);
             }
         }
     }, [data, onLoadPage, virtualItems]);
