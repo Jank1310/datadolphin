@@ -22,7 +22,12 @@
       "btnUpload": "Datei hochladen",
       "dragAndDrop": "Datei hierher ziehen",
       "btnBrowseFile": "Datei auswählen",
-      "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx"
+      "supportedFormats": "Unterstützte Formate: .csv, .xls, .xlsx",
+      "delimiter": {
+        "placeholder": "CSV-Trennzeichen",
+        "comma": "Komma: ,",
+        "semicolon": "Strichpunkt: ;"
+      }
     },
     "toast": {
       "errorUploading": "Fehler beim Hochladen der Datei",

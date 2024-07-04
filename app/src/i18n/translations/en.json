@@ -22,7 +22,12 @@
             "btnUpload": "Upload",
             "dragAndDrop": "Drag and drop a file here",
             "btnBrowseFile": "Browse file",
-            "supportedFormats": "Supported file types: .csv, .xls, .xlsx"
+            "supportedFormats": "Supported file types: .csv, .xls, .xlsx",
+            "delimiter": {
+                "placeholder": "CSV-Delimiter",
+                "comma": "Comma: ,",
+                "semicolon": "Semicolon: ;"
+            }
         },
         "toast": {
             "errorUploading": "Error uploading file"

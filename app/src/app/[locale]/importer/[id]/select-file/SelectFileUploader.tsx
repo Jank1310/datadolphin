@@ -27,19 +27,16 @@ const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = React.useState(false);
   const [hasUploaded, setHasUploaded] = React.useState(false);
-  const { importer } = useGetImporter(
-    initialImporterDto.importerId,
-    hasUploaded ? 500 : undefined,
-    initialImporterDto
-  );
+  const { importer } = useGetImporter(initialImporterDto.importerId, hasUploaded ? 500 : undefined, initialImporterDto);
 
-  const handleSubmitFile = async (file: File) => {
+  const handleSubmitFile = async (file: File, delimiter: string) => {
     if (file) {
       try {
         setIsUploading(true);
         const formData = new FormData();
         formData.append("file", file);
         formData.append("importerId", importer.importerId);
+        formData.append("delimiter", delimiter);
         await frontendFetch(`/api/upload`, {
           method: "POST",
           body: formData,
@@ -72,9 +69,7 @@ const SelectFileUploader = ({ importerDto: initialImporterDto }: Props) => {
       {isUploading || isProcessingSourceFile || hasUploaded ? (
         <div className="flex flex-col items-center">
           <span className="text-slate-500">
-            {isUploading
-              ? t("select-file.uploading")
-              : t("select-file.processingFile")}
+            {isUploading ? t("select-file.uploading") : t("select-file.processingFile")}
           </span>
           <LoadingSpinner className="text-slate-500 mt-2" />
         </div>
