@@ -418,7 +418,7 @@ export async function importer(params: ImporterWorkflowParams) {
     }
     const { columnStats, totalCount } = await acts.generateStatsPerColumn({
       importerId,
-      uniqueColumns: columnValidators.unique.map((item) => item.column),
+      uniqueColumns: columnValidators.unique?.map((item) => item.column) ?? [],
     });
     //! Optimize import limit
     const limitFct = pLimit(validationParallelLimit);
