@@ -14,6 +14,7 @@ services:
   minio:
     image: minio/minio:${MINIO_VERSION}
     command: server --console-address ":9001" /data
+    restart: always
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -39,6 +40,7 @@ services:
   # TEMPORAL
   temporal:
     container_name: temporal
+    restart: always
     depends_on:
       - temporal-postgresql
     image: temporalio/auto-setup:${TEMPORAL_VERSION}
@@ -48,6 +50,7 @@ services:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
   temporal-ui:
     container_name: temporal-ui
+    restart: always
     depends_on:
       - temporal
     image: temporalio/ui:${TEMPORAL_UI_VERSION}
@@ -55,6 +58,7 @@ services:
       - 8080:8080
   temporal-admin-tools:
     container_name: temporal-admin-tools
+    restart: always
     depends_on:
       - temporal
     environment:
