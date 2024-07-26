@@ -1,13 +1,13 @@
 # base file for dev and prod deployments
 services:
   app:
-    image: ghcr.io/jank1310/datadolphin:${DATA_DOLPHIN_VERSION}
+    image: ghcr.io/jank1310/datadolphin:v${DATA_DOLPHIN_VERSION}
     command: node /app/nextjs/server.js
     restart: always
     ports:
       - 3000:3000
   worker:
-    image: ghcr.io/jank1310/datadolphin:${DATA_DOLPHIN_VERSION}
+    image: ghcr.io/jank1310/datadolphin:v${DATA_DOLPHIN_VERSION}
     command: node /app/worker/worker.js
     restart: always
   # STORAGE
