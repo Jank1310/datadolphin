@@ -396,7 +396,9 @@ export async function importer(params: ImporterWorkflowParams) {
   }
 
   async function cleanUp() {
-    await acts.deleteBucket({ bucket: sourceFile!.bucket });
+    if(sourceFile){
+      await acts.deleteBucket({ bucket: sourceFile.bucket });
+    }
     await acts.dropDatabase({ importerId });
   }
 
