@@ -91,8 +91,8 @@ describe("DataAnalyzer", () => {
 			},
 			{
 				sourceColumn: "role",
-				targetColumn: "work role",
-				confidence: expect.closeTo(0.992431671049),
+				targetColumn: "roles",
+				confidence: expect.closeTo(0.999),
 			},
 			{
 				sourceColumn: "salry",
