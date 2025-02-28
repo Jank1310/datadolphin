@@ -1,4 +1,14 @@
 import {
+	Combobox,
+	ComboboxAnchor,
+	ComboboxBadgeItem,
+	ComboboxBadgeList,
+	ComboboxContent,
+	ComboboxInput,
+	ComboboxItem,
+	ComboboxTrigger,
+} from "@/components/ui/combobox";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -10,11 +20,13 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { ChevronDown } from "lucide-react";
 import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { isShallowEqual } from "remeda";
 import { NewValueDialog } from "../NewValueDialog";
 
 type Props = {
-	value: string;
-	onChange: (value: string) => void;
+	multi: boolean;
+	value: string | string[];
+	onChange: (value: string | string[]) => void;
 	isRequired: boolean;
 	availableValues: string[];
 	isReadOnly: boolean;
@@ -54,11 +66,12 @@ const SelectCell = ({
 	importerId,
 	onReloadConfig,
 	canAddNewValues,
+	multi,
 }: Props) => {
 	const { t } = useTranslation();
 	const id = useId();
 	const frontendFetch = useFrontendFetchWithAuth();
-	const [value, setValue] = React.useState<string>(initialValue);
+	const [value, setValue] = React.useState<string | string[]>(initialValue);
 	const [dialogOpen, setDialogOpen] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
@@ -88,6 +101,62 @@ const SelectCell = ({
 		onReloadConfig();
 		setDialogOpen(false);
 	};
+	if (multi && Array.isArray(value)) {
+		return (
+			<Combobox
+				className="w-full h-full"
+				value={value}
+				onValueChange={(newValue: string[]) => {
+					if (!isShallowEqual(value, newValue)) {
+						// use settimeout to get a snappier experience
+						setTimeout(() => onChange(newValue));
+					}
+					setValue(newValue);
+				}}
+				multiple
+				autoHighlight
+				openOnFocus
+			>
+				<ComboboxAnchor className="w-full h-full flex-nowrap border-none p-2 outline-none">
+					<ComboboxBadgeList className="shrink-0">
+						{value.map((item) => {
+							const option = availableValues.find((v) => v === item);
+							if (!option)
+								return (
+									<ComboboxBadgeItem
+										key={item}
+										value={item}
+										className="bg-destructive text-destructive-foreground font-semibold"
+									>
+										{item}
+									</ComboboxBadgeItem>
+								);
+
+							return (
+								<ComboboxBadgeItem className="" key={item} value={item}>
+									{option}
+								</ComboboxBadgeItem>
+							);
+						})}
+					</ComboboxBadgeList>
+					<ComboboxInput
+						placeholder="Search"
+						className="text-gray-400 h4 outline-none"
+					/>
+					<ComboboxTrigger className="absolute right-1">
+						<ChevronDown className="h-4 w-4" />
+					</ComboboxTrigger>
+				</ComboboxAnchor>
+				<ComboboxContent>
+					{availableValues.map((availableValue) => (
+						<ComboboxItem key={availableValue} value={availableValue}>
+							{availableValue}
+						</ComboboxItem>
+					))}
+				</ComboboxContent>
+			</Combobox>
+		);
+	}
 
 	return (
 		<>
@@ -108,7 +177,7 @@ const SelectCell = ({
 				}}
 			>
 				<SelectCellTrigger
-					className={cn({
+					className={cn("p-2", {
 						"text-gray-400": isValueEmpty,
 					})}
 				>

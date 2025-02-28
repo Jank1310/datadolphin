@@ -48,8 +48,8 @@ type Props = {
 		rowIndex: number,
 		rowId: string,
 		columnId: string,
-		value: string | number | null,
-		previousValue: string | number | null,
+		value: string | string[] | number | null,
+		previousValue: string | string[] | number | null,
 	) => void;
 	onLoadPage: (page: number, force: boolean) => void;
 	currentValidations: Record<
@@ -69,8 +69,8 @@ declare module "@tanstack/react-table" {
 		updateData: (
 			rowIndex: number,
 			columnId: string,
-			value: string | number | null,
-			previousValue: string | number | null,
+			value: string | string[] | number | null,
+			previousValue: string | string[] | number | null,
 		) => void;
 	}
 }
@@ -124,7 +124,7 @@ const ValidationTable = (props: Props) => {
 						(validation) => validation.type === "required",
 					);
 					let displayValue: React.ReactNode = value;
-					const handleChangeData = (newValue: string) => {
+					const handleChangeData = (newValue: string | string[]) => {
 						props.table.options.meta?.updateData(
 							props.row.index,
 							mapperColumnId,
@@ -139,9 +139,15 @@ const ValidationTable = (props: Props) => {
 						const canAddNewValues = enumValidators.some(
 							(validator) => validator.canAddNewValues === true,
 						);
+						const multi = config.multipleValues?.enabled ?? false;
+						if (multi && Array.isArray(value) === false) {
+							throw new Error("Expected value to be an array");
+						}
+
 						displayValue = (
 							<SelectCell
-								value={(value as string) ?? ""}
+								multi={multi}
+								value={multi ? (value as string[]) : ((value as string) ?? "")}
 								availableValues={availableValues}
 								configKey={config.key}
 								importerId={importerId}
@@ -165,7 +171,7 @@ const ValidationTable = (props: Props) => {
 
 					return (
 						<div
-							className={cn("flex items-center p-2", {
+							className={cn("flex items-center h-9", {
 								"bg-slate-200 animate-pulse": isValidating,
 							})}
 						>
@@ -313,7 +319,7 @@ const ValidationTable = (props: Props) => {
 														)}
 												{numberOfMessages > 0 && (
 													<Badge
-														className="ml-4 bg-red-500 text-white cursor-pointer"
+														className="ml-4 bg-destructive text-destructive-foreground cursor-pointer"
 														onClick={() =>
 															onFilterErrorsForColumn(header.column.id)
 														}
@@ -348,7 +354,7 @@ const ValidationTable = (props: Props) => {
 										/>
 									);
 								}
-								const row = rows[virtualRow.index] as Row<any>;
+								const row = rows[virtualRow.index] as Row<unknown>;
 
 								return (
 									<TableRow
@@ -362,7 +368,7 @@ const ValidationTable = (props: Props) => {
 										{row.getVisibleCells().map((cell) => {
 											return (
 												<TableCell
-													className="border-r"
+													className="border-r overflow-hidden"
 													key={cell.id}
 													style={{
 														width: cell.column.getSize(),

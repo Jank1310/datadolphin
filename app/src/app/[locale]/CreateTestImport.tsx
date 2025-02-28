@@ -2,6 +2,10 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import React from "react";
+import type {
+	ColumnConfig,
+	EnumerationColumnValidation,
+} from "../api/importer/[slug]/ImporterDto";
 
 const doctorsImporterColumns = [
 	{
@@ -75,7 +79,7 @@ const doctorsImporterColumns = [
 	},
 ];
 
-const userImporterColumns = [
+const userImporterColumns: ColumnConfig[] = [
 	{
 		key: "email",
 		label: "E-Mail",
@@ -94,6 +98,21 @@ const userImporterColumns = [
 		type: "text",
 	},
 	{
+		key: "role",
+		type: "text",
+		validations: [
+			{
+				type: "enum",
+				values: ["admin", "user"],
+				canAddNewValues: true,
+			} as EnumerationColumnValidation,
+		],
+		multipleValues: {
+			enabled: true,
+		},
+		label: "Rolle",
+	},
+	{
 		key: "department",
 		label: "Department",
 		keyAlternatives: ["abteilung"],
@@ -103,7 +122,7 @@ const userImporterColumns = [
 				type: "enum",
 				values: ["IT", "HR", "Support"],
 				canAddNewValues: true,
-			},
+			} as EnumerationColumnValidation,
 		],
 	},
 ];
@@ -111,7 +130,7 @@ const userImporterColumns = [
 export const CreateTestImporter = () => {
 	const [importerId, setImporterId] = React.useState<string | null>(null);
 
-	const createImporter = async (columnConfig: any) => {
+	const createImporter = async (columnConfig: ColumnConfig[]) => {
 		const fetchResult = await fetch("/api/importer", {
 			method: "POST",
 			body: JSON.stringify({
@@ -148,7 +167,11 @@ export const CreateTestImporter = () => {
 				</div>
 			) : (
 				<div className="flex flex-col gap-4">
-					<Button onClick={() => createImporter(doctorsImporterColumns)}>
+					<Button
+						onClick={() =>
+							createImporter(doctorsImporterColumns as ColumnConfig[])
+						}
+					>
 						Create doctors test import{" "}
 					</Button>
 					<Button onClick={() => createImporter(userImporterColumns)}>

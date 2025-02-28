@@ -69,6 +69,16 @@ export interface ColumnConfig {
 	keyAlternatives?: string[];
 	type: "text" | "number" | "date";
 	validations?: ColumnValidation[];
+	multipleValues?: {
+		/**
+		 * @default false
+		 */
+		enabled?: boolean;
+		/**
+		 * @default ,
+		 */
+		delimiter?: string;
+	};
 }
 
 export interface ColumnValidation {
@@ -126,6 +136,6 @@ export type SourceData = {
 };
 
 export interface CellValue {
-	value: string | number | null;
+	value: string | string[] | number | null;
 	messages: ValidationMessages[];
 }

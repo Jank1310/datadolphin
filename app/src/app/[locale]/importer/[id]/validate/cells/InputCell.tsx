@@ -71,7 +71,7 @@ export const InputCell = ({
 			}}
 			onKeyUp={onKeyUp}
 			disabled={isReadOnly}
-			className="bg-transparent"
+			className="bg-transparent p-2 outline-none"
 		/>
 	);
 };
