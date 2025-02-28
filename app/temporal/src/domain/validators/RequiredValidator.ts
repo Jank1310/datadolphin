@@ -10,11 +10,20 @@ export class RequiredValidator {
 		const columnsToValidate = columnConfig.map((item) => item.column);
 		for (const columnToValidate of columnsToValidate) {
 			const dataToValidate = row.data[columnToValidate].value;
-			if (Boolean(dataToValidate) === false) {
-				errors[columnToValidate] = {
-					type: "required",
-					message: "value is required",
-				};
+			if (Array.isArray(dataToValidate)) {
+				if (dataToValidate.length === 0) {
+					errors[columnToValidate] = {
+						type: "required",
+						message: "value is required",
+					};
+				}
+			} else {
+				if (Boolean(dataToValidate) === false) {
+					errors[columnToValidate] = {
+						type: "required",
+						message: "value is required",
+					};
+				}
 			}
 		}
 		return errors;

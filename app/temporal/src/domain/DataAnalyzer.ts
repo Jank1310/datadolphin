@@ -99,8 +99,8 @@ export class DataAnalyzer {
 					stats,
 				);
 
-				for (const column of Object.keys(messages as any)) {
-					const message = messages[column] as any;
+				for (const column of Object.keys(messages)) {
+					const message = messages[column];
 					const messageForRowAndColumn = chunkMessages.find(
 						(item) =>
 							item.rowId === row._id.toString() && item.column === column,
@@ -177,7 +177,7 @@ export class DataAnalyzer {
 					fuzzyMatches.push({
 						targetColumn: bestMatchForColumn.item.key,
 						sourceColumn: column,
-						confidence: 1 - bestMatchForColumn.score!, // score = 0 == perfect match, score = 1 == worst match
+						confidence: 1 - (bestMatchForColumn.score ?? 1), // score = 0 == perfect match, score = 1 == worst match
 					});
 				}
 			}

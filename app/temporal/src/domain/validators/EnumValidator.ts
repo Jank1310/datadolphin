@@ -11,18 +11,36 @@ export class EnumValidator implements Validator {
 		const errors: Record<string, ValidationMessage> = {};
 		for (const { column, config } of columnConfigs) {
 			const dataToValidate = row.data[column].value;
-			const isEmptyValue = Boolean(dataToValidate) === false;
-			if (isEmptyValue) {
-				continue;
-			}
-			const isValueInEnum =
-				typeof dataToValidate === "string" &&
-				config.values.includes(dataToValidate);
-			if (isValueInEnum === false) {
-				errors[column] = {
-					type: "enum",
-					message: "value is not a valid enum",
-				};
+			if (Array.isArray(dataToValidate)) {
+				const isEmptyValue = dataToValidate.length === 0;
+				if (isEmptyValue) {
+					continue;
+				}
+				for (const value of dataToValidate) {
+					const isValueInEnum =
+						typeof value === "string" && config.values.includes(value);
+					if (isValueInEnum === false) {
+						errors[column] = {
+							type: "enum",
+							message: `value is not a valid enum: ${value}`,
+						};
+						break;
+					}
+				}
+			} else {
+				const isEmptyValue = Boolean(dataToValidate) === false;
+				if (isEmptyValue) {
+					continue;
+				}
+				const isValueInEnum =
+					typeof dataToValidate === "string" &&
+					config.values.includes(dataToValidate);
+				if (isValueInEnum === false) {
+					errors[column] = {
+						type: "enum",
+						message: "value is not a valid enum",
+					};
+				}
 			}
 		}
 		return errors;

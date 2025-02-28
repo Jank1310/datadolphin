@@ -307,7 +307,7 @@ const Validation = ({
 	return (
 		<div>
 			<div className="h-14 flex justify-between items-center px-4">
-				<h1 className="text-3xl font-bold">{t("validation.title")}</h1>
+				<h1 className="text-2xl font-bold">{t("validation.title")}</h1>
 				<div className="flex gap-2">
 					<Button
 						disabled={isResetting}
