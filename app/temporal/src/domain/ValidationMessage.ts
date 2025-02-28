@@ -1,6 +1,6 @@
-import { ValidatorType } from "./validators";
+import type { ValidatorType } from "./validators";
 
 export interface ValidationMessage {
-  type: ValidatorType;
-  message: string;
+	type: ValidatorType;
+	message: string;
 }
