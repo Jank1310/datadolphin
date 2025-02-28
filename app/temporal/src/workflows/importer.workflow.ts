@@ -380,6 +380,7 @@ export async function importer(params: ImporterWorkflowParams) {
 		await acts.applyMappings({
 			importerId,
 			dataMapping: configuredMappings ?? [],
+			columnConfig,
 		});
 		// initial validations for new mapped data
 		const allMappedColumnsWithValidators = columnConfig.filter(

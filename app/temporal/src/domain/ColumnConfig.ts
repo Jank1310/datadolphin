@@ -9,4 +9,14 @@ export interface ColumnConfig {
 	keyAlternatives?: string[];
 	type: "text" | "number" | "date";
 	validations?: ColumnValidation[];
+	multipleValues?: {
+		/**
+		 * @default false
+		 */
+		enabled?: boolean;
+		/**
+		 * @default ,
+		 */
+		delimiter?: string;
+	};
 }

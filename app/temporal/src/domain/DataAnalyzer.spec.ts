@@ -42,6 +42,11 @@ describe("DataAnalyzer", () => {
 			type: "text",
 		},
 		{
+			key: "roles",
+			label: "Multiple roles",
+			type: "text",
+		},
+		{
 			key: "work role",
 			label: "Role",
 			type: "text",
@@ -86,8 +91,8 @@ describe("DataAnalyzer", () => {
 			},
 			{
 				sourceColumn: "role",
-				targetColumn: "work role",
-				confidence: expect.closeTo(0.992431671049),
+				targetColumn: "roles",
+				confidence: expect.closeTo(0.999),
 			},
 			{
 				sourceColumn: "salry",
@@ -702,6 +707,73 @@ describe("DataAnalyzer", () => {
 					],
 				},
 			]);
+		});
+
+		describe("multiple values", () => {
+			it("should validate multiple roles", () => {
+				const multipleValues = [
+					{
+						_id: new ObjectId("65b39818ab8b36794717db1a"),
+						__sourceRowId: 0,
+						data: {
+							role: {
+								value: ["user", "admin-x"],
+								messages: [],
+							},
+						},
+					},
+					{
+						_id: new ObjectId("65b39818ab8b36794717db1f"),
+						__sourceRowId: 1,
+						data: { role: { value: ["user"], messages: [] } },
+					},
+					{
+						_id: new ObjectId("65b39818ab8b36794717dbaa"),
+						__sourceRowId: 2,
+						data: { role: { value: [], messages: [] } },
+					},
+				];
+				const validatorColumns = {
+					enum: [
+						{
+							column: "role",
+							config: {
+								type: "enum",
+								values: ["admin", "user"],
+							} as EnumerationColumnValidation,
+						},
+					],
+					required: [{ column: "role", config: { type: "required" } }],
+				} as ColumnValidators;
+				const stats = {};
+				const result = analyzer.processDataValidations(
+					multipleValues,
+					validatorColumns,
+					stats,
+				);
+				expect(result).toEqual([
+					{
+						rowId: "65b39818ab8b36794717db1a",
+						column: "role",
+						messages: [
+							{
+								message: "value is not a valid enum: admin-x",
+								type: "enum",
+							},
+						],
+					},
+					{
+						rowId: "65b39818ab8b36794717dbaa",
+						column: "role",
+						messages: [
+							{
+								message: "value is required",
+								type: "required",
+							},
+						],
+					},
+				]);
+			});
 		});
 	});
 });

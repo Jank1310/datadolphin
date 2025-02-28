@@ -73,6 +73,7 @@ const Validation = ({
 		mutateImporter();
 	}, [mutateImporter]);
 
+	// TODO fix
 	const handleLoadPage = React.useCallback(
 		async (pageNumber: number, filter: FetchRecordsFilter, force = false) => {
 			setTimeout(async () => {
@@ -135,7 +136,7 @@ const Validation = ({
 			rowId: string,
 			columnId: string,
 			result: RecordUpdateResult,
-			newValue: string | number | null,
+			newValue: string | string[] | number | null,
 		) => {
 			// update messages
 			const rowPage = Math.floor(rowIndex / 100);
@@ -167,7 +168,7 @@ const Validation = ({
 			rowIndex: number,
 			rowId: string,
 			columnId: string,
-			value: string | number | null,
+			value: string | string[] | number | null,
 		) => {
 			setCurrentValidations(
 				produce((draft) => {
@@ -285,9 +286,10 @@ const Validation = ({
 		toast,
 	]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	React.useEffect(() => {
 		handleLoadPage(0, currentFilter, true);
-	}, [currentFilter, handleLoadPage]);
+	}, [currentFilter]); // only load on filter change. handleLoadpage is currently not stabale
 
 	const hasErrors = dataStats.totalErrors > 0;
 
@@ -307,7 +309,7 @@ const Validation = ({
 	return (
 		<div>
 			<div className="h-14 flex justify-between items-center px-4">
-				<h1 className="text-3xl font-bold">{t("validation.title")}</h1>
+				<h1 className="text-2xl font-bold">{t("validation.title")}</h1>
 				<div className="flex gap-2">
 					<Button
 						disabled={isResetting}

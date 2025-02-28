@@ -1,6 +1,6 @@
 import type { ObjectId } from "mongodb";
 
-export type FieldValues = string | number | null;
+export type FieldValues = string[] | string | number | null;
 
 export type DataSetRow = {
 	_id: ObjectId;

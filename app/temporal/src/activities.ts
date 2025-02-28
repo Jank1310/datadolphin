@@ -118,7 +118,11 @@ export function makeActivities(
 		applyMappings: async (params: {
 			importerId: string;
 			dataMapping: Mapping[];
+			columnConfig: ColumnConfig[];
 		}): Promise<void> => {
+			const colConfigMap = new Map(
+				params.columnConfig.map((config) => [config.key, config]),
+			);
 			// drop collection for idempotency
 			await database.dropDataCollection(params.importerId);
 			const sourceJsonData = await database.getSourceData(params.importerId);
@@ -135,10 +139,26 @@ export function makeActivities(
 					data: {},
 				};
 				for (const mapping of mappingsWithTargetColumn) {
-					newRow.data[mapping.targetColumn as string] = {
-						value: row[mapping.sourceColumn],
-						messages: [],
-					};
+					if (!mapping.targetColumn) {
+						continue;
+					}
+					const config = colConfigMap.get(mapping.targetColumn);
+					if (config?.multipleValues?.enabled) {
+						const rowValue = row[mapping.sourceColumn];
+						const values =
+							typeof rowValue === "string"
+								? (rowValue.split(config.multipleValues.delimiter ?? ",") ?? [])
+								: [];
+						newRow.data[mapping.targetColumn as string] = {
+							value: values,
+							messages: [],
+						};
+					} else {
+						newRow.data[mapping.targetColumn as string] = {
+							value: row[mapping.sourceColumn],
+							messages: [],
+						};
+					}
 				}
 				return newRow;
 			});
