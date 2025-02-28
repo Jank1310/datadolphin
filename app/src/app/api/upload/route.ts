@@ -1,19 +1,18 @@
+import type { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
-import type { NextRequest } from "next/server";
 
 import { getImporterManager } from "@/lib/ImporterManager";
 import { getMinioClient } from "../../../lib/minioClient";
 
 export async function POST(req: NextRequest) {
-	const { importerId, bucket, destFileName, fileFormat, delimiter } =
+	const { importerId, destFileName, fileFormat, delimiter } =
 		await handleFileUpload(req);
 	const importerManager = await getImporterManager();
 	await importerManager.addFile(
 		importerId,
 		destFileName,
 		fileFormat,
-		bucket,
 		delimiter,
 	);
 	return new Response(undefined, { status: 201 });
@@ -33,12 +32,16 @@ async function handleFileUpload(req: NextRequest) {
 		throw new Error("file missing");
 	}
 
-	const bucket = importerId;
-	const bucketExists = await getMinioClient().bucketExists(bucket);
-
-	if (bucketExists === false) {
-		await getMinioClient().makeBucket(bucket);
+	const bucket = process.env.BUCKET;
+	const globalPrefix = process.env.BUCKET_PREFIX;
+	if (!bucket) {
+		throw new Error("BUCKET not set");
 	}
+	if (!globalPrefix) {
+		throw new Error("BUCKET_PREFIX not set");
+	}
+
+	const bucketPrefix = importerId;
 
 	const metadata = {
 		"Content-Type": file.type,
@@ -46,7 +49,7 @@ async function handleFileUpload(req: NextRequest) {
 		ImporterId: importerId,
 	};
 
-	const destFileName = `${randomUUID()}${extname(file.name)}`;
+	const destFileName = `${globalPrefix}/${bucketPrefix}/${randomUUID()}${extname(file.name)}`;
 	try {
 		await getMinioClient().putObject(
 			bucket,
@@ -62,7 +65,6 @@ async function handleFileUpload(req: NextRequest) {
 
 	return {
 		importerId,
-		bucket,
 		destFileName,
 		fileFormat,
 		delimiter,

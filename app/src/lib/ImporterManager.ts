@@ -153,7 +153,6 @@ export class ImporterManager {
 		importerId: string,
 		fileReference: string,
 		fileFormat: string,
-		bucket: string,
 		delimiter: string,
 	) {
 		const handle = this.workflowClient.getHandle(importerId);
@@ -166,7 +165,6 @@ export class ImporterManager {
 				{
 					fileReference,
 					fileFormat,
-					bucket,
 					delimiter,
 				},
 			],

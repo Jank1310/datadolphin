@@ -84,7 +84,7 @@ const addFileUpdate = defineUpdate<
 		{
 			fileReference: string;
 			fileFormat: "csv" | "xlsx";
-			bucket: string;
+			bucketPrefix: string;
 			delimiter: string;
 		},
 	]
@@ -149,7 +149,6 @@ export async function importer(params: ImporterWorkflowParams) {
 	const callbackCancellationScope = new CancellationScope();
 	let columnConfig = mergeEnumValidations(params.columnConfig);
 	let sourceFile: {
-		bucket: string;
 		fileReference: string;
 		fileFormat: "csv" | "xlsx";
 		delimiter: string;
@@ -182,7 +181,6 @@ export async function importer(params: ImporterWorkflowParams) {
 		addFileUpdate,
 		(params) => {
 			sourceFile = {
-				bucket: params.bucket,
 				fileReference: params.fileReference,
 				fileFormat: params.fileFormat,
 				delimiter: params.delimiter,
@@ -311,9 +309,8 @@ export async function importer(params: ImporterWorkflowParams) {
 								};
 							}
 							return params.columnValidation;
-						} else {
-							return validation;
 						}
+						return validation;
 					}),
 				};
 			}
@@ -382,7 +379,7 @@ export async function importer(params: ImporterWorkflowParams) {
 		isMappingData = true;
 		await acts.applyMappings({
 			importerId,
-			dataMapping: configuredMappings!,
+			dataMapping: configuredMappings ?? [],
 		});
 		// initial validations for new mapped data
 		const allMappedColumnsWithValidators = columnConfig.filter(
@@ -446,7 +443,7 @@ export async function importer(params: ImporterWorkflowParams) {
 
 	async function cleanUp() {
 		if (sourceFile) {
-			await acts.deleteBucket({ bucket: sourceFile.bucket });
+			await acts.deleteFiles({ prefix: importerId });
 		}
 		await acts.dropDatabase({ importerId });
 	}
@@ -457,7 +454,7 @@ export async function importer(params: ImporterWorkflowParams) {
 
 		const columnValidators = {} as ColumnValidators;
 		for (const column of columnConfigs) {
-			for (const validator of column.validations!) {
+			for (const validator of column.validations ?? []) {
 				if (!columnValidators[validator.type]) {
 					columnValidators[validator.type] = [];
 				}
@@ -504,7 +501,7 @@ export async function importer(params: ImporterWorkflowParams) {
 		try {
 			const columnValidators = {} as ColumnValidators;
 			for (const column of columnConfigs) {
-				for (const validator of column.validations!) {
+				for (const validator of column.validations ?? []) {
 					if (!columnValidators[validator.type]) {
 						columnValidators[validator.type] = [];
 					}
@@ -534,12 +531,15 @@ export async function importer(params: ImporterWorkflowParams) {
 
 	async function processSourceFile() {
 		isProcessingSourceFile = true;
+		if (!sourceFile) {
+			throw new ApplicationFailure("No source file provided");
+		}
 		totalRows = await acts.processSourceFile({
 			importerId,
-			fileReference: sourceFile!.fileReference,
-			format: sourceFile!.fileFormat,
+			fileReference: sourceFile.fileReference,
+			format: sourceFile.fileFormat,
 			formatOptions: {
-				delimiter: sourceFile!.delimiter,
+				delimiter: sourceFile.delimiter,
 			},
 		});
 		dataMappingRecommendations = await acts.getMappingRecommendations({

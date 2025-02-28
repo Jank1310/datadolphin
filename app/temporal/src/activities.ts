@@ -42,8 +42,8 @@ export function makeActivities(
 	dataAnalyzer: DataAnalyzer,
 ) {
 	return {
-		deleteBucket: async (params: { bucket: string }) => {
-			await fileStore.deleteBucket(params.bucket);
+		deleteFiles: async (params: { prefix: string }) => {
+			await fileStore.deleteFilesInPrefix(params.prefix);
 		},
 		processSourceFile: async (params: {
 			importerId: string;
@@ -51,10 +51,7 @@ export function makeActivities(
 			format: string;
 			formatOptions: { delimiter?: string };
 		}): Promise<number> => {
-			const fileData = await fileStore.getFile(
-				params.importerId,
-				params.fileReference,
-			);
+			const fileData = await fileStore.getFile(params.fileReference);
 			let json: Record<string, unknown>[];
 			switch (params.format) {
 				case "csv":
@@ -139,7 +136,7 @@ export function makeActivities(
 				};
 				for (const mapping of mappingsWithTargetColumn) {
 					newRow.data[mapping.targetColumn as string] = {
-						value: row[mapping.sourceColumn!],
+						value: row[mapping.sourceColumn],
 						messages: [],
 					};
 				}

@@ -2,9 +2,6 @@ version: "3.7"
 
 # Shared environment variables
 x-default-env: &defaultEnv
-  MINIO_HOST: minio
-  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
   MONGO_URL: ${MONGO_URL}
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
   TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
@@ -39,17 +36,6 @@ services:
   worker-3:
     <<: *worker
   # STORAGE
-  minio:
-    extends:
-      file: docker-compose.base.yaml
-      service: minio
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    volumes:
-      - miniostorage:/data
-    networks:
-      - backend-network
   temporal-postgresql:
     extends:
       file: docker-compose.base.yaml
@@ -80,7 +66,7 @@ services:
     networks:
       - backend-network
     environment:
-      - DB=postgresql
+      - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PWD=${POSTGRES_PASSWORD}
@@ -127,7 +113,6 @@ networks:
     driver: bridge
     name: frontend-network
 volumes:
-  miniostorage:
   temporal-postgresql:
   mongodb:
   caddy_data:

@@ -2,15 +2,6 @@ version: "3.7"
 
 services:
   # STORAGE
-  minio:
-    extends:
-      file: docker-compose.base.yaml
-      service: minio
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    volumes:
-      - miniostorage:/data
   temporal-postgresql:
     extends:
       file: docker-compose.base.yaml
@@ -39,7 +30,7 @@ services:
     networks:
       - temporal-network
     environment:
-      - DB=postgresql
+      - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PWD=${POSTGRES_PASSWORD}
@@ -62,6 +53,5 @@ networks:
     driver: bridge
     name: ferretdb-network
 volumes:
-  miniostorage:
   temporal-postgresql:
   mongodb:

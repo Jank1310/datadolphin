@@ -11,19 +11,6 @@ services:
     command: node /app/worker/worker.js
     restart: always
   # STORAGE
-  minio:
-    image: minio/minio:${MINIO_VERSION}
-    command: server --console-address ":9001" /data
-    restart: always
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    hostname: minio
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
   mongodb:
     container_name: mongodb
     image: mongo

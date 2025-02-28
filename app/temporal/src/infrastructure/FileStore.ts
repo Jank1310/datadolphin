@@ -1,16 +1,27 @@
 import type Minio from "minio";
 
 export class FileStore {
-	constructor(private readonly minioClient: Minio.Client) {}
+	constructor(
+		private readonly minioClient: Minio.Client,
+		private readonly bucket: string,
+		private readonly globalPrefix: string,
+	) {}
 
-	public async getFile(bucket: string, fileReference: string): Promise<Buffer> {
-		const fileStats = await this.minioClient.statObject(bucket, fileReference);
+	private getPath(prefix: string, file: string) {
+		return `${this.globalPrefix}/${prefix}/${file}`;
+	}
+
+	public async getFile(fileReference: string): Promise<Buffer> {
+		const fileStats = await this.minioClient.statObject(
+			this.bucket,
+			fileReference,
+		);
 		if (!fileStats) {
 			throw new Error(
-				`could not find file ${fileReference} in bucket ${bucket}`,
+				`could not find file ${fileReference} in bucket ${this.bucket} `,
 			);
 		}
-		const stream = await this.minioClient.getObject(bucket, fileReference);
+		const stream = await this.minioClient.getObject(this.bucket, fileReference);
 		const data = await new Promise<Buffer>((resolve, reject) => {
 			const chunks: Buffer[] = [];
 			stream.on("error", reject);
@@ -20,18 +31,14 @@ export class FileStore {
 		return data;
 	}
 
-	public async putFile(
-		bucket: string,
-		fileReference: string,
-		file: Buffer,
-	): Promise<void> {
-		await this.minioClient.putObject(bucket, fileReference, file);
+	public async putFile(fileReference: string, file: Buffer): Promise<void> {
+		await this.minioClient.putObject(this.bucket, fileReference, file);
 	}
 
-	public async deleteBucket(bucket: string): Promise<void> {
+	public async deleteFilesInPrefix(prefix: string): Promise<void> {
 		const objectStream = this.minioClient.listObjectsV2(
-			bucket,
-			undefined,
+			this.bucket,
+			`${this.globalPrefix}/${prefix}`,
 			true,
 		);
 		const objects: Minio.BucketItem[] = [];
@@ -45,16 +52,15 @@ export class FileStore {
 		// we need to delete all objects first before we can delete the bucket
 		for (const object of objects) {
 			if (object.name) {
-				await this.deleteFile(bucket, object.name);
+				await this.deleteFile(this.bucket, object.name);
 			}
 		}
-		await this.minioClient.removeBucket(bucket);
 	}
 
 	public async deleteFile(
-		bucket: string,
+		prefix: string,
 		fileReference: string,
 	): Promise<void> {
-		await this.minioClient.removeObject(bucket, fileReference);
+		await this.minioClient.removeObject(this.bucket, fileReference);
 	}
 }
